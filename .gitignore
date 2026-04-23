@@ -1,0 +1,11 @@
+.DS_Store
+node_modules/
+*.log
+
+# Internal project management files
+CAREER-HANDOFF.md
+CONVERSATION-HANDOFF.md
+Lacrosse-Stats-V3-Plan.docx
+
+# Build artifact — added in final release commit
+lacrosse-stats-v2/dist.html
