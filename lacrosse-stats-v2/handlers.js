@@ -171,3 +171,91 @@ document.addEventListener('change', (e) => {
   const handler = HANDLERS[target.dataset.action];
   if (handler) handler(target.dataset.arg);
 });
+
+// ===== Admin handlers — localStorage CRUD (dodane w etapie C) =====
+
+Object.assign(HANDLERS, {
+  'admin-set-range':      (range) => { APP.adminFilter.range = range; render(); },
+  'admin-set-tournament': () => {
+    const sel = document.getElementById('admin-filter-tournament');
+    if (sel) APP.adminFilter.tournament = sel.value;
+    render();
+  },
+  'admin-set-status': () => {
+    const sel = document.getElementById('admin-filter-status');
+    if (sel) APP.adminFilter.status = sel.value;
+    render();
+  },
+
+  'tournament-new':    () => { APP.modal = { type: 'tournament-form', tournament: null }; render(); },
+  'tournament-edit': (id) => {
+    const t = DATA.tournaments.find(x => x.id === id);
+    if (!t) return;
+    APP.modal = { type: 'tournament-form', tournament: t };
+    render();
+  },
+  'tournament-delete': (id) => {
+    const t = DATA.tournaments.find(x => x.id === id);
+    if (!t) return;
+    const matchCount = DATA.scheduledMatches.filter(m => m.tournament === t.name).length;
+    const msg = matchCount > 0
+      ? `Usunąć turniej „${t.name}"? ${matchCount} meczów zostanie bez turnieju.`
+      : `Usunąć turniej „${t.name}"?`;
+    if (!confirm(msg)) return;
+    DATA.tournaments = DATA.tournaments.filter(x => x.id !== id);
+    saveData();
+    render();
+  },
+  'submit-tournament': (id) => {
+    const input = document.getElementById('tournament-name');
+    if (!input) return;
+    const name = input.value.trim();
+    if (!name) { alert('Nazwa turnieju nie może być pusta.'); return; }
+    if (id) {
+      const t = DATA.tournaments.find(x => x.id === id);
+      if (t) t.name = name;
+    } else {
+      DATA.tournaments.push({ id: 'tid_' + Date.now(), name });
+    }
+    saveData();
+    APP.modal = null;
+    render();
+  },
+
+  'match-new':  () => { APP.modal = { type: 'match-form', match: null }; render(); },
+  'match-edit': (id) => {
+    const m = DATA.scheduledMatches.find(x => x.id === id);
+    if (!m) return;
+    APP.modal = { type: 'match-form', match: m };
+    render();
+  },
+  'match-delete': (id) => {
+    const m = DATA.scheduledMatches.find(x => x.id === id);
+    if (!m) return;
+    if (!confirm(`Usunąć mecz „${m.team_A} vs ${m.team_B}"?`)) return;
+    DATA.scheduledMatches = DATA.scheduledMatches.filter(x => x.id !== id);
+    DATA.events           = DATA.events.filter(e => e.match_id !== id);
+    saveData();
+    render();
+  },
+  'submit-match': (id) => {
+    const tournament = (document.getElementById('match-tournament').value || '').trim();
+    const teamA      = document.getElementById('match-team-a').value.trim();
+    const teamB      = document.getElementById('match-team-b').value.trim();
+    const matchDate  = document.getElementById('match-date').value;
+    const status     = document.getElementById('match-status').value;
+    if (!teamA || !teamB || !matchDate) { alert('Wypełnij obie drużyny i datę.'); return; }
+    if (id) {
+      const m = DATA.scheduledMatches.find(x => x.id === id);
+      if (m) Object.assign(m, { tournament, team_A: teamA, team_B: teamB, match_date: matchDate, status });
+    } else {
+      DATA.scheduledMatches.push({
+        id: 'mid_' + Date.now(),
+        tournament, team_A: teamA, team_B: teamB, match_date: matchDate, status: status || 'scheduled'
+      });
+    }
+    saveData();
+    APP.modal = null;
+    render();
+  },
+});

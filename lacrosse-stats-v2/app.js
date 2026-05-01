@@ -8,6 +8,7 @@ function render() {
   if      (APP.screen === 'home')         renderHome(app);
   else if (APP.screen === 'match-input')  renderMatchInput(app);
   else if (APP.screen === 'match-viewer') renderMatchViewer(app);
+  else if (APP.screen === 'admin')        renderAdmin(app);
 
   // Strip stale modals from previous render
   const oldModal = document.querySelector('.modal-bg');
