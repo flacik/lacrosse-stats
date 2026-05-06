@@ -3,13 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Lacrosse Stats</title>
+<title>Lacrosse Stats — dev</title>
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 <div id="app"></div>
 
-<!-- Load order: helpers → data → algorithms → stats → state → field-svg → render-* → handlers → app -->
+<!-- Order ładowania: gas-client → helpers → data → algorithms → stats → state → field-svg → render-{home,input,viewer,admin,modal} → handlers → app -->
+<script src="gas-client.js"></script>
 <script src="helpers.js"></script>
 <script src="data.js"></script>
 <script src="algorithms.js"></script>

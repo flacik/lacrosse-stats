@@ -3,22 +3,227 @@
 // HANDLERS map (data-action → fn) + global event delegation listeners (click + change).
 
 const HANDLERS = {
+  'open-admin': () => goAdmin(),
+  'home-retry':   () => loadHomeData(),
+  'viewer-retry': () => startViewerRefresh(),
+  'admin-retry':  () => loadAdminData(),
+
+  // Ręczny retry eventu z błędem sync (krok 8)
+  'retry-event': (clientEventId) => {
+    const ev = DATA.events.find(e => e.client_event_id === clientEventId);
+    if (!ev || ev._syncing) return;
+
+    // Sprawdź walidację przed wysłaniem
+    const validationError = validateEventPayload(ev);
+    if (validationError) {
+      const idx = DATA.events.findIndex(e => e.client_event_id === clientEventId);
+      if (idx >= 0) {
+        DATA.events[idx] = Object.assign({}, DATA.events[idx], {
+          _syncError: 'Błąd walidacji: ' + validationError,
+        });
+      }
+      render();
+      return;
+    }
+
+    const idx = DATA.events.findIndex(e => e.client_event_id === clientEventId);
+    if (idx < 0) return;
+    DATA.events[idx] = Object.assign({}, DATA.events[idx], { _syncing: true, _syncError: null });
+    render();
+
+    gasSaveEvent(ev).then(function (result) {
+      const i = DATA.events.findIndex(e => e.client_event_id === clientEventId);
+      if (i >= 0) {
+        DATA.events[i] = Object.assign({}, DATA.events[i], {
+          id:         result.id,
+          _syncing:   false,
+          _syncError: null,
+        });
+        removeFromOfflineBuffer(clientEventId);
+      }
+      render();
+    }).catch(function (err) {
+      if (err.code !== 'DEV_MODE') {
+        const i = DATA.events.findIndex(e => e.client_event_id === clientEventId);
+        if (i >= 0) {
+          DATA.events[i] = Object.assign({}, DATA.events[i], {
+            _syncing:   false,
+            _syncError: err.message || 'Błąd zapisu — wyślij ponownie',
+          });
+        }
+        render();
+      }
+    });
+  },
+
   // Routing
-  'open-admin':  () => goAdmin(),
   'open-match':  (id) => openMatchInput(id),
   'open-viewer': (id) => openMatchViewer(id),
   'back-home':   () => goHome(),
   'ad-hoc':      () => { APP.modal = { type: 'ad-hoc' }; render(); },
 
+  // ===== Admin (etap C) =====
+  'admin-set-range':      (range) => { APP.adminFilter.range = range; render(); },
+  'admin-set-tournament': () => {
+    const sel = document.getElementById('admin-filter-tournament');
+    if (sel) APP.adminFilter.tournament = sel.value;
+    render();
+  },
+  'admin-set-status': () => {
+    const sel = document.getElementById('admin-filter-status');
+    if (sel) APP.adminFilter.status = sel.value;
+    render();
+  },
+
+  'tournament-new':  () => { APP.modal = { type: 'tournament-form', tournament: null }; render(); },
+  'tournament-edit': (id) => {
+    const t = DATA.tournaments.find(x => x.id === id);
+    if (!t) return;
+    APP.modal = { type: 'tournament-form', tournament: t };
+    render();
+  },
+  'tournament-delete': (id) => {
+    const t = DATA.tournaments.find(x => x.id === id);
+    if (!t) return;
+    const matchCount = DATA.scheduledMatches.filter(m => m.tournament === t.name).length;
+    const msg = matchCount > 0
+      ? `Usunąć turniej „${t.name}"? ${matchCount} przypisanych meczów zostanie BEZ turnieju (string nie wyczyści się automatycznie).`
+      : `Usunąć turniej „${t.name}"?`;
+    if (!confirm(msg)) return;
+    // Optimistic remove
+    DATA.tournaments = DATA.tournaments.filter(x => x.id !== id);
+    render();
+    // Async GAS
+    gasDeleteTournament(id).catch(function(e) {
+      if (e.code !== 'DEV_MODE') {
+        APP.banner = { type: 'error', msg: 'Błąd usunięcia turnieju: ' + (e.message || e) };
+        render();
+      }
+    });
+  },
+  'submit-tournament': (id) => {
+    const input = document.getElementById('tournament-name');
+    if (!input) return;
+    const name = input.value.trim();
+    if (!name) { alert('Nazwa turnieju nie może być pusta.'); return; }
+    if (id) {
+      // Edit — optimistic update
+      const t = DATA.tournaments.find(x => x.id === id);
+      if (t) t.name = name;
+      APP.modal = null;
+      render();
+      // Async GAS
+      gasUpdateTournament(id, name).catch(function(e) {
+        if (e.code !== 'DEV_MODE') {
+          APP.banner = { type: 'error', msg: 'Błąd zapisu turnieju: ' + (e.message || e) };
+          render();
+        }
+      });
+    } else {
+      // Create — optimistic add z tymczasowym ID
+      const localId = 'tlocal_' + Date.now();
+      DATA.tournaments.push({ id: localId, name });
+      APP.modal = null;
+      render();
+      // Async GAS — podmień lokalny ID na GAS ID
+      gasCreateTournament(name).then(function(result) {
+        const t = DATA.tournaments.find(x => x.id === localId);
+        if (t) t.id = result.id;
+        render();
+      }).catch(function(e) {
+        if (e.code !== 'DEV_MODE') {
+          APP.banner = { type: 'error', msg: 'Błąd tworzenia turnieju: ' + (e.message || e) };
+          render();
+        }
+      });
+    }
+  },
+
+  'match-new':  () => { APP.modal = { type: 'match-form', match: null }; render(); },
+  'match-edit': (id) => {
+    const m = DATA.scheduledMatches.find(x => x.id === id);
+    if (!m) return;
+    APP.modal = { type: 'match-form', match: m };
+    render();
+  },
+  'match-delete': (id) => {
+    const m = DATA.scheduledMatches.find(x => x.id === id);
+    if (!m) return;
+    const eventCount = DATA.events.filter(e => e.match_id === id).length;
+    const msg = eventCount > 0
+      ? `Usunąć mecz „${m.team_A} vs ${m.team_B}" (${m.match_date})? Razem z nim usuniętych zostanie ${eventCount} zarejestrowanych eventów.`
+      : `Usunąć mecz „${m.team_A} vs ${m.team_B}" (${m.match_date})?`;
+    if (!confirm(msg)) return;
+    // Optimistic remove
+    DATA.scheduledMatches = DATA.scheduledMatches.filter(x => x.id !== id);
+    DATA.events           = DATA.events.filter(e => e.match_id !== id);
+    render();
+    // Async GAS
+    gasDeleteMatch(id).catch(function(e) {
+      if (e.code !== 'DEV_MODE') {
+        APP.banner = { type: 'error', msg: 'Błąd usunięcia meczu: ' + (e.message || e) };
+        render();
+      }
+    });
+  },
+  'submit-match': (id) => {
+    const tournament = (document.getElementById('match-tournament').value || '').trim();
+    const teamA      = document.getElementById('match-team-a').value.trim();
+    const teamB      = document.getElementById('match-team-b').value.trim();
+    const matchDate  = document.getElementById('match-date').value;
+    const status     = document.getElementById('match-status').value;
+    if (!teamA || !teamB || !matchDate) {
+      alert('Wypełnij obie drużyny i datę.');
+      return;
+    }
+    if (id) {
+      // Edit — optimistic update
+      const m = DATA.scheduledMatches.find(x => x.id === id);
+      if (m) Object.assign(m, { tournament, team_A: teamA, team_B: teamB, match_date: matchDate, status });
+      APP.modal = null;
+      render();
+      // Async GAS
+      gasUpdateMatch(id, { tournament, team_A: teamA, team_B: teamB, match_date: matchDate, status })
+        .catch(function(e) {
+          if (e.code !== 'DEV_MODE') {
+            APP.banner = { type: 'error', msg: 'Błąd zapisu meczu: ' + (e.message || e) };
+            render();
+          }
+        });
+    } else {
+      // Create — optimistic add z tymczasowym ID
+      const localId = 'mlocal_' + Date.now();
+      DATA.scheduledMatches.push({
+        id: localId,
+        tournament, team_A: teamA, team_B: teamB, match_date: matchDate, status: status || 'scheduled'
+      });
+      APP.modal = null;
+      render();
+      // Async GAS — podmień lokalny ID na GAS ID
+      gasCreateMatch({ tournament, team_A: teamA, team_B: teamB, match_date: matchDate, status: status || 'scheduled' })
+        .then(function(result) {
+          const m = DATA.scheduledMatches.find(x => x.id === localId);
+          if (m) m.id = result.id;
+          render();
+        })
+        .catch(function(e) {
+          if (e.code !== 'DEV_MODE') {
+            APP.banner = { type: 'error', msg: 'Błąd tworzenia meczu: ' + (e.message || e) };
+            render();
+          }
+        });
+    }
+  },
+
   // Viewer controls
-  'viewer-set-mode':          (mode) => { APP.viewer.view_mode    = mode; render(); },
-  'viewer-set-display':       (mode) => { APP.viewer.display_mode = mode; render(); },
-  'viewer-set-period-filter': () => {
+  'viewer-set-mode':           (mode) => { APP.viewer.view_mode    = mode; render(); },
+  'viewer-set-display':        (mode) => { APP.viewer.display_mode = mode; render(); },
+  'viewer-set-period-filter':  () => {
     const sel = document.getElementById('filter-period');
     if (sel) APP.viewer.filter_period = sel.value;
     render();
   },
-  'viewer-set-result-filter': () => {
+  'viewer-set-result-filter':  () => {
     const sel = document.getElementById('filter-result');
     if (sel) APP.viewer.filter_result = sel.value;
     render();
@@ -65,10 +270,10 @@ const HANDLERS = {
   },
   'cancel-own-half': () => { APP.match.own_half_mode = null; APP.banner = null; render(); },
 
-  'toggle-zones':   () => { APP.match.show_zones       = !APP.match.show_zones;       render(); },
-  'toggle-history': () => { APP.match.history_expanded = !APP.match.history_expanded; render(); },
+  'toggle-zones':   () => { APP.match.show_zones        = !APP.match.show_zones;        render(); },
+  'toggle-history': () => { APP.match.history_expanded  = !APP.match.history_expanded;  render(); },
 
-  // Event creation / edit / delete
+  // Event creation/edit/delete
   'submit-result': (result) => {
     const pending = APP.modal.pending;
     const manUp   = document.getElementById('flag-man-up').checked;
@@ -105,58 +310,82 @@ const HANDLERS = {
   },
 
   // End match
-  'end-match': () => { APP.modal = { type: 'confirm-end' }; APP.banner = null; render(); },
+  'end-match':         () => { APP.modal = { type: 'confirm-end' }; APP.banner = null; render(); },
   'confirm-end-match': () => {
     const match = DATA.scheduledMatches.find(m => m.id === APP.matchId);
-    if (match) { match.status = 'finished'; saveData(); }
+    if (match) {
+      match.status = 'finished';
+      gasUpdateMatch(match.id, { status: 'finished' }).catch(function () {});
+    }
     goHome();
   },
 
-  // Modal
+  // Modal actions
   'cancel-modal': () => closeModal(),
 
-  // Ad-hoc match
+  // Ad-hoc match creation
   'create-ad-hoc': () => {
     const tournament = document.getElementById('adhoc-tournament').value.trim();
     const teamA      = document.getElementById('adhoc-team-a').value.trim();
     const teamB      = document.getElementById('adhoc-team-b').value.trim();
     const date       = document.getElementById('adhoc-date').value;
     if (!teamA || !teamB || !date) { alert('Wypełnij drużyny i datę.'); return; }
+
+    // Twórz mecz lokalnie od razu (optimistic), wyślij do GAS async
+    const localId = 'adhoc_' + Date.now();
     const newMatch = {
-      id: 'adhoc_' + Date.now(),
+      id: localId,
       tournament, team_A: teamA, team_B: teamB, match_date: date, status: 'live'
     };
     DATA.scheduledMatches.push(newMatch);
-    saveData();
     APP.modal = null;
-    openMatchInput(newMatch.id);
+    openMatchInput(localId);
+
+    // Async zapis do GAS (aktualizuje ID w tle — ale mecz już otwarty lokalnie)
+    gasCreateMatch({ tournament, team_A: teamA, team_B: teamB, match_date: date, status: 'live' })
+      .then(function (result) {
+        // Zamień lokalny ID na GAS ID
+        const m = DATA.scheduledMatches.find(function (x) { return x.id === localId; });
+        if (m) m.id = result.id;
+        if (APP.matchId === localId) APP.matchId = result.id;
+        // Zaktualizuj match_id w eventach tego meczu
+        DATA.events.forEach(function (e) {
+          if (e.match_id === localId) e.match_id = result.id;
+        });
+      })
+      .catch(function () { /* DEV_MODE lub błąd — lokalny ID zostaje */ });
   },
 
-  // Mutex flags
+  // Mutex flags (man-up XOR man-down)
   'mutex-flag': (which) => {
     const up = document.getElementById('flag-man-up');
-    const dn = document.getElementById('flag-man-down');
-    if (!up || !dn) return;
-    if (which === 'man-up'   && up.checked) dn.checked = false;
-    if (which === 'man-down' && dn.checked) up.checked = false;
+    const down = document.getElementById('flag-man-down');
+    if (!up || !down) return;
+    if (which === 'man-up'   && up.checked)   down.checked = false;
+    if (which === 'man-down' && down.checked) up.checked   = false;
   },
   'mutex-edit-flag': (which) => {
     const up = document.getElementById('edit-man-up');
-    const dn = document.getElementById('edit-man-down');
-    if (!up || !dn) return;
-    if (which === 'man-up'   && up.checked) dn.checked = false;
-    if (which === 'man-down' && dn.checked) up.checked = false;
+    const down = document.getElementById('edit-man-down');
+    if (!up || !down) return;
+    if (which === 'man-up'   && up.checked)   down.checked = false;
+    if (which === 'man-down' && down.checked) up.checked   = false;
   },
 
-  'modal-bg-click': () => { /* handled in click listener */ }
+  'modal-bg-click': () => { /* handled separately in click listener */ }
 };
 
 // ===== Event delegation =====
 
 document.addEventListener('click', (e) => {
-  if (e.target.classList && e.target.classList.contains('modal-bg')) { closeModal(); return; }
+  // Click on .modal-bg directly (not on its children) closes the modal.
+  if (e.target.classList && e.target.classList.contains('modal-bg')) {
+    closeModal();
+    return;
+  }
   const target = e.target.closest('[data-action]');
   if (!target) return;
+  // <select> dispatches via 'change' instead.
   if (target.tagName === 'SELECT') return;
   const action = target.dataset.action;
   if (action === 'modal-bg-click') return;
@@ -172,90 +401,3 @@ document.addEventListener('change', (e) => {
   if (handler) handler(target.dataset.arg);
 });
 
-// ===== Admin handlers — localStorage CRUD (dodane w etapie C) =====
-
-Object.assign(HANDLERS, {
-  'admin-set-range':      (range) => { APP.adminFilter.range = range; render(); },
-  'admin-set-tournament': () => {
-    const sel = document.getElementById('admin-filter-tournament');
-    if (sel) APP.adminFilter.tournament = sel.value;
-    render();
-  },
-  'admin-set-status': () => {
-    const sel = document.getElementById('admin-filter-status');
-    if (sel) APP.adminFilter.status = sel.value;
-    render();
-  },
-
-  'tournament-new':    () => { APP.modal = { type: 'tournament-form', tournament: null }; render(); },
-  'tournament-edit': (id) => {
-    const t = DATA.tournaments.find(x => x.id === id);
-    if (!t) return;
-    APP.modal = { type: 'tournament-form', tournament: t };
-    render();
-  },
-  'tournament-delete': (id) => {
-    const t = DATA.tournaments.find(x => x.id === id);
-    if (!t) return;
-    const matchCount = DATA.scheduledMatches.filter(m => m.tournament === t.name).length;
-    const msg = matchCount > 0
-      ? `Usunąć turniej „${t.name}"? ${matchCount} meczów zostanie bez turnieju.`
-      : `Usunąć turniej „${t.name}"?`;
-    if (!confirm(msg)) return;
-    DATA.tournaments = DATA.tournaments.filter(x => x.id !== id);
-    saveData();
-    render();
-  },
-  'submit-tournament': (id) => {
-    const input = document.getElementById('tournament-name');
-    if (!input) return;
-    const name = input.value.trim();
-    if (!name) { alert('Nazwa turnieju nie może być pusta.'); return; }
-    if (id) {
-      const t = DATA.tournaments.find(x => x.id === id);
-      if (t) t.name = name;
-    } else {
-      DATA.tournaments.push({ id: 'tid_' + Date.now(), name });
-    }
-    saveData();
-    APP.modal = null;
-    render();
-  },
-
-  'match-new':  () => { APP.modal = { type: 'match-form', match: null }; render(); },
-  'match-edit': (id) => {
-    const m = DATA.scheduledMatches.find(x => x.id === id);
-    if (!m) return;
-    APP.modal = { type: 'match-form', match: m };
-    render();
-  },
-  'match-delete': (id) => {
-    const m = DATA.scheduledMatches.find(x => x.id === id);
-    if (!m) return;
-    if (!confirm(`Usunąć mecz „${m.team_A} vs ${m.team_B}"?`)) return;
-    DATA.scheduledMatches = DATA.scheduledMatches.filter(x => x.id !== id);
-    DATA.events           = DATA.events.filter(e => e.match_id !== id);
-    saveData();
-    render();
-  },
-  'submit-match': (id) => {
-    const tournament = (document.getElementById('match-tournament').value || '').trim();
-    const teamA      = document.getElementById('match-team-a').value.trim();
-    const teamB      = document.getElementById('match-team-b').value.trim();
-    const matchDate  = document.getElementById('match-date').value;
-    const status     = document.getElementById('match-status').value;
-    if (!teamA || !teamB || !matchDate) { alert('Wypełnij obie drużyny i datę.'); return; }
-    if (id) {
-      const m = DATA.scheduledMatches.find(x => x.id === id);
-      if (m) Object.assign(m, { tournament, team_A: teamA, team_B: teamB, match_date: matchDate, status });
-    } else {
-      DATA.scheduledMatches.push({
-        id: 'mid_' + Date.now(),
-        tournament, team_A: teamA, team_B: teamB, match_date: matchDate, status: status || 'scheduled'
-      });
-    }
-    saveData();
-    APP.modal = null;
-    render();
-  },
-});
