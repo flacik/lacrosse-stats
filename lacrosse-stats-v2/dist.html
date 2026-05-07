@@ -1,0 +1,3091 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lacrosse Stats — mockup</title>
+<style>
+:root { color-scheme: light; }
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  background: #f5f5f3; color: #1a1a1a;
+  font-size: 14px; line-height: 1.45;
+}
+
+.btn {
+  font-family: inherit; font-size: 13px; padding: 8px 14px;
+  border: 1px solid #d4d4d0; background: white; color: #1a1a1a;
+  border-radius: 6px; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.btn:hover { background: #f0f0eb; }
+.btn-primary { background: #1a1a1a; color: white; border-color: #1a1a1a; }
+.btn-primary:hover { background: #333; }
+.btn-danger { color: #b91c1c; border-color: #fecaca; }
+.btn-danger:hover { background: #fef2f2; }
+.btn-active { background: #1a1a1a; color: white; border-color: #1a1a1a; }
+.btn-warning { color: #854d0e; border-color: #fde68a; background: #fefce8; }
+.btn-warning:hover { background: #fef9c3; }
+.btn-warning.btn-active { background: #ca8a04; color: white; border-color: #ca8a04; }
+
+.app-header {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 20px; background: white;
+  border-bottom: 1px solid #e5e5e0;
+}
+.app-header h1 { margin: 0; font-size: 17px; font-weight: 600; flex: 1; }
+.app-header .meta { font-size: 12px; color: #666; }
+
+.match-info-bar {
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  padding: 10px 20px; background: white;
+  border-bottom: 1px solid #f0f0eb;
+  font-size: 13px;
+}
+.match-info-bar .score {
+  font-size: 18px; font-weight: 700; letter-spacing: 0.5px;
+  display: flex; gap: 10px; align-items: center;
+}
+.match-info-bar .score .team-A-color { color: #1d4ed8; }
+.match-info-bar .score .team-B-color { color: #b91c1c; }
+.match-info-bar .score .sep { color: #999; font-weight: 500; }
+.match-info-bar .period {
+  background: #fff7ed; color: #9a3412;
+  padding: 4px 10px; border-radius: 4px; font-weight: 600;
+}
+.match-info-bar .tournament { color: #666; }
+.match-info-bar .sides-indicator {
+  margin-left: auto;
+  font-size: 12px; color: #666;
+}
+
+.home-content { max-width: 720px; margin: 0 auto; padding: 24px 20px; }
+.home-content h2 {
+  font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em;
+  color: #666; margin: 0 0 12px 0; font-weight: 600;
+}
+.match-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px; }
+.match-card {
+  background: white; padding: 14px 16px;
+  border: 1px solid #e5e5e0; border-radius: 10px;
+}
+.match-card.finished { opacity: 0.7; }
+.match-tournament { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #666; margin-bottom: 4px; }
+.match-teams {
+  display: flex; align-items: center; gap: 12px;
+  font-size: 17px; font-weight: 600; margin-bottom: 4px;
+}
+.match-teams .vs { color: #999; font-weight: 400; font-size: 14px; }
+.match-teams .match-score { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: #444; }
+.match-meta { font-size: 12px; color: #888; margin-bottom: 12px; }
+.match-meta .status-scheduled { color: #16a34a; }
+.match-meta .status-live { color: #ca8a04; font-weight: 600; }
+.match-meta .status-finished { color: #888; }
+.match-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.add-match {
+  width: 100%; padding: 14px;
+  background: white; border: 1px dashed #d4d4d0;
+  border-radius: 10px; color: #666;
+  cursor: pointer; font-family: inherit; font-size: 14px;
+}
+.add-match:hover { background: #f0f0eb; color: #1a1a1a; border-color: #1a1a1a; }
+
+.match-screen { padding: 0 0 40px 0; }
+.match-section {
+  max-width: 1100px; margin: 0 auto; padding: 16px 20px 0 20px;
+}
+
+svg.field {
+  width: 100%; max-width: 1100px; height: auto;
+  user-select: none; cursor: crosshair;
+  background: white; border-radius: 8px;
+  display: block;
+}
+svg.field.field-half {
+  /* Portrait half-field: keep it narrow so it doesn't blow up vertically on wide screens. */
+  max-width: 480px;
+  margin: 0 auto;
+}
+.zone-overlay { opacity: 0.55; pointer-events: none; }
+.zone-rect { stroke: white; stroke-width: 1; stroke-opacity: 0.6; }
+.zone-label-team {
+  fill: white; font-size: 36px; text-anchor: middle;
+  pointer-events: none; opacity: 0.75; font-weight: 700;
+}
+.marker { stroke-width: 2; stroke: white; }
+.marker.latest { stroke-width: 3; }
+
+.match-controls {
+  display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+  margin-top: 12px; padding: 12px 16px;
+  background: white; border-radius: 8px; border: 1px solid #e5e5e0;
+}
+.match-controls .sep { color: #ddd; }
+.match-controls .right { margin-left: auto; display: flex; gap: 8px; }
+
+.match-banner {
+  margin: 12px 0 0 0;
+  padding: 10px 14px;
+  background: #fefce8; border: 1px solid #fde68a; border-radius: 8px;
+  font-size: 13px; color: #854d0e;
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+}
+.match-banner.swap-question { background: #eff6ff; border-color: #bfdbfe; color: #1e40af; }
+.match-banner.period-end { background: #f5f3ff; border-color: #ddd6fe; color: #5b21b6; }
+.match-banner button {
+  font-family: inherit; font-size: 12px; padding: 4px 10px;
+  border: 1px solid currentColor; background: white; color: inherit;
+  border-radius: 4px; cursor: pointer;
+}
+.match-banner button:hover { opacity: 0.8; }
+.match-banner button.cancel { color: #666; border-color: #d4d4d0; }
+.match-banner button.danger { color: #b91c1c; border-color: #fecaca; }
+
+.history-section {
+  background: white; border: 1px solid #e5e5e0; border-radius: 8px;
+  margin-top: 12px; overflow: hidden;
+}
+.history-header {
+  padding: 12px 16px; border-bottom: 1px solid #f0f0eb;
+  display: flex; align-items: center; gap: 8px; cursor: pointer;
+  font-weight: 600; font-size: 14px;
+}
+.history-header:hover { background: #fafafa; }
+.history-header.no-border { border-bottom: none; }
+.history-header .count { font-weight: 400; color: #888; font-size: 12px; }
+.history-header .toggle-icon { transition: transform 0.2s; display: inline-block; }
+.history-header.collapsed .toggle-icon { transform: rotate(-90deg); }
+.history-list { max-height: 400px; overflow-y: auto; }
+.history-empty { padding: 20px; text-align: center; color: #888; font-size: 13px; }
+.history-row {
+  display: grid;
+  grid-template-columns: 50px 28px 80px minmax(110px, 1fr) auto auto;
+  gap: 8px; align-items: center;
+  padding: 10px 16px;
+  border-bottom: 1px solid #f0f0eb;
+  font-size: 13px;
+}
+.history-row:last-child { border-bottom: none; }
+.history-row .period {
+  font-weight: 600; color: #9a3412; font-size: 11px;
+  text-align: center; background: #fff7ed; padding: 2px 0; border-radius: 3px;
+}
+.history-row .team-tag {
+  width: 24px; text-align: center;
+  padding: 2px 4px; border-radius: 3px;
+  font-weight: 700; font-size: 11px;
+}
+.history-row .team-tag.A { background: #dbeafe; color: #1d4ed8; }
+.history-row .team-tag.B { background: #fee2e2; color: #b91c1c; }
+.history-row .result { font-weight: 600; font-size: 12px; }
+.history-row .result.gol { color: #15803d; }
+.history-row .result.celny { color: #ca8a04; }
+.history-row .result.niecelny { color: #888; }
+.history-row .zone {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px; color: #444;
+}
+.history-row .zone.own-half { color: #ca8a04; font-weight: 600; }
+.history-row .flags { display: flex; gap: 4px; font-size: 10px; }
+.history-row .flag {
+  background: #f0f0eb; color: #555; padding: 1px 5px; border-radius: 3px;
+}
+.history-row .flag.man-up { background: #dcfce7; color: #166534; }
+.history-row .flag.man-down { background: #fee2e2; color: #991b1b; }
+.history-row .actions { display: flex; gap: 4px; }
+.history-row .icon-btn {
+  background: none; border: none; cursor: pointer;
+  padding: 4px 6px; border-radius: 3px; font-size: 14px;
+  color: #888;
+}
+.history-row .icon-btn:hover { background: #f0f0eb; color: #1a1a1a; }
+.history-row .icon-btn.delete:hover { color: #b91c1c; background: #fef2f2; }
+.history-row .icon-btn.retry       { color: #1d4ed8; }
+.history-row .icon-btn.retry:hover { background: #dbeafe; color: #1e40af; }
+
+.modal-bg {
+  position: fixed; inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 100; padding: 20px;
+}
+.modal {
+  background: white; border-radius: 14px; padding: 22px;
+  max-width: 460px; width: 100%;
+  max-height: 90vh; overflow-y: auto;
+}
+.modal h2 { margin: 0 0 6px 0; font-size: 17px; font-weight: 600; }
+.modal .modal-subtitle { font-size: 13px; color: #666; margin-bottom: 16px; }
+.modal-context {
+  background: #f7f7f5; padding: 12px; border-radius: 8px;
+  font-size: 13px; margin-bottom: 16px;
+}
+.modal-context .row { display: flex; gap: 12px; margin-bottom: 4px; }
+.modal-context .row:last-child { margin-bottom: 0; }
+.modal-context .label { color: #666; min-width: 70px; }
+.modal-context .value.team-A { color: #1d4ed8; font-weight: 600; }
+.modal-context .value.team-B { color: #b91c1c; font-weight: 600; }
+.modal-context .value.zone {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px;
+}
+
+.result-buttons {
+  display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px;
+}
+.result-btn {
+  padding: 16px; border: 2px solid; background: white;
+  font-family: inherit; font-size: 16px; font-weight: 600;
+  border-radius: 10px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+}
+.result-btn.niecelny { color: #555; border-color: #d4d4d0; }
+.result-btn.niecelny:hover { background: #f7f7f5; }
+.result-btn.celny { color: #854d0e; border-color: #fde68a; background: #fefce8; }
+.result-btn.celny:hover { background: #fef9c3; }
+.result-btn.gol { color: white; border-color: #15803d; background: #16a34a; }
+.result-btn.gol:hover { background: #15803d; }
+
+.flag-row {
+  display: flex; gap: 12px; margin-bottom: 16px;
+  background: #f7f7f5; padding: 10px 12px; border-radius: 8px;
+}
+.flag-row label {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 13px; cursor: pointer; user-select: none;
+}
+.flag-row input { margin: 0; cursor: pointer; }
+
+.modal-actions {
+  display: flex; gap: 8px; justify-content: flex-end;
+  border-top: 1px solid #f0f0eb; padding-top: 14px;
+}
+
+label.field { display: block; margin-bottom: 12px; }
+label.field .field-label {
+  display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;
+  color: #666; margin-bottom: 4px; font-weight: 600;
+}
+label.field input, label.field select {
+  width: 100%; padding: 8px 10px; font-family: inherit; font-size: 14px;
+  border: 1px solid #d4d4d0; border-radius: 6px; background: white;
+}
+label.field input:focus, label.field select:focus {
+  outline: 2px solid #1a1a1a; outline-offset: -1px; border-color: transparent;
+}
+
+@media (max-width: 700px) {
+  .history-row {
+    grid-template-columns: 50px 28px 1fr auto;
+    gap: 6px;
+  }
+  .history-row .zone, .history-row .flags { display: none; }
+  .match-info-bar .sides-indicator { display: none; }
+}
+
+.empty { text-align: center; color: #999; padding: 30px 20px; font-size: 14px; }
+
+/* ===== Viewer (etap B) ===== */
+.viewer-screen { padding: 0 0 40px 0; }
+.viewer-section { max-width: 1100px; margin: 0 auto; padding: 16px 20px 0 20px; display: flex; flex-direction: column; gap: 16px; }
+.viewer-card {
+  background: white; border: 1px solid #e5e5e0; border-radius: 8px; padding: 16px 18px;
+}
+.viewer-card h3 {
+  margin: 0 0 12px 0; font-size: 12px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.05em; color: #666;
+}
+.viewer-card.shot-chart { padding-bottom: 12px; }
+.refresh-tag {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 11px; color: #15803d; background: #f0fdf4;
+  padding: 3px 8px; border-radius: 4px; border: 1px solid #bbf7d0;
+}
+.refresh-tag.refreshing { color: #ca8a04; background: #fefce8; border-color: #fde68a; }
+.refresh-tag .dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: #15803d; animation: pulse-dot 2s infinite;
+}
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+table.stats-table {
+  width: 100%; border-collapse: collapse; font-size: 13px;
+}
+table.stats-table th, table.stats-table td {
+  padding: 8px 10px; text-align: left;
+  border-bottom: 1px solid #f0f0eb;
+}
+table.stats-table th {
+  font-weight: 600; color: #666; font-size: 11px;
+  text-transform: uppercase; letter-spacing: 0.04em;
+}
+table.stats-table th.team-A, table.stats-table td.team-A { text-align: right; color: #1d4ed8; }
+table.stats-table th.team-B, table.stats-table td.team-B { text-align: right; color: #b91c1c; }
+table.stats-table th.label, table.stats-table td.label { color: #444; }
+table.stats-table tr.header-row td, table.stats-table tr.header-row th {
+  font-weight: 700; font-size: 12px;
+}
+table.stats-table tr.summary-row { background: #fafaf7; }
+table.stats-table tr.summary-row td { font-weight: 600; }
+table.stats-table td.num {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.viewer-controls {
+  display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+  margin-bottom: 12px;
+}
+.toggle-group { display: flex; gap: 0; }
+.toggle-group .btn {
+  border-radius: 0; border-right: none;
+}
+.toggle-group .btn:first-child { border-radius: 6px 0 0 6px; }
+.toggle-group .btn:last-child { border-radius: 0 6px 6px 0; border-right: 1px solid #d4d4d0; }
+.toggle-group .btn.btn-active { border-color: #1a1a1a; }
+.toggle-group .btn.btn-active + .btn { border-left: 1px solid #1a1a1a; }
+
+.viewer-controls select {
+  font-family: inherit; font-size: 13px; padding: 7px 10px;
+  border: 1px solid #d4d4d0; border-radius: 6px; background: white;
+}
+.viewer-controls .ctrl-label { font-size: 12px; color: #666; }
+
+.shot-chart-stats {
+  display: flex; gap: 16px; flex-wrap: wrap;
+  margin-top: 10px; padding-top: 10px;
+  border-top: 1px solid #f0f0eb; font-size: 12px; color: #666;
+}
+.shot-chart-stats strong { color: #1a1a1a; }
+
+.no-events {
+  text-align: center; padding: 30px; color: #999; font-size: 13px;
+}
+
+/* ===== Admin (etap C) ===== */
+.admin-content {
+  max-width: 900px; margin: 0 auto; padding: 24px 20px;
+  display: flex; flex-direction: column; gap: 24px;
+}
+.admin-card {
+  background: white; border: 1px solid #e5e5e0; border-radius: 10px; overflow: hidden;
+}
+.admin-card-header {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 18px; border-bottom: 1px solid #f0f0eb;
+}
+.admin-card-header h2 {
+  margin: 0; flex: 1; font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em; color: #666; font-weight: 600;
+}
+.admin-filters {
+  display: flex; flex-wrap: wrap; gap: 12px; align-items: center;
+  padding: 12px 18px; background: #fafaf7; border-bottom: 1px solid #f0f0eb;
+}
+.admin-filter-field { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #666; }
+.admin-filter-field select {
+  font-family: inherit; font-size: 13px; padding: 6px 8px;
+  border: 1px solid #d4d4d0; border-radius: 6px; background: white;
+}
+.admin-list { list-style: none; margin: 0; padding: 0; }
+.admin-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 18px; border-bottom: 1px solid #f0f0eb;
+}
+.admin-row:last-child { border-bottom: none; }
+.admin-row-main { flex: 1; min-width: 0; }
+.admin-row-main strong { font-weight: 600; }
+.admin-row-meta { color: #888; font-size: 12px; margin-left: 8px; }
+.admin-row-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.admin-empty { padding: 24px 18px; text-align: center; color: #999; font-size: 13px; }
+.admin-match-line {
+  display: flex; gap: 10px; font-size: 12px; color: #888; margin-bottom: 4px;
+}
+.admin-date {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: #444;
+}
+.admin-date.today { color: #15803d; font-weight: 600; }
+.admin-tournament { color: #888; }
+.admin-match-teams {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 14px;
+}
+.admin-match-teams .vs { color: #999; font-weight: 400; }
+.admin-status {
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em;
+  padding: 1px 6px; border-radius: 3px; font-weight: 600;
+}
+.admin-status.status-scheduled { background: #dcfce7; color: #15803d; }
+.admin-status.status-live      { background: #fef9c3; color: #854d0e; }
+.admin-status.status-finished  { background: #e5e7eb; color: #4b5563; }
+.admin-event-count { font-size: 11px; color: #888; }
+
+@media (max-width: 700px) {
+  .admin-row { flex-direction: column; align-items: stretch; }
+  .admin-row-actions { justify-content: flex-end; }
+  .admin-filters { padding: 10px 14px; }
+}
+
+/* ── Async loading / error states (krok 5) ─────────────────────────────────── */
+.loading-state, .error-state {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 12px;
+  padding: 48px 24px; text-align: center; color: #666;
+}
+.loading-state .spinner { font-size: 28px; animation: spin 1.2s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.error-state p { margin: 0; color: #b91c1c; font-size: 14px; }
+
+/* ── Sync status badges na kartach eventów (krok 5) ─────────────────────────── */
+.sync-badge {
+  font-size: 11px; font-weight: 700;
+  padding: 1px 5px; border-radius: 3px;
+  margin-left: 4px; vertical-align: middle;
+}
+.sync-badge.syncing { background: #dbeafe; color: #1d4ed8; animation: spin 1s linear infinite; display: inline-block; }
+.sync-badge.error   { background: #fee2e2; color: #b91c1c; cursor: help; }
+
+.history-row.sync-error {
+  background: #fff7f7;
+  border-left: 3px solid #fca5a5;
+}
+
+/* ── App footer (krok 9) ─────────────────────────────────────────────────────── */
+.app-footer {
+  text-align: center;
+  font-size: 11px;
+  color: #aaa;
+  padding: 12px 0 8px;
+  margin-top: 24px;
+  letter-spacing: 0.02em;
+}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+'use strict';
+
+// ==============================================================================
+// gas-client.js
+// ==============================================================================
+
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// GAS Client — wrapper nad google.script.run zwracający Promise'y.
+// Ładowany jako PIERWSZY skrypt (przed helpers.js), nie może używać uuid/todayISO.
+//
+// Gdy brak środowiska GAS (lokalny dev / Cowork artifact), odrzuca z kodem
+// 'DEV_MODE' — state.js wtedy korzysta z SAMPLE_DATA.
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// true gdy działamy wewnątrz GAS HTML Service (i google.script.run jest dostępny)
+const IS_GAS = (function () {
+  try {
+    return typeof google !== 'undefined' &&
+           google !== null &&
+           typeof google.script !== 'undefined' &&
+           typeof google.script.run !== 'undefined';
+  } catch (e) {
+    return false;
+  }
+})();
+
+// ── Generyczny wrapper ─────────────────────────────────────────────────────────
+
+/**
+ * Wywołuje funkcję GAS `fnName` z argumentami `args`.
+ * Zwraca Promise<data> (gdzie data to result.data z { ok: true, data }).
+ * Odrzuca z Error (err.code: 'DEV_MODE' | 'RATE_LIMITED' | 'NOT_FOUND' | 'SCHEMA_INVALID' | 'GAS_FAILURE' | 'GAS_ERROR').
+ */
+function gasCall(fnName, ...args) {
+  return new Promise(function (resolve, reject) {
+    if (!IS_GAS) {
+      var devErr = new Error('DEV_MODE: google.script.run niedostępny (lokalny dev)');
+      devErr.code = 'DEV_MODE';
+      reject(devErr);
+      return;
+    }
+
+    var runner = google.script.run
+      .withSuccessHandler(function (result) {
+        if (result && result.ok) {
+          resolve(result.data);
+        } else {
+          var msg  = (result && result.error && result.error.message) || 'Nieznany błąd GAS';
+          var code = (result && result.error && result.error.code)    || 'GAS_ERROR';
+          var e    = new Error(msg);
+          e.code   = code;
+          reject(e);
+        }
+      })
+      .withFailureHandler(function (error) {
+        var e  = new Error(error ? (error.message || String(error)) : 'Błąd połączenia GAS');
+        e.code = 'GAS_FAILURE';
+        reject(e);
+      });
+
+    // Dynamiczne wywołanie funkcji GAS po nazwie
+    if (typeof runner[fnName] !== 'function') {
+      var notFound  = new Error('Brak funkcji GAS: ' + fnName);
+      notFound.code = 'GAS_MISSING_FN';
+      reject(notFound);
+      return;
+    }
+    runner[fnName].apply(runner, args);
+  });
+}
+
+// ── API — Eventy ───────────────────────────────────────────────────────────────
+
+/** Zapisuje nowy event do Sheets. Zwraca { id, client_event_id }. */
+function gasSaveEvent(eventObj) {
+  return gasCall('saveEvent', eventObj);
+}
+
+/** Aktualizuje istniejący event. */
+function gasUpdateEvent(id, eventObj) {
+  return gasCall('updateEvent', id, eventObj);
+}
+
+/** Usuwa event po numerycznym ID. */
+function gasDeleteEvent(id) {
+  return gasCall('deleteEventById', id);
+}
+
+/** Zwraca wszystkie eventy danego meczu. */
+function gasListEventsForMatch(matchId) {
+  return gasCall('listEventsForMatch', matchId);
+}
+
+// ── API — Mecze ────────────────────────────────────────────────────────────────
+
+/** Zwraca mecze na dany dzień (YYYY-MM-DD). */
+function gasListMatchesForDate(date) {
+  return gasCall('listScheduledMatchesForDate', date);
+}
+
+/** Tworzy nowy zaplanowany mecz. Zwraca { id }. */
+function gasCreateMatch(matchObj) {
+  return gasCall('createScheduledMatch', matchObj);
+}
+
+/** Aktualizuje istniejący mecz (partial update OK). */
+function gasUpdateMatch(id, matchObj) {
+  return gasCall('updateScheduledMatch', id, matchObj);
+}
+
+/** Usuwa zaplanowany mecz. */
+function gasDeleteMatch(id) {
+  return gasCall('deleteScheduledMatch', id);
+}
+
+// ── API — Turnieje ─────────────────────────────────────────────────────────────
+
+/** Zwraca listę wszystkich turniejów. */
+function gasListTournaments() {
+  return gasCall('listTournaments');
+}
+
+/** Tworzy nowy turniej. Zwraca { id }. */
+function gasCreateTournament(name) {
+  return gasCall('createTournament', name);
+}
+
+/** Aktualizuje nazwę turnieju. */
+function gasUpdateTournament(id, name) {
+  return gasCall('updateTournament', id, name);
+}
+
+/** Usuwa turniej po ID. */
+function gasDeleteTournament(id) {
+  return gasCall('deleteTournament', id);
+}
+
+/** Zwraca wszystkie mecze (do panelu admin — pełna lista). */
+function gasListAllMatches() {
+  return gasCall('listAllScheduledMatches');
+}
+
+// ==============================================================================
+// helpers.js
+// ==============================================================================
+
+
+// Generic helpers used everywhere — no project-specific logic.
+
+function escapeHtml(s) {
+  if (s == null) return '';
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function svgEl(name, attrs) {
+  const el = document.createElementNS('http://www.w3.org/2000/svg', name);
+  Object.entries(attrs || {}).forEach(([k, v]) => el.setAttribute(k, v));
+  return el;
+}
+
+function uuid() {
+  return 'ev_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
+}
+
+function todayISO() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+// ==============================================================================
+// data.js
+// ==============================================================================
+
+
+// Data layer — DATA shape, SAMPLE_DATA, offline buffer.
+// Główny storage to GAS (przez gas-client.js).
+// localStorage używany WYŁĄCZNIE jako bufor eventów oczekujących na sync
+// (zapis + retry gdy GAS niedostępny).
+
+// Klucz bufora offline — bump tego stringa przy zmianie kształtu eventu
+const OFFLINE_BUFFER_KEY = 'lacrosse-v2-offline-buffer';
+
+// ── Aktualny stan aplikacji — zasilany async z GAS ────────────────────────────
+// DATA NIE jest już inicjalizowany z localStorage.
+// Pola uzupełnia state.js po powrocie z GAS (lub SAMPLE_DATA w trybie dev).
+
+let DATA = {
+  tournaments:      [],   // zasilane przez loadHomeData()
+  scheduledMatches: [],   // zasilane przez loadHomeData()
+  events:           [],   // eventy bieżącego meczu (kumulowane przez loadMatchEvents)
+};
+
+// ── Bufor offline ─────────────────────────────────────────────────────────────
+
+/** Wczytuje bufor eventów oczekujących na sync z localStorage. */
+function loadOfflineBuffer() {
+  try {
+    var raw = localStorage.getItem(OFFLINE_BUFFER_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (e) {}
+  return [];
+}
+
+/** Zapisuje bufor offline do localStorage. */
+function saveOfflineBuffer(buffer) {
+  try { localStorage.setItem(OFFLINE_BUFFER_KEY, JSON.stringify(buffer)); } catch (e) {}
+}
+
+/** Czyści bufor offline (np. po udanym retrye). */
+function clearOfflineBuffer() {
+  try { localStorage.removeItem(OFFLINE_BUFFER_KEY); } catch (e) {}
+}
+
+/** Dodaje event do bufora offline i zapisuje. */
+function addToOfflineBuffer(ev) {
+  var buffer = loadOfflineBuffer();
+  // Dedup po client_event_id
+  var exists = buffer.some(function (b) {
+    return b.client_event_id === ev.client_event_id;
+  });
+  if (!exists) {
+    buffer.push(ev);
+    saveOfflineBuffer(buffer);
+  }
+}
+
+/** Usuwa event z bufora offline po udanym syncowaniu. */
+function removeFromOfflineBuffer(clientEventId) {
+  var buffer = loadOfflineBuffer().filter(function (b) {
+    return b.client_event_id !== clientEventId;
+  });
+  saveOfflineBuffer(buffer);
+}
+
+// ── SAMPLE_DATA — fallback dla trybu dev (brak GAS) ──────────────────────────
+// Używany przez state.js gdy gasCall zwraca DEV_MODE.
+
+function makeSampleEvents() {
+  const now = Date.now();
+  const t = (minsAgo) => now - minsAgo * 60000;
+
+  // ── m1: Hawks vs Vikings — LIVE, Q2 (wynik 3:2) ──
+  const m1 = [
+    // Q1
+    { id:'se_01', match_id:'m1', tournament:'Liga PL Wiosna 2026', team_A:'Hawks', team_B:'Vikings', period:'1', team_event:'Hawks',   shot_x:0.82, shot_y:0.52, zone_name:'attack-center',   result:'gol',      man_up:false, man_down:false, created_at:t(68) },
+    { id:'se_02', match_id:'m1', tournament:'Liga PL Wiosna 2026', team_A:'Hawks', team_B:'Vikings', period:'1', team_event:'Vikings',  shot_x:0.75, shot_y:0.35, zone_name:'attack-left',      result:'celny',    man_up:false, man_down:false, created_at:t(65) },
+    { id:'se_03', match_id:'m1', tournament:'Liga PL Wiosna 2026', team_A:'Hawks', team_B:'Vikings', period:'1', team_event:'Hawks',   shot_x:0.91, shot_y:0.48, zone_name:'attack-center',   result:'niecelny', man_up:true,  man_down:false, created_at:t(62) },
+    { id:'se_04', match_id:'m1', tournament:'Liga PL Wiosna 2026', team_A:'Hawks', team_B:'Vikings', period:'1', team_event:'Vikings',  shot_x:0.88, shot_y:0.65, zone_name:'attack-right',     result:'gol',      man_up:false, man_down:true,  created_at:t(58) },
+    { id:'se_05', match_id:'m1', tournament:'Liga PL Wiosna 2026', team_A:'Hawks', team_B:'Vikings', period:'1', team_event:'Hawks',   shot_x:0.57, shot_y:0.50, zone_name:'midfield-center',  result:'niecelny', man_up:false, man_down:false, created_at:t(54) },
+    { id:'se_06', match_id:'m1', tournament:'Liga PL Wiosna 2026', team_A:'Hawks', team_B:'Vikings', period:'1', team_event:'Hawks',   shot_x:0.79, shot_y:0.28, zone_name:'attack-left',      result:'celny',    man_up:false, man_down:false, created_at:t(50) },
+    { id:'se_07', match_id:'m1', tournament:'Liga PL Wiosna 2026', team_A:'Hawks', team_B:'Vikings', period:'1', team_event:'Vikings',  shot_x:0.83, shot_y:0.73, zone_name:'attack-right',     result:'niecelny', man_up:false, man_down:false, created_at:t(46) },
+    // Q2
+    { id:'se_08', match_id:'m1', tournament:'Liga PL Wiosna 2026', team_A:'Hawks', team_B:'Vikings', period:'2', team_event:'Hawks',   shot_x:0.93, shot_y:0.45, zone_name:'attack-center',   result:'gol',      man_up:true,  man_down:false, created_at:t(38) },
+    { id:'se_09', match_id:'m1', tournament:'Liga PL Wiosna 2026', team_A:'Hawks', team_B:'Vikings', period:'2', team_event:'Vikings',  shot_x:0.70, shot_y:0.52, zone_name:'attack-center',   result:'celny',    man_up:false, man_down:false, created_at:t(34) },
+    { id:'se_10', match_id:'m1', tournament:'Liga PL Wiosna 2026', team_A:'Hawks', team_B:'Vikings', period:'2', team_event:'Hawks',   shot_x:0.86, shot_y:0.60, zone_name:'attack-center',   result:'niecelny', man_up:false, man_down:true,  created_at:t(30) },
+    { id:'se_11', match_id:'m1', tournament:'Liga PL Wiosna 2026', team_A:'Hawks', team_B:'Vikings', period:'2', team_event:'Vikings',  shot_x:0.95, shot_y:0.42, zone_name:'attack-center',   result:'gol',      man_up:false, man_down:false, created_at:t(25) },
+    { id:'se_12', match_id:'m1', tournament:'Liga PL Wiosna 2026', team_A:'Hawks', team_B:'Vikings', period:'2', team_event:'Hawks',   shot_x:0.77, shot_y:0.33, zone_name:'attack-left',      result:'gol',      man_up:false, man_down:false, created_at:t(20) },
+    { id:'se_13', match_id:'m1', tournament:'Liga PL Wiosna 2026', team_A:'Hawks', team_B:'Vikings', period:'2', team_event:'Vikings',  shot_x:0.62, shot_y:0.70, zone_name:'midfield-right',   result:'niecelny', man_up:false, man_down:false, created_at:t(15) },
+    { id:'se_14', match_id:'m1', tournament:'Liga PL Wiosna 2026', team_A:'Hawks', team_B:'Vikings', period:'2', team_event:'Hawks',   shot_x:0.89, shot_y:0.55, zone_name:'attack-center',   result:'celny',    man_up:true,  man_down:false, created_at:t(8)  },
+  ].map(e => ({ ...e, match_date: todayISO(), client_event_id: e.id + 'c' }));
+
+  // ── m3: Wolves vs Bears — FINISHED (wynik 4:3) ──
+  const m3 = [
+    // Q1
+    { id:'se_30', match_id:'m3', tournament:'Sparingi', team_A:'Wolves', team_B:'Bears', period:'1', team_event:'Wolves', shot_x:0.80, shot_y:0.48, zone_name:'attack-center', result:'gol',      man_up:false, man_down:false, created_at:t(180) },
+    { id:'se_31', match_id:'m3', tournament:'Sparingi', team_A:'Wolves', team_B:'Bears', period:'1', team_event:'Bears',  shot_x:0.74, shot_y:0.53, zone_name:'attack-center', result:'niecelny', man_up:false, man_down:false, created_at:t(177) },
+    { id:'se_32', match_id:'m3', tournament:'Sparingi', team_A:'Wolves', team_B:'Bears', period:'1', team_event:'Wolves', shot_x:0.88, shot_y:0.30, zone_name:'attack-left',   result:'celny',    man_up:false, man_down:false, created_at:t(174) },
+    { id:'se_33', match_id:'m3', tournament:'Sparingi', team_A:'Wolves', team_B:'Bears', period:'1', team_event:'Bears',  shot_x:0.92, shot_y:0.58, zone_name:'attack-center', result:'gol',      man_up:true,  man_down:false, created_at:t(170) },
+    // Q2
+    { id:'se_34', match_id:'m3', tournament:'Sparingi', team_A:'Wolves', team_B:'Bears', period:'2', team_event:'Wolves', shot_x:0.85, shot_y:0.45, zone_name:'attack-center', result:'gol',      man_up:false, man_down:false, created_at:t(155) },
+    { id:'se_35', match_id:'m3', tournament:'Sparingi', team_A:'Wolves', team_B:'Bears', period:'2', team_event:'Bears',  shot_x:0.69, shot_y:0.65, zone_name:'midfield-right', result:'niecelny', man_up:false, man_down:false, created_at:t(150) },
+    { id:'se_36', match_id:'m3', tournament:'Sparingi', team_A:'Wolves', team_B:'Bears', period:'2', team_event:'Wolves', shot_x:0.78, shot_y:0.52, zone_name:'attack-center', result:'niecelny', man_up:false, man_down:true,  created_at:t(145) },
+    { id:'se_37', match_id:'m3', tournament:'Sparingi', team_A:'Wolves', team_B:'Bears', period:'2', team_event:'Bears',  shot_x:0.90, shot_y:0.40, zone_name:'attack-center', result:'gol',      man_up:false, man_down:false, created_at:t(140) },
+    // Q3
+    { id:'se_38', match_id:'m3', tournament:'Sparingi', team_A:'Wolves', team_B:'Bears', period:'3', team_event:'Wolves', shot_x:0.82, shot_y:0.48, zone_name:'attack-center', result:'gol',      man_up:true,  man_down:false, created_at:t(120) },
+    { id:'se_39', match_id:'m3', tournament:'Sparingi', team_A:'Wolves', team_B:'Bears', period:'3', team_event:'Bears',  shot_x:0.87, shot_y:0.55, zone_name:'attack-center', result:'celny',    man_up:false, man_down:false, created_at:t(115) },
+    { id:'se_40', match_id:'m3', tournament:'Sparingi', team_A:'Wolves', team_B:'Bears', period:'3', team_event:'Wolves', shot_x:0.75, shot_y:0.35, zone_name:'attack-left',   result:'celny',    man_up:false, man_down:false, created_at:t(110) },
+    { id:'se_41', match_id:'m3', tournament:'Sparingi', team_A:'Wolves', team_B:'Bears', period:'3', team_event:'Bears',  shot_x:0.93, shot_y:0.48, zone_name:'attack-center', result:'niecelny', man_up:false, man_down:true,  created_at:t(105) },
+    // Q4
+    { id:'se_42', match_id:'m3', tournament:'Sparingi', team_A:'Wolves', team_B:'Bears', period:'4', team_event:'Wolves', shot_x:0.96, shot_y:0.50, zone_name:'attack-center', result:'gol',      man_up:false, man_down:false, created_at:t(85)  },
+    { id:'se_43', match_id:'m3', tournament:'Sparingi', team_A:'Wolves', team_B:'Bears', period:'4', team_event:'Bears',  shot_x:0.71, shot_y:0.48, zone_name:'attack-center', result:'gol',      man_up:true,  man_down:false, created_at:t(80)  },
+    { id:'se_44', match_id:'m3', tournament:'Sparingi', team_A:'Wolves', team_B:'Bears', period:'4', team_event:'Wolves', shot_x:0.84, shot_y:0.60, zone_name:'attack-center', result:'celny',    man_up:false, man_down:false, created_at:t(75)  },
+    { id:'se_45', match_id:'m3', tournament:'Sparingi', team_A:'Wolves', team_B:'Bears', period:'4', team_event:'Bears',  shot_x:0.89, shot_y:0.42, zone_name:'attack-center', result:'niecelny', man_up:false, man_down:false, created_at:t(70)  },
+  ].map(e => ({ ...e, match_date: todayISO(), client_event_id: e.id + 'c' }));
+
+  // ── m4: Knights vs Falcons — LIVE, Q1 (wynik 1:1) ──
+  const m4 = [
+    { id:'se_60', match_id:'m4', tournament:'Puchar Polski 2026', team_A:'Knights', team_B:'Falcons', period:'1', team_event:'Knights', shot_x:0.85, shot_y:0.50, zone_name:'attack-center', result:'gol',      man_up:false, man_down:false, created_at:t(12) },
+    { id:'se_61', match_id:'m4', tournament:'Puchar Polski 2026', team_A:'Knights', team_B:'Falcons', period:'1', team_event:'Falcons', shot_x:0.91, shot_y:0.47, zone_name:'attack-center', result:'gol',      man_up:false, man_down:false, created_at:t(10) },
+    { id:'se_62', match_id:'m4', tournament:'Puchar Polski 2026', team_A:'Knights', team_B:'Falcons', period:'1', team_event:'Knights', shot_x:0.78, shot_y:0.62, zone_name:'attack-center', result:'celny',    man_up:true,  man_down:false, created_at:t(7)  },
+    { id:'se_63', match_id:'m4', tournament:'Puchar Polski 2026', team_A:'Knights', team_B:'Falcons', period:'1', team_event:'Falcons', shot_x:0.65, shot_y:0.38, zone_name:'midfield-left', result:'niecelny', man_up:false, man_down:false, created_at:t(4)  },
+    { id:'se_64', match_id:'m4', tournament:'Puchar Polski 2026', team_A:'Knights', team_B:'Falcons', period:'1', team_event:'Knights', shot_x:0.94, shot_y:0.53, zone_name:'attack-center', result:'niecelny', man_up:false, man_down:true,  created_at:t(2)  },
+  ].map(e => ({ ...e, match_date: todayISO(), client_event_id: e.id + 'c' }));
+
+  return [...m1, ...m3, ...m4];
+}
+
+const SAMPLE_DATA = {
+  tournaments: [
+    { id: 't1', name: 'Liga PL Wiosna 2026' },
+    { id: 't2', name: 'Sparingi' },
+    { id: 't3', name: 'Puchar Polski 2026' }
+  ],
+  scheduledMatches: [
+    { id: 'm1', tournament: 'Liga PL Wiosna 2026', team_A: 'Hawks',   team_B: 'Vikings',  match_date: todayISO(), status: 'live'      },
+    { id: 'm2', tournament: 'Liga PL Wiosna 2026', team_A: 'Hussars', team_B: 'Eagles',   match_date: todayISO(), status: 'scheduled' },
+    { id: 'm3', tournament: 'Sparingi',            team_A: 'Wolves',  team_B: 'Bears',    match_date: todayISO(), status: 'finished'  },
+    { id: 'm4', tournament: 'Puchar Polski 2026',  team_A: 'Knights', team_B: 'Falcons',  match_date: todayISO(), status: 'live'      },
+    { id: 'm5', tournament: 'Puchar Polski 2026',  team_A: 'Storm',   team_B: 'Thunder',  match_date: todayISO(), status: 'scheduled' }
+  ],
+  get events() { return makeSampleEvents(); }
+};
+
+// saveData — no-op (zachowany żeby stary kod w handlers.js nie rzucał błędów)
+function saveData() { /* GAS jest teraz source of truth — localStorage nieużywany */ }
+function resetData() { /* legacy — usunięte z UI, ale nie rzuca */ }
+
+// ── Walidacja kliencka eventów (krok 8) ──────────────────────────────────────
+
+const VALID_RESULTS = ['celny', 'niecelny', 'gol'];
+const VALID_ZONES   = ['attack-left', 'attack-center', 'attack-right',
+                       'midfield-left', 'midfield-center', 'midfield-right', 'own-half'];
+const PERIOD_REGEX  = /^([1-4]|OT\d+)$/;
+
+/**
+ * Waliduje payload eventu przed wysłaniem do GAS.
+ * Zwraca string z komunikatem błędu lub null jeśli payload jest poprawny.
+ */
+function validateEventPayload(ev) {
+  if (!VALID_RESULTS.includes(ev.result))
+    return 'Nieprawidłowy wynik: ' + ev.result;
+  if (typeof ev.shot_x !== 'number' || ev.shot_x < -1 || ev.shot_x > 1)
+    return 'Nieprawidłowa pozycja shot_x';
+  if (typeof ev.shot_y !== 'number' || ev.shot_y < 0 || ev.shot_y > 1)
+    return 'Nieprawidłowa pozycja shot_y';
+  if (!VALID_ZONES.includes(ev.zone_name))
+    return 'Nieprawidłowa strefa: ' + ev.zone_name;
+  if (!PERIOD_REGEX.test(String(ev.period)))
+    return 'Nieprawidłowy okres: ' + ev.period;
+  if (ev.man_up && ev.man_down)
+    return 'Nie można mieć man-up i man-down jednocześnie';
+  if (ev.team_A && ev.team_B &&
+      ev.team_event !== ev.team_A && ev.team_event !== ev.team_B)
+    return 'team_event musi być jedną z drużyn meczu';
+  return null; // OK
+}
+
+// ==============================================================================
+// algorithms.js
+// ==============================================================================
+
+
+// Pure functions: zone detection, coord transforms, zone layout & colors.
+// No state dependencies — everything passed via arguments.
+// Coord convention: shot_x ∈ [-1, 1] in attacker frame (0 = midline, 1 = opponent end line, negatives = own half).
+// shot_y ∈ [0, 1] (0 = attacker's left, 1 = attacker's right).
+
+const ATTACK_THRESHOLD = 0.4368;  // attack/midfield boundary in attacker progress (restraining line + 20%)
+
+function detectZone(px, py, team_A_side) {
+  const A_attacks_right = team_A_side === 'left';
+  const click_left_half = px < 0.5;
+  const shooter_team = click_left_half
+    ? (A_attacks_right ? 'B' : 'A')
+    : (A_attacks_right ? 'A' : 'B');
+  const shooter_attacks_right =
+    (shooter_team === 'A' && A_attacks_right) ||
+    (shooter_team === 'B' && !A_attacks_right);
+  let shot_x = shooter_attacks_right ? (px - 0.5) * 2 : (0.5 - px) * 2;
+  if (shot_x < 0) shot_x = 0;
+  const shot_y = shooter_attacks_right ? py : (1 - py);
+  const zone_long = shot_x > ATTACK_THRESHOLD ? 'attack' : 'midfield';
+  let zone_lat;
+  if (shot_y < 1/3) zone_lat = 'left';
+  else if (shot_y < 2/3) zone_lat = 'center';
+  else zone_lat = 'right';
+  return { team: shooter_team, zone: `${zone_long}-${zone_lat}`, shot_x, shot_y };
+}
+
+// Own-half mode: detect team based on which half clicked (defensive half = own half of shooter)
+function detectOwnHalfTeam(x, team_A_side) {
+  const click_left_half = x < 0.5;
+  if (click_left_half) return team_A_side === 'left' ? 'A' : 'B';
+  return team_A_side === 'right' ? 'A' : 'B';
+}
+
+// Physical click + team + sides → attacker-relative coords. Used for own-half (shot_x is negative).
+function physicalToAttacker(px, py, team_slot, team_A_side) {
+  const A_attacks_right = team_A_side === 'left';
+  const shooter_attacks_right =
+    (team_slot === 'A' && A_attacks_right) ||
+    (team_slot === 'B' && !A_attacks_right);
+  const shot_x = shooter_attacks_right ? (px - 0.5) * 2 : (0.5 - px) * 2;
+  const shot_y = shooter_attacks_right ? py : (1 - py);
+  return { shot_x, shot_y };
+}
+
+// Attacker-relative → physical for current sides (used to render markers).
+function attackerToPhysical(shot_x, shot_y, team_slot, team_A_side) {
+  const A_attacks_right = team_A_side === 'left';
+  const shooter_attacks_right =
+    (team_slot === 'A' && A_attacks_right) ||
+    (team_slot === 'B' && !A_attacks_right);
+  const physical_x = shooter_attacks_right ? (0.5 + shot_x * 0.5) : (0.5 - shot_x * 0.5);
+  const physical_y = shooter_attacks_right ? shot_y : (1 - shot_y);
+  return { physical_x, physical_y };
+}
+
+// SVG zone overlay rectangles (12 cells, physical positions on 1100×600 grid).
+function getZoneLayout() {
+  const TX = 790, TM = 310, T1 = 200, T2 = 400;
+  return [
+    { x: TX, y: 0,   w: 1100-TX, h: T1,     zone: 'attack-left',     half: 'right' },
+    { x: TX, y: T1,  w: 1100-TX, h: T2-T1,  zone: 'attack-center',   half: 'right' },
+    { x: TX, y: T2,  w: 1100-TX, h: 600-T2, zone: 'attack-right',    half: 'right' },
+    { x: 550, y: 0,  w: TX-550,  h: T1,     zone: 'midfield-left',   half: 'right' },
+    { x: 550, y: T1, w: TX-550,  h: T2-T1,  zone: 'midfield-center', half: 'right' },
+    { x: 550, y: T2, w: TX-550,  h: 600-T2, zone: 'midfield-right',  half: 'right' },
+    { x: 0,   y: T2, w: TM,      h: 600-T2, zone: 'attack-left',     half: 'left'  },
+    { x: 0,   y: T1, w: TM,      h: T2-T1,  zone: 'attack-center',   half: 'left'  },
+    { x: 0,   y: 0,  w: TM,      h: T1,     zone: 'attack-right',    half: 'left'  },
+    { x: TM,  y: T2, w: 550-TM,  h: 600-T2, zone: 'midfield-left',   half: 'left'  },
+    { x: TM,  y: T1, w: 550-TM,  h: T2-T1,  zone: 'midfield-center', half: 'left'  },
+    { x: TM,  y: 0,  w: 550-TM,  h: T1,     zone: 'midfield-right',  half: 'left'  }
+  ];
+}
+
+function getTeamForHalf(half, team_A_side) {
+  if (team_A_side === 'left') return half === 'right' ? 'A' : 'B';
+  return half === 'right' ? 'B' : 'A';
+}
+
+const ZONE_COLORS = {
+  'A-attack-left':     '#1e3a8a', 'A-attack-center':   '#1e40af', 'A-attack-right':    '#1e3a8a',
+  'A-midfield-left':   '#3b82f6', 'A-midfield-center': '#2563eb', 'A-midfield-right':  '#3b82f6',
+  'B-attack-left':     '#7f1d1d', 'B-attack-center':   '#991b1b', 'B-attack-right':    '#7f1d1d',
+  'B-midfield-left':   '#ef4444', 'B-midfield-center': '#dc2626', 'B-midfield-right':  '#ef4444'
+};
+
+// ==============================================================================
+// stats.js
+// ==============================================================================
+
+
+// Stats / aggregations / period helpers. All read DATA, no mutation.
+
+function computeScore(matchId) {
+  const match = DATA.scheduledMatches.find(m => String(m.id) === String(matchId));
+  if (!match) return { A: 0, B: 0 };
+  const events = DATA.events.filter(e => String(e.match_id) === String(matchId) && e.result === 'gol');
+  let A = 0, B = 0;
+  events.forEach(e => {
+    if (e.team_event === match.team_A) A++;
+    else if (e.team_event === match.team_B) B++;
+  });
+  return { A, B };
+}
+
+function nextPeriod(current) {
+  if (current === '1') return '2';
+  if (current === '2') return '3';
+  if (current === '3') return '4';
+  if (current === '4') return 'OT1';
+  const m = current.match(/^OT(\d+)$/);
+  if (m) return 'OT' + (parseInt(m[1]) + 1);
+  return current;
+}
+
+function periodLabel(p) {
+  if (!p) return '?';
+  p = String(p);
+  if (p === 'OT1') return 'Dogrywka 1';
+  if (p.startsWith('OT')) return 'Dogrywka ' + p.slice(2);
+  return 'Q' + p;
+}
+
+function getPeriodOrder(p) {
+  if (!p) return 999;
+  p = String(p);
+  if (p.startsWith('OT')) return 4 + parseInt(p.slice(2));
+  return parseInt(p);
+}
+
+function teamSlot(matchId, teamName) {
+  const m = DATA.scheduledMatches.find(x => String(x.id) === String(matchId));
+  if (!m) return '';
+  if (teamName === m.team_A) return 'A';
+  if (teamName === m.team_B) return 'B';
+  return '';
+}
+
+function eventsForMatch(matchId) {
+  return DATA.events
+    .filter(e => String(e.match_id) === String(matchId))
+    .sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
+}
+
+function computeTeamStats(matchId, teamName, events) {
+  const teamEvents = events.filter(e => e.team_event === teamName);
+  const total      = teamEvents.length;
+  const goals      = teamEvents.filter(e => e.result === 'gol').length;
+  const saves      = teamEvents.filter(e => e.result === 'celny').length;     // strzały obronione (per A.4: także trafienia w słupek)
+  const onTarget   = teamEvents.filter(e => e.result === 'celny' || e.result === 'gol').length;
+  const offTarget  = teamEvents.filter(e => e.result === 'niecelny').length;
+  return {
+    total, goals, saves, onTarget, offTarget,
+    goalRate:     total > 0 ? (goals    / total * 100).toFixed(1) : '—',
+    onTargetRate: total > 0 ? (onTarget / total * 100).toFixed(1) : '—'
+  };
+}
+
+function computeGoalieStats(match, allEvents) {
+  // Goalkeeper of team X faces shots from the opposing team.
+  // Saves = opponent's "celny" (per A.4: includes posts).
+  // Goals against = opponent's "gol".
+  function statsForGoalie(shotsFaced) {
+    const saves        = shotsFaced.filter(e => e.result === 'celny').length;
+    const goalsAgainst = shotsFaced.filter(e => e.result === 'gol').length;
+    const shotsOnGoal  = saves + goalsAgainst;
+    return {
+      saves, goalsAgainst, shotsOnGoal,
+      savePct: shotsOnGoal > 0 ? (saves / shotsOnGoal * 100).toFixed(1) : '—'
+    };
+  }
+  return {
+    A: statsForGoalie(allEvents.filter(e => e.team_event === match.team_B)),
+    B: statsForGoalie(allEvents.filter(e => e.team_event === match.team_A))
+  };
+}
+
+function computePerPeriodStats(matchId, match) {
+  const events = DATA.events.filter(e => String(e.match_id) === String(matchId));
+  const periods = new Set(['1', '2', '3', '4']);
+  events.forEach(e => { if (e.period) periods.add(e.period); });
+  const sorted = Array.from(periods).sort((a, b) => getPeriodOrder(a) - getPeriodOrder(b));
+  return sorted.map(p => {
+    const periodEvents = events.filter(e => e.period === p);
+    const A_shots = periodEvents.filter(e => e.team_event === match.team_A).length;
+    const A_goals = periodEvents.filter(e => e.team_event === match.team_A && e.result === 'gol').length;
+    const B_shots = periodEvents.filter(e => e.team_event === match.team_B).length;
+    const B_goals = periodEvents.filter(e => e.team_event === match.team_B && e.result === 'gol').length;
+    return { period: p, A_shots, A_goals, B_shots, B_goals };
+  });
+}
+
+function applyViewerFilters(events, viewer) {
+  let filtered = events;
+  if (viewer.filter_period !== 'all') filtered = filtered.filter(e => e.period === viewer.filter_period);
+  if (viewer.filter_result !== 'all') filtered = filtered.filter(e => e.result === viewer.filter_result);
+  return filtered;
+}
+
+// ==============================================================================
+// state.js
+// ==============================================================================
+
+
+// APP runtime state, routing, match/viewer session init, event CRUD.
+// Krok 5: event CRUD przez GAS (optimistic updates + async sync).
+
+let APP = {
+  screen: 'home',
+  matchId: null,
+  match: null,
+  viewer: null,
+  modal: null,
+  banner: null,
+  refreshInterval: null,
+  refreshFlash: false,
+
+  // Stany async ładowania
+  homeLoading: false,
+  homeError: null,
+  matchLoading: false,   // true podczas fetchu eventów przy otwieraniu meczu
+
+  // Stany async viewera
+  viewerLoading: false,  // true podczas pierwszego fetchu eventów viewera
+  viewerError: null,     // string | null — błąd pierwszego fetchu
+  lastViewerRefresh: null, // Date | null — czas ostatniego udanego odświeżenia
+
+  // Panel admin
+  adminFilter: null,
+  adminLoading: false,
+  adminError: null,
+};
+
+// ── Routing ────────────────────────────────────────────────────────────────────
+
+function go(screen, opts) {
+  opts = opts || {};
+  if (APP.refreshInterval) {
+    clearInterval(APP.refreshInterval);
+    APP.refreshInterval = null;
+  }
+  APP.screen      = screen;
+  APP.matchId     = opts.matchId || null;
+  APP.modal       = null;
+  APP.banner      = null;
+  APP.match       = null;
+  APP.viewer      = null;
+  APP.homeLoading = false;
+  APP.homeError   = null;
+  APP.matchLoading = false;
+  APP.viewerLoading = false;
+  APP.viewerError   = null;
+  APP.lastViewerRefresh = null;
+  APP.adminLoading = false;
+  APP.adminError   = null;
+
+  if (screen === 'home') {
+    loadHomeData();                              // async — renderuje sam gdy gotowe
+  } else if (screen === 'match-input' && opts.matchId) {
+    APP.match = _initMatchState();
+    loadMatchEvents(opts.matchId);               // async — renderuje sam gdy gotowe
+  } else if (screen === 'match-viewer' && opts.matchId) {
+    APP.viewer = initViewerSession();
+    startViewerRefresh();
+  } else if (screen === 'admin') {
+    loadAdminData();                             // pełna lista meczów + turnieje
+  }
+  render();
+}
+
+function goHome()                 { go('home'); }
+function goAdmin()                { go('admin'); }
+function openMatchInput(matchId)  { go('match-input',  { matchId }); }
+function openMatchViewer(matchId) { go('match-viewer', { matchId }); }
+
+// ── Ładowanie danych — ekran główny i admin ────────────────────────────────────
+
+async function loadHomeData() {
+  APP.homeLoading = true;
+  APP.homeError   = null;
+  render();
+
+  try {
+    const [matches, tournaments] = await Promise.all([
+      gasListMatchesForDate(todayISO()),
+      gasListTournaments()
+    ]);
+    DATA.scheduledMatches = matches      || [];
+    DATA.tournaments      = tournaments  || [];
+  } catch (e) {
+    if (e.code === 'DEV_MODE') {
+      // Lokalny dev — użyj SAMPLE_DATA
+      DATA.scheduledMatches = JSON.parse(JSON.stringify(SAMPLE_DATA.scheduledMatches));
+      DATA.tournaments      = JSON.parse(JSON.stringify(SAMPLE_DATA.tournaments));
+      DATA.events           = SAMPLE_DATA.events; // pełne sample events na home
+    } else {
+      APP.homeError = e.message || 'Błąd ładowania danych';
+    }
+  }
+
+  APP.homeLoading = false;
+  render();
+}
+
+// ── Ładowanie danych — panel admin ────────────────────────────────────────────
+
+async function loadAdminData() {
+  APP.adminLoading = true;
+  APP.adminError   = null;
+  render();
+
+  try {
+    const [matches, tournaments] = await Promise.all([
+      gasListAllMatches(),
+      gasListTournaments()
+    ]);
+    DATA.scheduledMatches = matches      || [];
+    DATA.tournaments      = tournaments  || [];
+  } catch (e) {
+    if (e.code === 'DEV_MODE') {
+      DATA.scheduledMatches = JSON.parse(JSON.stringify(SAMPLE_DATA.scheduledMatches));
+      DATA.tournaments      = JSON.parse(JSON.stringify(SAMPLE_DATA.tournaments));
+    } else {
+      APP.adminError = e.message || 'Błąd ładowania danych admina';
+    }
+  }
+
+  APP.adminLoading = false;
+  render();
+}
+
+// ── Ładowanie eventów — tryb wpisu i podglądu ──────────────────────────────────
+
+async function loadMatchEvents(matchId) {
+  APP.matchLoading = true;
+  render();
+
+  try {
+    const events = await gasListEventsForMatch(matchId);
+    // Zachowaj eventy innych meczów (dla wyników na home), zastąp bieżącego meczu
+    DATA.events = DATA.events.filter(e => String(e.match_id) !== String(matchId));
+    DATA.events = DATA.events.concat(events || []);
+
+    // Zmień status 'scheduled' → 'live' przy pierwszym otwarciu
+    const match = DATA.scheduledMatches.find(m => String(m.id) === String(matchId));
+    if (match && match.status === 'scheduled') {
+      match.status = 'live';
+      gasUpdateMatch(matchId, { status: 'live' }).catch(function () {});
+    }
+  } catch (e) {
+    if (e.code === 'DEV_MODE') {
+      // Lokalny dev — wczytaj SAMPLE_DATA dla tego meczu
+      var sampleForMatch = SAMPLE_DATA.events.filter(
+        ev => String(ev.match_id) === String(matchId)
+      );
+      DATA.events = DATA.events.filter(ev => String(ev.match_id) !== String(matchId));
+      DATA.events = DATA.events.concat(sampleForMatch);
+
+      // Zmień status w SAMPLE_DATA (tylko lokalnie)
+      const match = DATA.scheduledMatches.find(m => String(m.id) === String(matchId));
+      if (match && match.status === 'scheduled') match.status = 'live';
+    } else {
+      APP.banner = { type: 'error', msg: 'Błąd ładowania eventów: ' + (e.message || e) };
+    }
+  }
+
+  APP.matchLoading = false;
+  render();
+}
+
+// ── Session init helpers ───────────────────────────────────────────────────────
+
+function _initMatchState() {
+  return {
+    period: '1',
+    team_A_side: 'left',
+    own_half_mode: null,
+    history_expanded: true,
+    show_zones: false
+  };
+}
+
+function initViewerSession() {
+  return {
+    view_mode: 'full',
+    display_mode: 'markers',
+    filter_period: 'all',
+    filter_result: 'all'
+  };
+}
+
+// ── Viewer refresh ─────────────────────────────────────────────────────────────
+
+function startViewerRefresh() {
+  // Wyczyść poprzedni interval (np. przy retry)
+  if (APP.refreshInterval) {
+    clearInterval(APP.refreshInterval);
+    APP.refreshInterval = null;
+  }
+  const matchId = APP.matchId;
+
+  // Pomocnicza — jeden cykl odświeżenia eventów
+  async function doRefresh(isFirst) {
+    if (APP.screen !== 'match-viewer') return;
+    try {
+      const events = await gasListEventsForMatch(matchId);
+      DATA.events = DATA.events.filter(e => String(e.match_id) !== String(matchId));
+      DATA.events = DATA.events.concat(events || []);
+      APP.lastViewerRefresh = new Date();
+      if (isFirst) {
+        APP.viewerLoading = false;
+        APP.viewerError   = null;
+      }
+      APP.refreshFlash = true;
+      render();
+      setTimeout(function () {
+        APP.refreshFlash = false;
+        if (APP.screen === 'match-viewer') render();
+      }, 600);
+    } catch (e) {
+      if (e.code === 'DEV_MODE') {
+        // Lokalny dev — SAMPLE_DATA już załadowane, viewer działa normalnie
+        APP.viewerLoading = false;
+        APP.viewerError   = null;
+        APP.lastViewerRefresh = new Date();
+      } else {
+        if (isFirst) {
+          APP.viewerLoading = false;
+          APP.viewerError = e.message || 'Błąd ładowania danych meczu';
+        } else {
+          // Milcząca awaria kolejnych odświeżeń — nie nadpisuj wyświetlonych danych
+          console.warn('viewer refresh error:', e.message);
+        }
+      }
+      if (isFirst) render();
+    }
+  }
+
+  // Natychmiastowy pierwszy fetch (viewer od razu pokazuje loader)
+  APP.viewerLoading = true;
+  APP.viewerError   = null;
+  doRefresh(true);
+
+  // Cykliczne odświeżanie co 10s (zmniejsza zużycie limitów GAS o ~50% vs poprzednie 5s)
+  APP.refreshInterval = setInterval(function () { doRefresh(false); }, 10000);
+}
+
+// ── Retry queue (krok 8) ──────────────────────────────────────────────────────
+
+const RETRY_DELAYS = [1000, 3000, 9000]; // ms: próba 1, 2, 3
+
+/**
+ * Planuje ponowną próbę wysłania eventu do GAS z exponential backoff.
+ * @param {string} clientEventId — identyfikator eventu w DATA.events
+ * @param {object} evPayload     — oryginalny payload do wysłania (bez _syncing/_syncError)
+ * @param {number} attempt       — 1-indexed (1 = pierwsza ponowna próba)
+ */
+function _scheduleRetry(clientEventId, evPayload, attempt) {
+  if (attempt > RETRY_DELAYS.length) return;
+  const delay = RETRY_DELAYS[attempt - 1];
+
+  setTimeout(async function () {
+    const idx = DATA.events.findIndex(e => e.client_event_id === clientEventId);
+    if (idx < 0) return;  // event usunięty przez usera
+
+    DATA.events[idx] = Object.assign({}, DATA.events[idx], {
+      _syncing:   true,
+      _syncError: null,
+    });
+    render();
+
+    try {
+      const result = await gasSaveEvent(evPayload);
+      const i = DATA.events.findIndex(e => e.client_event_id === clientEventId);
+      if (i >= 0) {
+        DATA.events[i] = Object.assign({}, DATA.events[i], {
+          id:         result.id,
+          _syncing:   false,
+          _syncError: null,
+        });
+        removeFromOfflineBuffer(clientEventId);
+      }
+      render();
+    } catch (err) {
+      if (err.code === 'DEV_MODE') {
+        const i = DATA.events.findIndex(e => e.client_event_id === clientEventId);
+        if (i >= 0) DATA.events[i] = Object.assign({}, DATA.events[i], { _syncing: false });
+        render();
+        return;
+      }
+      const i = DATA.events.findIndex(e => e.client_event_id === clientEventId);
+      if (i >= 0) {
+        if (attempt < RETRY_DELAYS.length) {
+          DATA.events[i] = Object.assign({}, DATA.events[i], {
+            _syncing:   false,
+            _syncError: 'Ponawianie ' + (attempt + 1) + '/' + RETRY_DELAYS.length + '…',
+          });
+          _scheduleRetry(clientEventId, evPayload, attempt + 1);
+        } else {
+          // Wszystkie próby wyczerpane — czeka na ręczny retry
+          DATA.events[i] = Object.assign({}, DATA.events[i], {
+            _syncing:   false,
+            _syncError: err.message || 'Błąd zapisu — wyślij ponownie',
+          });
+        }
+      }
+      render();
+    }
+  }, delay);
+}
+
+// ── Event CRUD — optimistic updates + async GAS ────────────────────────────────
+
+/**
+ * Zapisuje nowy event.
+ * Sync: dodaje do DATA.events z _syncing:true.
+ * Async: wysyła do GAS, aktualizuje id na numeryczny (lub oznacza _syncError).
+ * NIE wywołuje render() — robi to handler po powrocie tej funkcji.
+ */
+async function recordEvent(eventData) {
+  const match = DATA.scheduledMatches.find(m => String(m.id) === String(APP.matchId));
+  if (!match) return;
+
+  const clientEventId = uuid();
+  const ev = Object.assign({
+    id:              clientEventId,    // tymczasowy UUID; GAS nadaje numeryczny
+    client_event_id: clientEventId,
+    match_id:        match.id,
+    tournament:      match.tournament,
+    team_A:          match.team_A,
+    team_B:          match.team_B,
+    match_date:      match.match_date,
+    period:          APP.match.period,
+    created_at:      Date.now(),
+    _syncing:        true,
+    _syncError:      null,
+  }, eventData);
+
+  // Optimistic add (synchroniczny)
+  DATA.events.push(ev);
+  // Handler wywoła render() zaraz po recordEvent()
+
+  // Walidacja kliencka przed GAS (synchroniczna — brak await, działa przed yield)
+  const validationError = validateEventPayload(ev);
+  if (validationError) {
+    const vi = DATA.events.findIndex(ex => ex.client_event_id === clientEventId);
+    if (vi >= 0) {
+      DATA.events[vi] = Object.assign({}, DATA.events[vi], {
+        _syncing:   false,
+        _syncError: 'Błąd walidacji: ' + validationError,
+      });
+    }
+    // render() wywoła handler — zwracamy bez retry
+    return;
+  }
+
+  // Async GAS call
+  try {
+    const result = await gasSaveEvent(ev);
+    // Zaktualizuj numeryczne ID nadane przez GAS
+    const idx = DATA.events.findIndex(e => e.client_event_id === clientEventId);
+    if (idx >= 0) {
+      DATA.events[idx] = Object.assign({}, DATA.events[idx], {
+        id:         result.id,
+        _syncing:   false,
+        _syncError: null,
+      });
+    }
+  } catch (e) {
+    if (e.code !== 'DEV_MODE') {
+      // Dodaj do offline buffer natychmiast (bezpieczne — dedup po client_event_id)
+      addToOfflineBuffer(ev);
+      // Oznacz jako "ponawianie" i zaplanuj retry z backoff
+      const idx = DATA.events.findIndex(ex => ex.client_event_id === clientEventId);
+      if (idx >= 0) {
+        DATA.events[idx] = Object.assign({}, DATA.events[idx], {
+          _syncing:   false,
+          _syncError: 'Ponawianie 1/' + RETRY_DELAYS.length + '…',
+        });
+      }
+      _scheduleRetry(clientEventId, ev, 1);
+    } else {
+      // DEV_MODE: potraktuj jak sukces (id pozostaje UUID)
+      const idx = DATA.events.findIndex(ex => ex.client_event_id === clientEventId);
+      if (idx >= 0) DATA.events[idx] = Object.assign({}, DATA.events[idx], { _syncing: false });
+    }
+  }
+  render();  // re-render po GAS response (aktualizacja stanu sync)
+}
+
+/**
+ * Usuwa event po id (UUID tymczasowy lub numeryczny GAS).
+ * Optimistic: natychmiast usuwa z DATA.events.
+ * Async: wywołuje gasDeleteEvent gdy event był już potwierdzony przez GAS.
+ * NIE wywołuje render() — robi to handler.
+ */
+async function deleteEvent(id) {
+  const ev = DATA.events.find(e => String(e.id) === String(id));
+  if (!ev) return;
+
+  // Optimistic remove (synchroniczny)
+  DATA.events = DATA.events.filter(e => String(e.id) !== String(id));
+
+  // Jeśli event jeszcze nie potwierdził GAS (UUID tymczasowe) — koniec
+  const hasGasId = !ev._syncing && !ev._syncError &&
+                   String(ev.id) !== ev.client_event_id &&
+                   !isNaN(Number(ev.id));
+  if (!hasGasId) return;
+
+  try {
+    await gasDeleteEvent(ev.id);
+  } catch (e) {
+    if (e.code !== 'DEV_MODE') {
+      APP.banner = { type: 'error', msg: 'Błąd usunięcia eventu: ' + (e.message || e) };
+      render();
+    }
+  }
+}
+
+/**
+ * Aktualizuje pola eventu po id.
+ * Optimistic: aktualizuje DATA.events natychmiast.
+ * Async: wysyła pełny obiekt do GAS.
+ * NIE wywołuje render() — robi to handler.
+ */
+async function updateEvent(id, updates) {
+  const idx = DATA.events.findIndex(e => String(e.id) === String(id));
+  if (idx < 0) return;
+
+  const oldEv = DATA.events[idx];
+  const newEv = Object.assign({}, oldEv, updates, { _syncing: true, _syncError: null });
+  DATA.events[idx] = newEv;
+
+  // Walidacja kliencka przed GAS
+  const updateValidationError = validateEventPayload(newEv);
+  if (updateValidationError) {
+    DATA.events[idx] = Object.assign({}, DATA.events[idx], {
+      _syncing:   false,
+      _syncError: 'Błąd walidacji: ' + updateValidationError,
+    });
+    render();
+    return;
+  }
+
+  // Jeśli event jeszcze nie potwierdził GAS — zaktualizuj tylko lokalnie
+  const hasGasId = !oldEv._syncError &&
+                   String(oldEv.id) !== oldEv.client_event_id &&
+                   !isNaN(Number(oldEv.id));
+  if (!hasGasId) {
+    DATA.events[idx] = Object.assign({}, DATA.events[idx], { _syncing: false });
+    return;
+  }
+
+  try {
+    await gasUpdateEvent(oldEv.id, newEv);
+    DATA.events[idx] = Object.assign({}, DATA.events[idx], { _syncing: false, _syncError: null });
+  } catch (e) {
+    if (e.code !== 'DEV_MODE') {
+      DATA.events[idx] = Object.assign({}, DATA.events[idx], {
+        _syncing:   false,
+        _syncError: e.message || 'Błąd aktualizacji'
+      });
+    } else {
+      DATA.events[idx] = Object.assign({}, DATA.events[idx], { _syncing: false });
+    }
+  }
+  render();
+}
+
+// ==============================================================================
+// field-svg.js
+// ==============================================================================
+
+
+// SVG rendering of the lacrosse field — input mode (interactive) and viewer mode (read-only).
+
+// ==================== INPUT MODE FIELD ====================
+
+function buildFieldSvg(match) {
+  const ns = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(ns, 'svg');
+  svg.setAttribute('class', 'field');
+  svg.setAttribute('id', 'field-svg');
+  svg.setAttribute('viewBox', '0 0 1100 700');
+  svg.setAttribute('xmlns', ns);
+
+  // Side labels (top strip 50px)
+  const A_left = APP.match.team_A_side === 'left';
+  const sideLabels = svgEl('g');
+  const leftLabel = svgEl('text', {
+    x: 100, y: 35, 'font-size': 22, 'font-weight': 700,
+    fill: A_left ? '#1d4ed8' : '#b91c1c'
+  });
+  leftLabel.textContent = `${A_left ? match.team_A : match.team_B} →`;
+  sideLabels.appendChild(leftLabel);
+  const rightLabel = svgEl('text', {
+    x: 1000, y: 35, 'text-anchor': 'end',
+    'font-size': 22, 'font-weight': 700,
+    fill: A_left ? '#b91c1c' : '#1d4ed8'
+  });
+  rightLabel.textContent = `← ${A_left ? match.team_B : match.team_A}`;
+  sideLabels.appendChild(rightLabel);
+  svg.appendChild(sideLabels);
+
+  const fieldG = svgEl('g', { transform: 'translate(0, 50)' });
+  fieldG.appendChild(svgEl('rect', { x: 0, y: 0, width: 1100, height: 600, fill: '#9bbf85' }));
+
+  // Zone overlay (toggleable)
+  if (APP.match.show_zones) {
+    const zonesG = svgEl('g', { class: 'zone-overlay' });
+    getZoneLayout().forEach(z => {
+      const team = getTeamForHalf(z.half, APP.match.team_A_side);
+      const color = ZONE_COLORS[`${team}-${z.zone}`] || '#888';
+      zonesG.appendChild(svgEl('rect', {
+        x: z.x, y: z.y, width: z.w, height: z.h, fill: color, class: 'zone-rect'
+      }));
+      const t = svgEl('text', {
+        x: z.x + z.w / 2, y: z.y + z.h / 2 + 12, class: 'zone-label-team'
+      });
+      t.textContent = team;
+      zonesG.appendChild(t);
+    });
+    fieldG.appendChild(zonesG);
+  }
+
+  // Field markings
+  const markings = svgEl('g');
+  markings.innerHTML = `
+    <line x1="550" y1="0" x2="550" y2="600" stroke="white" stroke-width="2"/>
+    <line x1="540" y1="290" x2="560" y2="310" stroke="white" stroke-width="2"/>
+    <line x1="540" y1="310" x2="560" y2="290" stroke="white" stroke-width="2"/>
+    <line x1="150" y1="0" x2="150" y2="600" stroke="white" stroke-width="1.5" opacity="0.7"/>
+    <line x1="950" y1="0" x2="950" y2="600" stroke="white" stroke-width="1.5" opacity="0.7"/>
+    <line x1="350" y1="0" x2="350" y2="600" stroke="white" stroke-width="1.5" stroke-dasharray="6,4" opacity="0.85"/>
+    <line x1="750" y1="0" x2="750" y2="600" stroke="white" stroke-width="1.5" stroke-dasharray="6,4" opacity="0.85"/>
+    <rect x="0" y="0" width="1100" height="600" fill="none" stroke="white" stroke-width="3"/>
+    <circle cx="150" cy="300" r="30" fill="#9bbf85" stroke="white" stroke-width="2"/>
+    <circle cx="950" cy="300" r="30" fill="#9bbf85" stroke="white" stroke-width="2"/>
+    <line x1="150" y1="288" x2="150" y2="312" stroke="white" stroke-width="5"/>
+    <line x1="950" y1="288" x2="950" y2="312" stroke="white" stroke-width="5"/>
+  `;
+  fieldG.appendChild(markings);
+
+  // Markers (history dots) — convert attacker-relative to physical
+  const markersG = svgEl('g');
+  const events = eventsForMatch(match.id);
+  events.forEach((e, i) => {
+    const teamSlotName = teamSlot(match.id, e.team_event);
+    const { physical_x, physical_y } = attackerToPhysical(e.shot_x, e.shot_y, teamSlotName, APP.match.team_A_side);
+    const sx = physical_x * 1100;
+    const sy = physical_y * 600;
+    const isLatest = i === 0;
+    const fillColor = teamSlotName === 'A' ? '#1d4ed8' : '#b91c1c';
+    const isOwnHalf = e.zone_name === 'own-half';
+    const isGoal = e.result === 'gol';
+    const dot = svgEl('circle', {
+      cx: sx, cy: sy,
+      r: isLatest ? 11 : 7,
+      fill: isGoal ? fillColor : 'transparent',
+      stroke: isOwnHalf ? '#ca8a04' : (isGoal ? 'white' : fillColor),
+      'stroke-width': isLatest ? (isOwnHalf ? 4 : 3) : (isOwnHalf ? 3 : 2),
+      class: 'marker' + (isLatest ? ' latest' : '')
+    });
+    markersG.appendChild(dot);
+  });
+  fieldG.appendChild(markersG);
+
+  svg.appendChild(fieldG);
+  svg.addEventListener('click', handleFieldClick);
+  return svg;
+}
+
+function handleFieldClick(ev) {
+  const svg = ev.currentTarget;
+  const pt = svg.createSVGPoint();
+  pt.x = ev.clientX; pt.y = ev.clientY;
+  const ctm = svg.getScreenCTM();
+  if (!ctm) return;
+  const svgPt = pt.matrixTransform(ctm.inverse());
+  const fieldY = svgPt.y - 50;
+  if (fieldY < 0 || fieldY > 600) return;
+  const x = svgPt.x / 1100;
+  const y = fieldY / 600;
+  if (x < 0 || x > 1) return;
+
+  const match = DATA.scheduledMatches.find(m => m.id === APP.matchId);
+  if (!match) return;
+
+  if (APP.match.own_half_mode === 'active') {
+    const teamSlotChosen = detectOwnHalfTeam(x, APP.match.team_A_side);
+    const teamName = teamSlotChosen === 'A' ? match.team_A : match.team_B;
+    const { shot_x, shot_y } = physicalToAttacker(x, y, teamSlotChosen, APP.match.team_A_side);
+    APP.match.own_half_mode = null;
+    APP.banner = null;
+    APP.modal = {
+      type: 'result',
+      pending: {
+        shot_x, shot_y,
+        team_event: teamName, team_slot: teamSlotChosen,
+        zone_name: 'own-half'
+      }
+    };
+    render();
+    return;
+  }
+
+  const det = detectZone(x, y, APP.match.team_A_side);
+  const teamName = det.team === 'A' ? match.team_A : match.team_B;
+  APP.modal = {
+    type: 'result',
+    pending: {
+      shot_x: det.shot_x, shot_y: det.shot_y,
+      team_event: teamName, team_slot: det.team,
+      zone_name: det.zone
+    }
+  };
+  render();
+}
+
+// ==================== VIEWER MODE CHARTS ====================
+
+function buildViewerChart(match, filtered) {
+  const v = APP.viewer;
+  const ns = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(ns, 'svg');
+  svg.setAttribute('class', 'field');
+  svg.setAttribute('xmlns', ns);
+
+  if (v.view_mode === 'full') {
+    svg.setAttribute('viewBox', '0 0 1100 700');
+    drawFullFieldChart(svg, match, filtered, v);
+  } else {
+    svg.setAttribute('viewBox', '0 0 540 660');
+    svg.setAttribute('class', 'field field-half');
+    drawHalfFieldChart(svg, match, filtered, v);
+  }
+  return svg;
+}
+
+function drawFullFieldChart(svg, match, filtered, viewer) {
+  const sideLabels = svgEl('g');
+  const lLab = svgEl('text', { x: 100, y: 35, 'font-size': 22, 'font-weight': 700, fill: '#1d4ed8' });
+  lLab.textContent = `${match.team_A} →`;
+  sideLabels.appendChild(lLab);
+  const rLab = svgEl('text', { x: 1000, y: 35, 'text-anchor': 'end', 'font-size': 22, 'font-weight': 700, fill: '#b91c1c' });
+  rLab.textContent = `← ${match.team_B}`;
+  sideLabels.appendChild(rLab);
+  const note = svgEl('text', { x: 550, y: 35, 'text-anchor': 'middle', 'font-size': 11, fill: '#999' });
+  note.textContent = 'widok kanoniczny — A zawsze po lewej';
+  sideLabels.appendChild(note);
+  svg.appendChild(sideLabels);
+
+  const fieldG = svgEl('g', { transform: 'translate(0, 50)' });
+  drawFieldMarkings(fieldG, 1100, 600);
+  drawShotsFullField(fieldG, filtered, match, viewer.display_mode);
+  svg.appendChild(fieldG);
+}
+
+function drawHalfFieldChart(svg, match, filtered, viewer) {
+  const teamSlot_ = viewer.view_mode === 'half-A' ? 'A' : 'B';
+  const teamName  = teamSlot_ === 'A' ? match.team_A : match.team_B;
+  const teamColor = teamSlot_ === 'A' ? '#1d4ed8'   : '#b91c1c';
+  const teamShots = filtered.filter(e => e.team_event === teamName);
+
+  // Portrait orientation: attack axis goes upward, goal at the top.
+  // viewBox: 540 wide × 660 tall (50px title strip + 600 tall field + 10px buffer).
+  const title = svgEl('text', { x: 270, y: 28, 'text-anchor': 'middle', 'font-size': 18, 'font-weight': 700, fill: teamColor });
+  title.textContent = `${teamName} — atak ↑ (bramka u góry)`;
+  svg.appendChild(title);
+
+  const fieldG = svgEl('g', { transform: 'translate(0, 50)' });
+  // Half-field 540 wide × 600 tall (one offensive half, goal at top).
+  fieldG.appendChild(svgEl('rect', { x: 0, y: 0, width: 540, height: 600, fill: '#9bbf85' }));
+  // Center line at the bottom (where attack starts).
+  fieldG.appendChild(svgEl('line', { x1: 0, y1: 600, x2: 540, y2: 600, stroke: 'white', 'stroke-width': 3 }));
+  // Restraining line (attacker_progress 0.4368 → cy = (1 − 0.4368) × 600 ≈ 337.92).
+  fieldG.appendChild(svgEl('line', { x1: 0, y1: 337.92, x2: 540, y2: 337.92, stroke: 'white', 'stroke-width': 1.5, 'stroke-dasharray': '6,4', opacity: 0.85 }));
+  // Goal line (attacker_progress 40/55 ≈ 0.7273 → cy ≈ 163.64).
+  fieldG.appendChild(svgEl('line', { x1: 0, y1: 163.64, x2: 540, y2: 163.64, stroke: 'white', 'stroke-width': 1.5, opacity: 0.7 }));
+  // End line at the top.
+  fieldG.appendChild(svgEl('line', { x1: 0, y1: 0, x2: 540, y2: 0, stroke: 'white', 'stroke-width': 3 }));
+  // Side lines (left and right).
+  fieldG.appendChild(svgEl('line', { x1: 0,   y1: 0, x2: 0,   y2: 600, stroke: 'white', 'stroke-width': 3 }));
+  fieldG.appendChild(svgEl('line', { x1: 540, y1: 0, x2: 540, y2: 600, stroke: 'white', 'stroke-width': 3 }));
+  // Crease + goal mouth at the goal line.
+  fieldG.appendChild(svgEl('circle', { cx: 270, cy: 163.64, r: 27, fill: '#9bbf85', stroke: 'white', 'stroke-width': 2 }));
+  fieldG.appendChild(svgEl('line',   { x1: 258, y1: 163.64, x2: 282, y2: 163.64, stroke: 'white', 'stroke-width': 5 }));
+
+  // Plot only shots with shot_x ≥ 0 (skip own-half).
+  // Rotation mapping: attacker shot_x (0→1, center→end) → cy = (1 − shot_x) × 600 (bottom→top).
+  //                   attacker shot_y (0→1, attacker-left→right) → cx = shot_y × 540.
+  const chartShots = teamShots.filter(e => e.shot_x >= 0);
+  chartShots.forEach(e => {
+    const cx = e.shot_y * 540;
+    const cy = (1 - e.shot_x) * 600;
+    if (viewer.display_mode === 'heatmap') drawHeatBlob(fieldG, cx, cy, teamColor);
+    else                                    drawShotMarker(fieldG, cx, cy, teamColor, e.result, false);
+  });
+
+  svg.appendChild(fieldG);
+}
+
+function drawFieldMarkings(g, w, h) {
+  g.appendChild(svgEl('rect',   { x: 0, y: 0, width: w, height: h, fill: '#9bbf85' }));
+  g.appendChild(svgEl('line',   { x1: w / 2, y1: 0, x2: w / 2, y2: h, stroke: 'white', 'stroke-width': 2 }));
+  g.appendChild(svgEl('line',   { x1: w / 2 - 10, y1: h / 2 - 10, x2: w / 2 + 10, y2: h / 2 + 10, stroke: 'white', 'stroke-width': 2 }));
+  g.appendChild(svgEl('line',   { x1: w / 2 - 10, y1: h / 2 + 10, x2: w / 2 + 10, y2: h / 2 - 10, stroke: 'white', 'stroke-width': 2 }));
+  g.appendChild(svgEl('line',   { x1: w * 150 / 1100, y1: 0, x2: w * 150 / 1100, y2: h, stroke: 'white', 'stroke-width': 1.5, opacity: 0.7 }));
+  g.appendChild(svgEl('line',   { x1: w * 950 / 1100, y1: 0, x2: w * 950 / 1100, y2: h, stroke: 'white', 'stroke-width': 1.5, opacity: 0.7 }));
+  g.appendChild(svgEl('line',   { x1: w * 350 / 1100, y1: 0, x2: w * 350 / 1100, y2: h, stroke: 'white', 'stroke-width': 1.5, 'stroke-dasharray': '6,4', opacity: 0.85 }));
+  g.appendChild(svgEl('line',   { x1: w * 750 / 1100, y1: 0, x2: w * 750 / 1100, y2: h, stroke: 'white', 'stroke-width': 1.5, 'stroke-dasharray': '6,4', opacity: 0.85 }));
+  g.appendChild(svgEl('rect',   { x: 0, y: 0, width: w, height: h, fill: 'none', stroke: 'white', 'stroke-width': 3 }));
+  g.appendChild(svgEl('circle', { cx: w * 150 / 1100, cy: h / 2, r: 30, fill: '#9bbf85', stroke: 'white', 'stroke-width': 2 }));
+  g.appendChild(svgEl('circle', { cx: w * 950 / 1100, cy: h / 2, r: 30, fill: '#9bbf85', stroke: 'white', 'stroke-width': 2 }));
+  g.appendChild(svgEl('line',   { x1: w * 150 / 1100, y1: h / 2 - 12, x2: w * 150 / 1100, y2: h / 2 + 12, stroke: 'white', 'stroke-width': 5 }));
+  g.appendChild(svgEl('line',   { x1: w * 950 / 1100, y1: h / 2 - 12, x2: w * 950 / 1100, y2: h / 2 + 12, stroke: 'white', 'stroke-width': 5 }));
+}
+
+function drawShotsFullField(g, events, match, displayMode) {
+  // Canonical orientation: A on left attacking right (team_A_side='left')
+  events.forEach(e => {
+    const slot = teamSlot(match.id, e.team_event);
+    const color = slot === 'A' ? '#1d4ed8' : '#b91c1c';
+    const { physical_x, physical_y } = attackerToPhysical(e.shot_x, e.shot_y, slot, 'left');
+    const cx = physical_x * 1100;
+    const cy = physical_y * 600;
+    if (displayMode === 'heatmap') drawHeatBlob(g, cx, cy, color);
+    else                            drawShotMarker(g, cx, cy, color, e.result, e.zone_name === 'own-half');
+  });
+}
+
+function drawShotMarker(g, cx, cy, color, result, isOwnHalf) {
+  const isGoal = result === 'gol';
+  const dot = svgEl('circle', {
+    cx, cy, r: 7,
+    fill: isGoal ? color : 'transparent',
+    stroke: isOwnHalf ? '#ca8a04' : (isGoal ? 'white' : color),
+    'stroke-width': isOwnHalf ? 3 : 2
+  });
+  g.appendChild(dot);
+}
+
+function drawHeatBlob(g, cx, cy, color) {
+  const rgb = color === '#1d4ed8' ? '29, 78, 216' : '185, 28, 28';
+  g.appendChild(svgEl('circle', { cx, cy, r: 35, fill: `rgba(${rgb}, 0.18)`, stroke: 'none' }));
+  g.appendChild(svgEl('circle', { cx, cy, r: 3,  fill: `rgba(${rgb}, 0.7)`,  stroke: 'none' }));
+}
+
+// ==============================================================================
+// render-home.js
+// ==============================================================================
+
+
+// Home screen: lista meczy dzisiejszego dnia + przycisk ad-hoc.
+// Dane ładowane async przez loadHomeData() w state.js.
+
+function renderHome(root) {
+  const today = todayISO();
+
+  // ── Loading ──────────────────────────────────────────────────────────────────
+  if (APP.homeLoading) {
+    root.innerHTML = `
+      <div class="app-header">
+        <h1>Lacrosse Stats</h1>
+        <span class="meta">${today}</span>
+        <button class="btn" data-action="open-admin">📋 Turnieje</button>
+      </div>
+      <div class="home-content">
+        <div class="loading-state">
+          <div class="spinner">⏳</div>
+          <p>Ładowanie meczy…</p>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  // ── Error ────────────────────────────────────────────────────────────────────
+  if (APP.homeError) {
+    root.innerHTML = `
+      <div class="app-header">
+        <h1>Lacrosse Stats</h1>
+        <span class="meta">${today}</span>
+        <button class="btn" data-action="open-admin">📋 Turnieje</button>
+      </div>
+      <div class="home-content">
+        <div class="error-state">
+          <p>⚠ Błąd ładowania: ${escapeHtml(APP.homeError)}</p>
+          <button class="btn btn-primary" data-action="home-retry">↺ Spróbuj ponownie</button>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  // ── Loaded ───────────────────────────────────────────────────────────────────
+  const todayMatches = DATA.scheduledMatches.filter(m => m.match_date === today);
+
+  let html = `
+    <div class="app-header">
+      <h1>Lacrosse Stats</h1>
+      <span class="meta">${today}</span>
+      <button class="btn" data-action="open-admin">📋 Turnieje</button>
+    </div>
+    <div class="home-content">
+      <h2>Mecze dzisiaj</h2>
+  `;
+
+  if (todayMatches.length === 0) {
+    html += '<div class="empty">Brak meczy zaplanowanych na dziś.<br>Dodaj mecze w panelu Turniejów lub utwórz mecz ad-hoc.</div>';
+  } else {
+    html += '<div class="match-list">';
+    todayMatches.forEach(m => {
+      const score      = computeScore(m.id);
+      const eventCount = DATA.events.filter(e => e.match_id === m.id).length;
+      const isFinished = m.status === 'finished';
+      html += `
+        <div class="match-card ${isFinished ? 'finished' : ''}">
+          <div class="match-tournament">${escapeHtml(m.tournament || '— brak turnieju —')}</div>
+          <div class="match-teams">
+            <span>${escapeHtml(m.team_A)}</span>
+            ${eventCount > 0 || isFinished
+              ? `<span class="match-score">${score.A} : ${score.B}</span>`
+              : '<span class="vs">vs</span>'}
+            <span>${escapeHtml(m.team_B)}</span>
+          </div>
+          <div class="match-meta">
+            ${m.match_date} · status: <span class="status-${m.status}">${m.status}</span>
+            ${eventCount > 0 ? ` · ${eventCount} eventów` : ''}
+          </div>
+          <div class="match-actions">
+            <button class="btn btn-primary" data-action="open-match"  data-arg="${m.id}">${isFinished ? 'Otwórz' : 'Wpisuj statystyki'}</button>
+            <button class="btn"             data-action="open-viewer" data-arg="${m.id}">Tylko podgląd</button>
+          </div>
+        </div>
+      `;
+    });
+    html += '</div>';
+  }
+
+  html += `<button class="add-match" data-action="ad-hoc">+ Nowy mecz ad-hoc</button></div>`;
+  root.innerHTML = html;
+}
+
+// ==============================================================================
+// render-input.js
+// ==============================================================================
+
+
+// Match-input screen: header bar, banners, field SVG host, controls, history.
+
+function renderMatchInput(root) {
+  // Ładowanie eventów z backendu
+  if (APP.matchLoading) {
+    root.innerHTML = `
+      <div class="app-header">
+        <button class="btn" data-action="back-home">← Wróć</button>
+        <h1>Ładowanie meczu…</h1>
+      </div>
+      <div class="home-content">
+        <div class="loading-state">
+          <div class="spinner">⏳</div>
+          <p>Pobieranie eventów z bazy…</p>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  const match = DATA.scheduledMatches.find(m => m.id === APP.matchId);
+  if (!match || !APP.match) {
+    root.innerHTML = '<div class="empty">Mecz nie znaleziony</div>';
+    return;
+  }
+  const score = computeScore(match.id);
+  const A_left = APP.match.team_A_side === 'left';
+  const events = eventsForMatch(match.id);
+  const isFinal = APP.match.period === '4' || (APP.match.period && APP.match.period.startsWith('OT'));
+
+  let bannerHtml = '';
+  if (APP.banner) {
+    if (APP.banner.type === 'own-half') {
+      bannerHtml = `
+        <div class="match-banner">
+          <span>⚠ Tryb „strzał z połowy" — kliknij w połowę drużyny, która oddała strzał (auto-detekcja po połowie boiska).</span>
+          <button class="cancel" data-action="cancel-own-half">anuluj</button>
+        </div>
+      `;
+    } else if (APP.banner.type === 'swap-question') {
+      bannerHtml = `
+        <div class="match-banner swap-question">
+          <span>↔ ${escapeHtml(periodLabel(APP.banner.newPeriod))} — zamienić strony drużyn?</span>
+          <button data-action="swap-answer" data-arg="yes">Tak, zamień</button>
+          <button data-action="swap-answer" data-arg="no">Nie, zostaw</button>
+        </div>
+      `;
+    } else if (APP.banner.type === 'period-end') {
+      bannerHtml = `
+        <div class="match-banner period-end">
+          <span>${periodLabel(APP.banner.fromPeriod)} zakończona. Co dalej?</span>
+          <button data-action="next-overtime">Dogrywka ${nextPeriod(APP.banner.fromPeriod)}</button>
+          <button class="danger" data-action="end-match">🏁 Koniec meczu</button>
+          <button class="cancel" data-action="cancel-banner">anuluj</button>
+        </div>
+      `;
+    }
+  }
+
+  let controlsHtml;
+  if (isFinal) {
+    controlsHtml = `<button class="btn btn-primary" data-action="period-end-prompt">→ ${periodLabel(APP.match.period)} skończona…</button>`;
+  } else {
+    const np = nextPeriod(APP.match.period);
+    controlsHtml = `<button class="btn btn-primary" data-action="next-period">→ Następny okres (${periodLabel(np)})</button>`;
+  }
+
+  const historyRowsHtml = events.length === 0
+    ? '<div class="history-empty">Brak zarejestrowanych eventów</div>'
+    : events.map(e => renderHistoryRow(e, match)).join('');
+
+  root.innerHTML = `
+    <div class="app-header">
+      <button class="btn" data-action="back-home">← Wróć</button>
+      <h1>${escapeHtml(match.team_A)} vs ${escapeHtml(match.team_B)}</h1>
+    </div>
+    <div class="match-info-bar">
+      <div class="score">
+        <span class="team-A-color">${escapeHtml(match.team_A)} ${score.A}</span>
+        <span class="sep">:</span>
+        <span class="team-B-color">${score.B} ${escapeHtml(match.team_B)}</span>
+      </div>
+      <div class="period">${periodLabel(APP.match.period)}</div>
+      <div class="tournament">${escapeHtml(match.tournament)}</div>
+      <div class="sides-indicator">A po stronie: <strong>${A_left ? 'lewej' : 'prawej'}</strong></div>
+    </div>
+    <div class="match-screen">
+      <div class="match-section">
+        ${bannerHtml}
+        <div id="field-wrap"></div>
+        <div class="match-controls">
+          ${controlsHtml}
+          <button class="btn" data-action="swap-sides">↔ Zamień strony</button>
+          <button class="btn btn-warning ${APP.match.own_half_mode === 'active' ? 'btn-active' : ''}" data-action="own-half-toggle">⚠ Strzał z połowy</button>
+          <span class="sep">|</span>
+          <button class="btn ${APP.match.show_zones ? 'btn-active' : ''}" data-action="toggle-zones">👁 Strefy</button>
+          <div class="right">
+            <button class="btn btn-danger" data-action="end-match">🏁 Koniec meczu</button>
+          </div>
+        </div>
+        <div class="history-section">
+          <div class="history-header ${APP.match.history_expanded ? '' : 'collapsed no-border'}" data-action="toggle-history">
+            <span class="toggle-icon">▾</span>
+            <span>Historia</span>
+            <span class="count">(${events.length})</span>
+          </div>
+          ${APP.match.history_expanded ? `<div class="history-list">${historyRowsHtml}</div>` : ''}
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Inject SVG via DOM (innerHTML strips event handlers)
+  document.getElementById('field-wrap').appendChild(buildFieldSvg(match));
+}
+
+function renderHistoryRow(e, match) {
+  const slot  = teamSlot(match.id, e.team_event);
+  const flags = [];
+  if (e.man_up)   flags.push('<span class="flag man-up">man-up</span>');
+  if (e.man_down) flags.push('<span class="flag man-down">man-down</span>');
+
+  // Wskaźnik synchronizacji z GAS
+  let syncBadge = '';
+  let retryBtn  = '';
+  if (e._syncing) {
+    syncBadge = '<span class="sync-badge syncing" title="Zapisywanie…">⟳</span>';
+  } else if (e._syncError) {
+    syncBadge = `<span class="sync-badge error" title="${escapeHtml(e._syncError)}">⚠ ${escapeHtml(e._syncError)}</span>`;
+    retryBtn  = `<button class="icon-btn retry" data-action="retry-event" data-arg="${escapeHtml(e.client_event_id)}" title="Wyślij ponownie">↻</button>`;
+  }
+
+  const rowClass = e._syncError ? 'history-row sync-error' : 'history-row';
+
+  return `
+    <div class="${rowClass}">
+      <div class="period">${periodLabel(e.period)}</div>
+      <div class="team-tag ${slot}">${slot}</div>
+      <div class="result ${e.result}">${e.result}</div>
+      <div class="zone${e.zone_name === 'own-half' ? ' own-half' : ''}">${e.zone_name}</div>
+      <div class="flags">${flags.join('')}${syncBadge}</div>
+      <div class="actions">
+        ${retryBtn}
+        <button class="icon-btn"        title="Edytuj" data-action="edit-event"   data-arg="${e.id}">✎</button>
+        <button class="icon-btn delete" title="Usuń"   data-action="delete-event" data-arg="${e.id}">🗑</button>
+      </div>
+    </div>
+  `;
+}
+
+// ==============================================================================
+// render-viewer.js
+// ==============================================================================
+
+
+// Match-viewer screen (read-only, trener): score banner, stats tables, shot chart with filters.
+
+function renderMatchViewer(root) {
+  const match = DATA.scheduledMatches.find(m => String(m.id) === String(APP.matchId));
+  if (!match) {
+    root.innerHTML = '<div class="empty">Mecz nie znaleziony</div>';
+    return;
+  }
+
+  // ── Stan ładowania pierwszego fetchu ──────────────────────────────────────────
+  if (APP.viewerLoading) {
+    root.innerHTML = `
+      <div class="app-header">
+        <button class="btn" data-action="back-home">← Wróć</button>
+        <h1>${escapeHtml(match.team_A)} vs ${escapeHtml(match.team_B)} <span style="font-size:13px;color:#888;font-weight:normal">— tryb podgląd (read-only)</span></h1>
+      </div>
+      <div class="loading-state">
+        <div class="spinner">⏳</div>
+        Ładowanie danych meczu…
+      </div>
+    `;
+    return;
+  }
+
+  // ── Błąd pierwszego fetchu ────────────────────────────────────────────────────
+  if (APP.viewerError) {
+    root.innerHTML = `
+      <div class="app-header">
+        <button class="btn" data-action="back-home">← Wróć</button>
+        <h1>${escapeHtml(match.team_A)} vs ${escapeHtml(match.team_B)}</h1>
+      </div>
+      <div class="error-state">
+        <p>⚠ Błąd ładowania danych: ${escapeHtml(APP.viewerError)}</p>
+        <button class="btn btn-primary" data-action="viewer-retry">Spróbuj ponownie</button>
+      </div>
+    `;
+    return;
+  }
+
+  // Fix type mismatch: match_id z GAS może być liczbą lub stringiem
+  const allEvents = DATA.events.filter(e => String(e.match_id) === String(match.id));
+  const filtered  = applyViewerFilters(allEvents, APP.viewer);
+  const score     = computeScore(match.id);
+  const statsA    = computeTeamStats(match.id, match.team_A, allEvents);
+  const statsB    = computeTeamStats(match.id, match.team_B, allEvents);
+  const goalies   = computeGoalieStats(match, allEvents);
+  const perPeriod = computePerPeriodStats(match.id, match);
+
+  const periodSet = new Set(['1', '2', '3', '4']);
+  allEvents.forEach(e => { if (e.period) periodSet.add(e.period); });
+  const periodOptions = Array.from(periodSet).sort((a, b) => getPeriodOrder(a) - getPeriodOrder(b));
+
+  const tagClass  = APP.refreshFlash ? 'refresh-tag refreshing' : 'refresh-tag';
+  const tagLabel  = APP.refreshFlash ? 'Odświeżanie…' : _viewerRefreshLabel();
+
+  root.innerHTML = `
+    <div class="app-header">
+      <button class="btn" data-action="back-home">← Wróć</button>
+      <h1>${escapeHtml(match.team_A)} vs ${escapeHtml(match.team_B)} <span style="font-size:13px;color:#888;font-weight:normal">— tryb podgląd (read-only)</span></h1>
+    </div>
+    <div class="match-info-bar">
+      <div class="score">
+        <span class="team-A-color">${escapeHtml(match.team_A)} ${score.A}</span>
+        <span class="sep">:</span>
+        <span class="team-B-color">${score.B} ${escapeHtml(match.team_B)}</span>
+      </div>
+      <div class="period">${match.status === 'live' ? 'LIVE' : (match.status === 'finished' ? 'KONIEC' : 'planowany')}</div>
+      <div class="tournament">${escapeHtml(match.tournament)}</div>
+      <div class="sides-indicator"><span class="${tagClass}"><span class="dot"></span>${tagLabel}</span></div>
+    </div>
+    <div class="viewer-screen">
+      <div class="viewer-section">
+        ${renderViewerStatsCard(statsA, statsB, match)}
+        ${renderViewerGoalieCard(goalies, match)}
+        ${renderViewerPerPeriodCard(perPeriod, match)}
+        ${renderViewerShotChartCard(match, filtered, periodOptions)}
+      </div>
+    </div>
+  `;
+
+  const chartHost = document.getElementById('viewer-chart-host');
+  if (chartHost) chartHost.appendChild(buildViewerChart(match, filtered));
+}
+
+/** Formatuje etykietę refresh-tag z czasem ostatniego odświeżenia. */
+function _viewerRefreshLabel() {
+  if (!APP.lastViewerRefresh) return 'Auto-odświeżanie co 5s';
+  const h = APP.lastViewerRefresh.getHours().toString().padStart(2, '0');
+  const m = APP.lastViewerRefresh.getMinutes().toString().padStart(2, '0');
+  const s = APP.lastViewerRefresh.getSeconds().toString().padStart(2, '0');
+  return 'odśw. ' + h + ':' + m + ':' + s;
+}
+
+function renderViewerStatsCard(statsA, statsB, match) {
+  const fmt = (val, isRate) => val === '—' ? '—' : (isRate ? `${val}%` : val);
+  return `
+    <div class="viewer-card">
+      <h3>Statystyki strzałów</h3>
+      <table class="stats-table">
+        <thead>
+          <tr class="header-row">
+            <th class="team-A">${escapeHtml(match.team_A)}</th>
+            <th class="label" style="text-align:center;">&nbsp;</th>
+            <th class="team-B">${escapeHtml(match.team_B)}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td class="num team-A">${statsA.total}</td><td class="label" style="text-align:center;">strzały (łącznie)</td><td class="num team-B">${statsB.total}</td></tr>
+          <tr><td class="num team-A">${statsA.goals}</td><td class="label" style="text-align:center;">bramki</td><td class="num team-B">${statsB.goals}</td></tr>
+          <tr><td class="num team-A">${statsA.onTarget}</td><td class="label" style="text-align:center;">strzały celne (z bramkami)</td><td class="num team-B">${statsB.onTarget}</td></tr>
+          <tr><td class="num team-A">${statsA.offTarget}</td><td class="label" style="text-align:center;">strzały niecelne</td><td class="num team-B">${statsB.offTarget}</td></tr>
+          <tr class="summary-row"><td class="num team-A">${fmt(statsA.goalRate, true)}</td><td class="label" style="text-align:center;">% skuteczność (gole/strzały)</td><td class="num team-B">${fmt(statsB.goalRate, true)}</td></tr>
+          <tr class="summary-row"><td class="num team-A">${fmt(statsA.onTargetRate, true)}</td><td class="label" style="text-align:center;">% strzałów celnych</td><td class="num team-B">${fmt(statsB.onTargetRate, true)}</td></tr>
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function renderViewerGoalieCard(goalies, match) {
+  const fmt = (val) => val === '—' ? '—' : val + '%';
+  return `
+    <div class="viewer-card">
+      <h3>Statystyki bramkarzy</h3>
+      <table class="stats-table">
+        <thead>
+          <tr class="header-row">
+            <th class="team-A">Bramkarz ${escapeHtml(match.team_A)}</th>
+            <th class="label" style="text-align:center;">&nbsp;</th>
+            <th class="team-B">Bramkarz ${escapeHtml(match.team_B)}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td class="num team-A">${goalies.A.saves}</td><td class="label" style="text-align:center;">obrony</td><td class="num team-B">${goalies.B.saves}</td></tr>
+          <tr><td class="num team-A">${goalies.A.goalsAgainst}</td><td class="label" style="text-align:center;">bramki stracone</td><td class="num team-B">${goalies.B.goalsAgainst}</td></tr>
+          <tr><td class="num team-A">${goalies.A.shotsOnGoal}</td><td class="label" style="text-align:center;">strzały na bramkę (faced)</td><td class="num team-B">${goalies.B.shotsOnGoal}</td></tr>
+          <tr class="summary-row"><td class="num team-A">${fmt(goalies.A.savePct)}</td><td class="label" style="text-align:center;">% obron</td><td class="num team-B">${fmt(goalies.B.savePct)}</td></tr>
+        </tbody>
+      </table>
+      <div style="margin-top:8px;font-size:11px;color:#888;">obrona = strzał celny przeciwnika (zgodnie z konwencją: obrona bramkarza lub trafienie w słupek księgowane razem)</div>
+    </div>
+  `;
+}
+
+function renderViewerPerPeriodCard(perPeriod, match) {
+  return `
+    <div class="viewer-card">
+      <h3>Podział per okres</h3>
+      <table class="stats-table">
+        <thead>
+          <tr class="header-row">
+            <th class="label">Okres</th>
+            <th class="team-A">${escapeHtml(match.team_A)}</th>
+            <th class="team-B">${escapeHtml(match.team_B)}</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${perPeriod.map(p => `
+            <tr>
+              <td class="label">${periodLabel(p.period)}</td>
+              <td class="num team-A">${p.A_shots} <span style="color:#888">(${p.A_goals} ${p.A_goals === 1 ? 'gol' : 'goli'})</span></td>
+              <td class="num team-B">${p.B_shots} <span style="color:#888">(${p.B_goals} ${p.B_goals === 1 ? 'gol' : 'goli'})</span></td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+      <div style="margin-top:8px;font-size:11px;color:#888;">format: liczba strzałów (liczba goli)</div>
+    </div>
+  `;
+}
+
+function renderViewerShotChartCard(match, filtered, periodOptions) {
+  const ownHalfA = filtered.filter(e => e.zone_name === 'own-half' && e.team_event === match.team_A).length;
+  const ownHalfB = filtered.filter(e => e.zone_name === 'own-half' && e.team_event === match.team_B).length;
+  const v = APP.viewer;
+
+  return `
+    <div class="viewer-card shot-chart">
+      <h3>Shot chart</h3>
+      <div class="viewer-controls">
+        <span class="ctrl-label">Widok:</span>
+        <div class="toggle-group">
+          <button class="btn ${v.view_mode === 'full'   ? 'btn-active' : ''}" data-action="viewer-set-mode" data-arg="full">Pełne boisko</button>
+          <button class="btn ${v.view_mode === 'half-A' ? 'btn-active' : ''}" data-action="viewer-set-mode" data-arg="half-A">Połowa ${escapeHtml(match.team_A)}</button>
+          <button class="btn ${v.view_mode === 'half-B' ? 'btn-active' : ''}" data-action="viewer-set-mode" data-arg="half-B">Połowa ${escapeHtml(match.team_B)}</button>
+        </div>
+        <span class="ctrl-label" style="margin-left:8px;">Tryb:</span>
+        <div class="toggle-group">
+          <button class="btn ${v.display_mode === 'markers' ? 'btn-active' : ''}" data-action="viewer-set-display" data-arg="markers">Markery</button>
+          <button class="btn ${v.display_mode === 'heatmap' ? 'btn-active' : ''}" data-action="viewer-set-display" data-arg="heatmap">Heatmap</button>
+        </div>
+        <span class="ctrl-label" style="margin-left:8px;">Okres:</span>
+        <select id="filter-period" data-action="viewer-set-period-filter">
+          <option value="all" ${v.filter_period === 'all' ? 'selected' : ''}>wszystkie</option>
+          ${periodOptions.map(p => `<option value="${p}" ${v.filter_period === p ? 'selected' : ''}>${periodLabel(p)}</option>`).join('')}
+        </select>
+        <span class="ctrl-label" style="margin-left:8px;">Rezultat:</span>
+        <select id="filter-result" data-action="viewer-set-result-filter">
+          <option value="all"      ${v.filter_result === 'all'      ? 'selected' : ''}>wszystkie</option>
+          <option value="gol"      ${v.filter_result === 'gol'      ? 'selected' : ''}>tylko gole</option>
+          <option value="celny"    ${v.filter_result === 'celny'    ? 'selected' : ''}>tylko celne</option>
+          <option value="niecelny" ${v.filter_result === 'niecelny' ? 'selected' : ''}>tylko niecelne</option>
+        </select>
+      </div>
+      <div id="viewer-chart-host"></div>
+      <div class="shot-chart-stats">
+        <span><strong>${filtered.length}</strong> strzałów na widoku${(v.filter_period !== 'all' || v.filter_result !== 'all') ? ' (po filtrach)' : ''}</span>
+        <span>•</span>
+        <span>Zza połowy: <strong style="color:#1d4ed8">${escapeHtml(match.team_A)}: ${ownHalfA}</strong>, <strong style="color:#b91c1c">${escapeHtml(match.team_B)}: ${ownHalfB}</strong></span>
+      </div>
+    </div>
+  `;
+}
+
+// ==============================================================================
+// render-admin.js
+// ==============================================================================
+
+
+// Admin screen — manage tournaments and scheduled matches (etap C).
+//
+// Two stacked sections in one screen:
+//   1. Turnieje — global list, used as the dropdown source in match forms.
+//   2. Mecze — schedule of past, today and upcoming matches; filterable.
+//
+// CRUD on both lists. Tournament names are denormalized into matches as plain
+// strings (matching the production model in architektura-v2.md sekcja 11), so
+// renaming a tournament does NOT cascade to existing matches — admin sees a
+// warning if they try.
+
+function renderAdmin(root) {
+  if (!APP.adminFilter) {
+    APP.adminFilter = {
+      range: 'upcoming',          // 'upcoming' | 'today' | 'past' | 'all'
+      tournament: 'all',          // 'all' | <tournament name>
+      status: 'all'               // 'all' | 'scheduled' | 'live' | 'finished'
+    };
+  }
+
+  const header = `
+    <div class="app-header">
+      <button class="btn" data-action="back-home">← Wróć</button>
+      <h1>Panel admin — turnieje i harmonogram</h1>
+      <span class="meta">${todayISO()}</span>
+    </div>
+  `;
+
+  if (APP.adminLoading) {
+    root.innerHTML = header + `<div class="home-loading"><div class="spinner"></div><p>Ładowanie danych…</p></div>`;
+    return;
+  }
+
+  if (APP.adminError) {
+    root.innerHTML = header + `
+      <div class="home-error">
+        <p>⚠ ${escapeHtml(APP.adminError)}</p>
+        <button class="btn btn-primary" data-action="admin-retry">Spróbuj ponownie</button>
+      </div>
+    `;
+    return;
+  }
+
+  const filter = APP.adminFilter;
+
+  root.innerHTML = header + `
+    <div class="admin-content">
+      ${renderTournamentsCard()}
+      ${renderMatchesCard(filter)}
+    </div>
+  `;
+}
+
+function renderTournamentsCard() {
+  const tournaments = DATA.tournaments;
+  let rows = '';
+  if (tournaments.length === 0) {
+    rows = '<div class="admin-empty">Brak turniejów. Dodaj pierwszy.</div>';
+  } else {
+    rows = '<ul class="admin-list">';
+    tournaments.forEach(t => {
+      const matchCount = DATA.scheduledMatches.filter(m => m.tournament === t.name).length;
+      rows += `
+        <li class="admin-row">
+          <div class="admin-row-main">
+            <strong>${escapeHtml(t.name)}</strong>
+            <span class="admin-row-meta">${matchCount} ${matchCount === 1 ? 'mecz' : (matchCount >= 2 && matchCount <= 4 ? 'mecze' : 'meczy')}</span>
+          </div>
+          <div class="admin-row-actions">
+            <button class="btn" data-action="tournament-edit" data-arg="${t.id}">Edytuj</button>
+            <button class="btn btn-danger" data-action="tournament-delete" data-arg="${t.id}">Usuń</button>
+          </div>
+        </li>
+      `;
+    });
+    rows += '</ul>';
+  }
+
+  return `
+    <section class="admin-card">
+      <header class="admin-card-header">
+        <h2>Turnieje</h2>
+        <button class="btn btn-primary" data-action="tournament-new">+ Dodaj turniej</button>
+      </header>
+      ${rows}
+    </section>
+  `;
+}
+
+function renderMatchesCard(filter) {
+  const today = todayISO();
+  const all = DATA.scheduledMatches.slice().sort((a, b) => {
+    if (a.match_date !== b.match_date) return a.match_date < b.match_date ? -1 : 1;
+    return (a.team_A || '').localeCompare(b.team_A || '');
+  });
+
+  const filtered = all.filter(m => {
+    if (filter.range === 'today'    && m.match_date !== today) return false;
+    if (filter.range === 'upcoming' && m.match_date <  today)  return false;
+    if (filter.range === 'past'     && m.match_date >= today)  return false;
+    if (filter.tournament !== 'all' && m.tournament !== filter.tournament) return false;
+    if (filter.status     !== 'all' && m.status     !== filter.status)     return false;
+    return true;
+  });
+
+  const tournamentOpts = ['<option value="all">— wszystkie —</option>']
+    .concat(DATA.tournaments.map(t => `<option value="${escapeHtml(t.name)}" ${filter.tournament === t.name ? 'selected' : ''}>${escapeHtml(t.name)}</option>`))
+    .join('');
+
+  let rows = '';
+  if (filtered.length === 0) {
+    rows = '<div class="admin-empty">Brak meczy spełniających filtr.</div>';
+  } else {
+    rows = '<ul class="admin-list">';
+    filtered.forEach(m => {
+      const eventCount = DATA.events.filter(e => e.match_id === m.id).length;
+      const isToday = m.match_date === today;
+      rows += `
+        <li class="admin-row">
+          <div class="admin-row-main">
+            <div class="admin-match-line">
+              <span class="admin-date ${isToday ? 'today' : ''}">${m.match_date}</span>
+              <span class="admin-tournament">${escapeHtml(m.tournament || '—')}</span>
+            </div>
+            <div class="admin-match-teams">
+              <strong>${escapeHtml(m.team_A)}</strong>
+              <span class="vs">vs</span>
+              <strong>${escapeHtml(m.team_B)}</strong>
+              <span class="admin-status status-${m.status}">${m.status}</span>
+              ${eventCount > 0 ? `<span class="admin-event-count">${eventCount} eventów</span>` : ''}
+            </div>
+          </div>
+          <div class="admin-row-actions">
+            <button class="btn" data-action="match-edit" data-arg="${m.id}">Edytuj</button>
+            <button class="btn btn-danger" data-action="match-delete" data-arg="${m.id}">Usuń</button>
+          </div>
+        </li>
+      `;
+    });
+    rows += '</ul>';
+  }
+
+  return `
+    <section class="admin-card">
+      <header class="admin-card-header">
+        <h2>Mecze</h2>
+        <button class="btn btn-primary" data-action="match-new">+ Zaplanuj mecz</button>
+      </header>
+      <div class="admin-filters">
+        <div class="toggle-group">
+          <button class="btn ${filter.range === 'upcoming' ? 'btn-active' : ''}" data-action="admin-set-range" data-arg="upcoming">Nadchodzące</button>
+          <button class="btn ${filter.range === 'today'    ? 'btn-active' : ''}" data-action="admin-set-range" data-arg="today">Dziś</button>
+          <button class="btn ${filter.range === 'past'     ? 'btn-active' : ''}" data-action="admin-set-range" data-arg="past">Przeszłe</button>
+          <button class="btn ${filter.range === 'all'      ? 'btn-active' : ''}" data-action="admin-set-range" data-arg="all">Wszystkie</button>
+        </div>
+        <label class="admin-filter-field">
+          <span>Turniej</span>
+          <select id="admin-filter-tournament" data-action="admin-set-tournament">${tournamentOpts}</select>
+        </label>
+        <label class="admin-filter-field">
+          <span>Status</span>
+          <select id="admin-filter-status" data-action="admin-set-status">
+            <option value="all"       ${filter.status === 'all'       ? 'selected' : ''}>— wszystkie —</option>
+            <option value="scheduled" ${filter.status === 'scheduled' ? 'selected' : ''}>Zaplanowane</option>
+            <option value="live"      ${filter.status === 'live'      ? 'selected' : ''}>W trakcie</option>
+            <option value="finished"  ${filter.status === 'finished'  ? 'selected' : ''}>Zakończone</option>
+          </select>
+        </label>
+      </div>
+      ${rows}
+    </section>
+  `;
+}
+
+// ===== Modal templates (registered in render-modal.js dispatcher) =====
+
+function renderTournamentModal(t) {
+  const isEdit = !!t;
+  const matchCount = isEdit
+    ? DATA.scheduledMatches.filter(m => m.tournament === t.name).length
+    : 0;
+  const warning = isEdit && matchCount > 0
+    ? `<div class="modal-subtitle" style="color:#854d0e">⚠ Zmiana nazwy nie zaktualizuje ${matchCount} przypisanych meczów (denormalizacja). W razie potrzeby zaktualizuj je ręcznie.</div>`
+    : '';
+  return `
+    <div class="modal" data-stop-propagation="true">
+      <h2>${isEdit ? 'Edytuj turniej' : 'Nowy turniej'}</h2>
+      ${warning}
+      <label class="field">
+        <span class="field-label">Nazwa turnieju</span>
+        <input id="tournament-name" placeholder="np. Liga PL Wiosna 2026" value="${isEdit ? escapeHtml(t.name) : ''}">
+      </label>
+      <div class="modal-actions">
+        <button class="btn" data-action="cancel-modal">Anuluj</button>
+        <button class="btn btn-primary" data-action="submit-tournament" data-arg="${isEdit ? t.id : ''}">${isEdit ? 'Zapisz' : 'Dodaj'}</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderMatchModal(m) {
+  const isEdit = !!m;
+  const tournaments = DATA.tournaments;
+  const eventCount = isEdit ? DATA.events.filter(e => e.match_id === m.id).length : 0;
+  const tournamentOpts = tournaments.length === 0
+    ? '<option value="">(brak turniejów — dodaj na liście)</option>'
+    : tournaments.map(t => `<option value="${escapeHtml(t.name)}" ${isEdit && m.tournament === t.name ? 'selected' : ''}>${escapeHtml(t.name)}</option>`).join('');
+  const eventWarning = isEdit && eventCount > 0
+    ? `<div class="modal-subtitle" style="color:#854d0e">⚠ Mecz ma ${eventCount} zarejestrowanych eventów. Zmiana drużyn lub turnieju nie zaktualizuje ich denormalizowanej kopii.</div>`
+    : '';
+  return `
+    <div class="modal" data-stop-propagation="true">
+      <h2>${isEdit ? 'Edytuj mecz' : 'Zaplanuj mecz'}</h2>
+      ${eventWarning}
+      <label class="field">
+        <span class="field-label">Turniej</span>
+        <select id="match-tournament">${tournamentOpts}</select>
+      </label>
+      <label class="field">
+        <span class="field-label">Drużyna A</span>
+        <input id="match-team-a" placeholder="np. Hawks" value="${isEdit ? escapeHtml(m.team_A) : ''}">
+      </label>
+      <label class="field">
+        <span class="field-label">Drużyna B</span>
+        <input id="match-team-b" placeholder="np. Vikings" value="${isEdit ? escapeHtml(m.team_B) : ''}">
+      </label>
+      <label class="field">
+        <span class="field-label">Data</span>
+        <input id="match-date" type="date" value="${isEdit ? m.match_date : todayISO()}">
+      </label>
+      <label class="field">
+        <span class="field-label">Status</span>
+        <select id="match-status">
+          <option value="scheduled" ${(!isEdit || m.status === 'scheduled') ? 'selected' : ''}>Zaplanowany</option>
+          <option value="live"      ${isEdit && m.status === 'live'      ? 'selected' : ''}>W trakcie</option>
+          <option value="finished"  ${isEdit && m.status === 'finished'  ? 'selected' : ''}>Zakończony</option>
+        </select>
+      </label>
+      <div class="modal-actions">
+        <button class="btn" data-action="cancel-modal">Anuluj</button>
+        <button class="btn btn-primary" data-action="submit-match" data-arg="${isEdit ? m.id : ''}">${isEdit ? 'Zapisz' : 'Dodaj mecz'}</button>
+      </div>
+    </div>
+  `;
+}
+
+// ==============================================================================
+// render-modal.js
+// ==============================================================================
+
+
+// Modal dispatcher + 4 modal templates (result / edit-event / confirm-end / ad-hoc).
+
+function renderModal() {
+  const bg = document.createElement('div');
+  bg.className = 'modal-bg';
+  bg.dataset.action = 'modal-bg-click';
+
+  if      (APP.modal.type === 'result')         bg.innerHTML = renderResultModal(APP.modal.pending);
+  else if (APP.modal.type === 'edit-event')     bg.innerHTML = renderEditEventModal(APP.modal.event);
+  else if (APP.modal.type === 'confirm-end')    bg.innerHTML = renderConfirmEnd();
+  else if (APP.modal.type === 'ad-hoc')         bg.innerHTML = renderAdHocModal();
+  else if (APP.modal.type === 'tournament-form') bg.innerHTML = renderTournamentModal(APP.modal.tournament);
+  else if (APP.modal.type === 'match-form')      bg.innerHTML = renderMatchModal(APP.modal.match);
+
+  document.body.appendChild(bg);
+}
+
+function closeModal() { APP.modal = null; render(); }
+
+function renderResultModal(pending) {
+  return `
+    <div class="modal" data-stop-propagation="true">
+      <h2>Strzał</h2>
+      <div class="modal-subtitle">Wybierz rezultat</div>
+      <div class="modal-context">
+        <div class="row">
+          <span class="label">Drużyna</span>
+          <span class="value team-${pending.team_slot}">${escapeHtml(pending.team_event)} (${pending.team_slot})</span>
+        </div>
+        <div class="row">
+          <span class="label">Strefa</span>
+          <span class="value zone">${pending.zone_name}</span>
+        </div>
+        <div class="row">
+          <span class="label">Okres</span>
+          <span class="value">${periodLabel(APP.match.period)}</span>
+        </div>
+      </div>
+      <div class="flag-row">
+        <label><input type="checkbox" id="flag-man-up"   data-action="mutex-flag" data-arg="man-up"> Przewaga (man-up)</label>
+        <label><input type="checkbox" id="flag-man-down" data-action="mutex-flag" data-arg="man-down"> Osłabienie (man-down)</label>
+      </div>
+      <div class="result-buttons">
+        <button class="result-btn niecelny" data-action="submit-result" data-arg="niecelny">Niecelny</button>
+        <button class="result-btn celny"    data-action="submit-result" data-arg="celny">Celny</button>
+        <button class="result-btn gol"      data-action="submit-result" data-arg="gol">⚽ Gol</button>
+      </div>
+      <div class="modal-actions">
+        <button class="btn" data-action="cancel-modal">Anuluj</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderEditEventModal(e) {
+  const match = DATA.scheduledMatches.find(m => m.id === APP.matchId);
+  return `
+    <div class="modal" data-stop-propagation="true">
+      <h2>Edytuj event</h2>
+      <div class="modal-subtitle">Pozycja na boisku jest zachowana — żeby ją zmienić, usuń event i dodaj nowy.</div>
+      <div class="modal-context">
+        <div class="row"><span class="label">Pozycja</span><span class="value zone">${e.shot_x.toFixed(2)}, ${e.shot_y.toFixed(2)} → ${e.zone_name}</span></div>
+      </div>
+      <label class="field">
+        <span class="field-label">Drużyna</span>
+        <select id="edit-team">
+          <option value="${escapeHtml(match.team_A)}" ${e.team_event === match.team_A ? 'selected' : ''}>${escapeHtml(match.team_A)} (A)</option>
+          <option value="${escapeHtml(match.team_B)}" ${e.team_event === match.team_B ? 'selected' : ''}>${escapeHtml(match.team_B)} (B)</option>
+        </select>
+      </label>
+      <label class="field">
+        <span class="field-label">Okres</span>
+        <select id="edit-period">
+          ${['1','2','3','4','OT1','OT2','OT3'].map(p =>
+            `<option value="${p}" ${e.period === p ? 'selected' : ''}>${periodLabel(p)}</option>`
+          ).join('')}
+        </select>
+      </label>
+      <label class="field">
+        <span class="field-label">Rezultat</span>
+        <select id="edit-result">
+          <option value="niecelny" ${e.result === 'niecelny' ? 'selected' : ''}>Niecelny</option>
+          <option value="celny"    ${e.result === 'celny'    ? 'selected' : ''}>Celny</option>
+          <option value="gol"      ${e.result === 'gol'      ? 'selected' : ''}>Gol</option>
+        </select>
+      </label>
+      <div class="flag-row">
+        <label><input type="checkbox" id="edit-man-up"   data-action="mutex-edit-flag" data-arg="man-up"   ${e.man_up   ? 'checked' : ''}> Przewaga</label>
+        <label><input type="checkbox" id="edit-man-down" data-action="mutex-edit-flag" data-arg="man-down" ${e.man_down ? 'checked' : ''}> Osłabienie</label>
+      </div>
+      <div class="modal-actions">
+        <button class="btn" data-action="cancel-modal">Anuluj</button>
+        <button class="btn btn-primary" data-action="submit-edit" data-arg="${e.id}">Zapisz zmiany</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderConfirmEnd() {
+  const score = computeScore(APP.matchId);
+  const match = DATA.scheduledMatches.find(m => m.id === APP.matchId);
+  return `
+    <div class="modal" data-stop-propagation="true">
+      <h2>Zakończyć mecz?</h2>
+      <div class="modal-subtitle">Po potwierdzeniu wracasz do ekranu startowego. Eventy są zachowane.</div>
+      <div class="modal-context">
+        <div class="row"><span class="label">Wynik</span><span class="value">${escapeHtml(match.team_A)} ${score.A} : ${score.B} ${escapeHtml(match.team_B)}</span></div>
+        <div class="row"><span class="label">Okres</span><span class="value">${periodLabel(APP.match.period)}</span></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn" data-action="cancel-modal">Anuluj</button>
+        <button class="btn btn-danger" data-action="confirm-end-match">🏁 Zakończ mecz</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderAdHocModal() {
+  const tournaments = DATA.tournaments;
+  return `
+    <div class="modal" data-stop-propagation="true">
+      <h2>Nowy mecz ad-hoc</h2>
+      <div class="modal-subtitle">Mecz nie zaplanowany wcześniej w turnieju.</div>
+      <label class="field">
+        <span class="field-label">Turniej</span>
+        <select id="adhoc-tournament">
+          ${tournaments.map(t => `<option value="${escapeHtml(t.name)}">${escapeHtml(t.name)}</option>`).join('')}
+        </select>
+      </label>
+      <label class="field">
+        <span class="field-label">Drużyna A</span>
+        <input id="adhoc-team-a" placeholder="np. Hawks">
+      </label>
+      <label class="field">
+        <span class="field-label">Drużyna B</span>
+        <input id="adhoc-team-b" placeholder="np. Vikings">
+      </label>
+      <label class="field">
+        <span class="field-label">Data</span>
+        <input id="adhoc-date" type="date" value="${todayISO()}">
+      </label>
+      <div class="modal-actions">
+        <button class="btn" data-action="cancel-modal">Anuluj</button>
+        <button class="btn btn-primary" data-action="create-ad-hoc">Utwórz i wpisuj statystyki</button>
+      </div>
+    </div>
+  `;
+}
+
+// ==============================================================================
+// handlers.js
+// ==============================================================================
+
+
+// HANDLERS map (data-action → fn) + global event delegation listeners (click + change).
+
+const HANDLERS = {
+  'open-admin': () => goAdmin(),
+  'home-retry':   () => loadHomeData(),
+  'viewer-retry': () => startViewerRefresh(),
+  'admin-retry':  () => loadAdminData(),
+
+  // Ręczny retry eventu z błędem sync (krok 8)
+  'retry-event': (clientEventId) => {
+    const ev = DATA.events.find(e => e.client_event_id === clientEventId);
+    if (!ev || ev._syncing) return;
+
+    // Sprawdź walidację przed wysłaniem
+    const validationError = validateEventPayload(ev);
+    if (validationError) {
+      const idx = DATA.events.findIndex(e => e.client_event_id === clientEventId);
+      if (idx >= 0) {
+        DATA.events[idx] = Object.assign({}, DATA.events[idx], {
+          _syncError: 'Błąd walidacji: ' + validationError,
+        });
+      }
+      render();
+      return;
+    }
+
+    const idx = DATA.events.findIndex(e => e.client_event_id === clientEventId);
+    if (idx < 0) return;
+    DATA.events[idx] = Object.assign({}, DATA.events[idx], { _syncing: true, _syncError: null });
+    render();
+
+    gasSaveEvent(ev).then(function (result) {
+      const i = DATA.events.findIndex(e => e.client_event_id === clientEventId);
+      if (i >= 0) {
+        DATA.events[i] = Object.assign({}, DATA.events[i], {
+          id:         result.id,
+          _syncing:   false,
+          _syncError: null,
+        });
+        removeFromOfflineBuffer(clientEventId);
+      }
+      render();
+    }).catch(function (err) {
+      if (err.code !== 'DEV_MODE') {
+        const i = DATA.events.findIndex(e => e.client_event_id === clientEventId);
+        if (i >= 0) {
+          DATA.events[i] = Object.assign({}, DATA.events[i], {
+            _syncing:   false,
+            _syncError: err.message || 'Błąd zapisu — wyślij ponownie',
+          });
+        }
+        render();
+      }
+    });
+  },
+
+  // Routing
+  'open-match':  (id) => openMatchInput(id),
+  'open-viewer': (id) => openMatchViewer(id),
+  'back-home':   () => goHome(),
+  'ad-hoc':      () => { APP.modal = { type: 'ad-hoc' }; render(); },
+
+  // ===== Admin (etap C) =====
+  'admin-set-range':      (range) => { APP.adminFilter.range = range; render(); },
+  'admin-set-tournament': () => {
+    const sel = document.getElementById('admin-filter-tournament');
+    if (sel) APP.adminFilter.tournament = sel.value;
+    render();
+  },
+  'admin-set-status': () => {
+    const sel = document.getElementById('admin-filter-status');
+    if (sel) APP.adminFilter.status = sel.value;
+    render();
+  },
+
+  'tournament-new':  () => { APP.modal = { type: 'tournament-form', tournament: null }; render(); },
+  'tournament-edit': (id) => {
+    const t = DATA.tournaments.find(x => x.id === id);
+    if (!t) return;
+    APP.modal = { type: 'tournament-form', tournament: t };
+    render();
+  },
+  'tournament-delete': (id) => {
+    const t = DATA.tournaments.find(x => x.id === id);
+    if (!t) return;
+    const matchCount = DATA.scheduledMatches.filter(m => m.tournament === t.name).length;
+    const msg = matchCount > 0
+      ? `Usunąć turniej „${t.name}"? ${matchCount} przypisanych meczów zostanie BEZ turnieju (string nie wyczyści się automatycznie).`
+      : `Usunąć turniej „${t.name}"?`;
+    if (!confirm(msg)) return;
+    // Optimistic remove
+    DATA.tournaments = DATA.tournaments.filter(x => x.id !== id);
+    render();
+    // Async GAS
+    gasDeleteTournament(id).catch(function(e) {
+      if (e.code !== 'DEV_MODE') {
+        APP.banner = { type: 'error', msg: 'Błąd usunięcia turnieju: ' + (e.message || e) };
+        render();
+      }
+    });
+  },
+  'submit-tournament': (id) => {
+    const input = document.getElementById('tournament-name');
+    if (!input) return;
+    const name = input.value.trim();
+    if (!name) { alert('Nazwa turnieju nie może być pusta.'); return; }
+    if (id) {
+      // Edit — optimistic update
+      const t = DATA.tournaments.find(x => x.id === id);
+      if (t) t.name = name;
+      APP.modal = null;
+      render();
+      // Async GAS
+      gasUpdateTournament(id, name).catch(function(e) {
+        if (e.code !== 'DEV_MODE') {
+          APP.banner = { type: 'error', msg: 'Błąd zapisu turnieju: ' + (e.message || e) };
+          render();
+        }
+      });
+    } else {
+      // Create — optimistic add z tymczasowym ID
+      const localId = 'tlocal_' + Date.now();
+      DATA.tournaments.push({ id: localId, name });
+      APP.modal = null;
+      render();
+      // Async GAS — podmień lokalny ID na GAS ID
+      gasCreateTournament(name).then(function(result) {
+        const t = DATA.tournaments.find(x => x.id === localId);
+        if (t) t.id = result.id;
+        render();
+      }).catch(function(e) {
+        if (e.code !== 'DEV_MODE') {
+          APP.banner = { type: 'error', msg: 'Błąd tworzenia turnieju: ' + (e.message || e) };
+          render();
+        }
+      });
+    }
+  },
+
+  'match-new':  () => { APP.modal = { type: 'match-form', match: null }; render(); },
+  'match-edit': (id) => {
+    const m = DATA.scheduledMatches.find(x => x.id === id);
+    if (!m) return;
+    APP.modal = { type: 'match-form', match: m };
+    render();
+  },
+  'match-delete': (id) => {
+    const m = DATA.scheduledMatches.find(x => x.id === id);
+    if (!m) return;
+    const eventCount = DATA.events.filter(e => e.match_id === id).length;
+    const msg = eventCount > 0
+      ? `Usunąć mecz „${m.team_A} vs ${m.team_B}" (${m.match_date})? Razem z nim usuniętych zostanie ${eventCount} zarejestrowanych eventów.`
+      : `Usunąć mecz „${m.team_A} vs ${m.team_B}" (${m.match_date})?`;
+    if (!confirm(msg)) return;
+    // Optimistic remove
+    DATA.scheduledMatches = DATA.scheduledMatches.filter(x => x.id !== id);
+    DATA.events           = DATA.events.filter(e => e.match_id !== id);
+    render();
+    // Async GAS
+    gasDeleteMatch(id).catch(function(e) {
+      if (e.code !== 'DEV_MODE') {
+        APP.banner = { type: 'error', msg: 'Błąd usunięcia meczu: ' + (e.message || e) };
+        render();
+      }
+    });
+  },
+  'submit-match': (id) => {
+    const tournament = (document.getElementById('match-tournament').value || '').trim();
+    const teamA      = document.getElementById('match-team-a').value.trim();
+    const teamB      = document.getElementById('match-team-b').value.trim();
+    const matchDate  = document.getElementById('match-date').value;
+    const status     = document.getElementById('match-status').value;
+    if (!teamA || !teamB || !matchDate) {
+      alert('Wypełnij obie drużyny i datę.');
+      return;
+    }
+    if (id) {
+      // Edit — optimistic update
+      const m = DATA.scheduledMatches.find(x => x.id === id);
+      if (m) Object.assign(m, { tournament, team_A: teamA, team_B: teamB, match_date: matchDate, status });
+      APP.modal = null;
+      render();
+      // Async GAS
+      gasUpdateMatch(id, { tournament, team_A: teamA, team_B: teamB, match_date: matchDate, status })
+        .catch(function(e) {
+          if (e.code !== 'DEV_MODE') {
+            APP.banner = { type: 'error', msg: 'Błąd zapisu meczu: ' + (e.message || e) };
+            render();
+          }
+        });
+    } else {
+      // Create — optimistic add z tymczasowym ID
+      const localId = 'mlocal_' + Date.now();
+      DATA.scheduledMatches.push({
+        id: localId,
+        tournament, team_A: teamA, team_B: teamB, match_date: matchDate, status: status || 'scheduled'
+      });
+      APP.modal = null;
+      render();
+      // Async GAS — podmień lokalny ID na GAS ID
+      gasCreateMatch({ tournament, team_A: teamA, team_B: teamB, match_date: matchDate, status: status || 'scheduled' })
+        .then(function(result) {
+          const m = DATA.scheduledMatches.find(x => x.id === localId);
+          if (m) m.id = result.id;
+          render();
+        })
+        .catch(function(e) {
+          if (e.code !== 'DEV_MODE') {
+            APP.banner = { type: 'error', msg: 'Błąd tworzenia meczu: ' + (e.message || e) };
+            render();
+          }
+        });
+    }
+  },
+
+  // Viewer controls
+  'viewer-set-mode':           (mode) => { APP.viewer.view_mode    = mode; render(); },
+  'viewer-set-display':        (mode) => { APP.viewer.display_mode = mode; render(); },
+  'viewer-set-period-filter':  () => {
+    const sel = document.getElementById('filter-period');
+    if (sel) APP.viewer.filter_period = sel.value;
+    render();
+  },
+  'viewer-set-result-filter':  () => {
+    const sel = document.getElementById('filter-result');
+    if (sel) APP.viewer.filter_result = sel.value;
+    render();
+  },
+
+  // Period transitions
+  'next-period': () => {
+    const newP = nextPeriod(APP.match.period);
+    APP.match.period = newP;
+    APP.banner = { type: 'swap-question', newPeriod: newP };
+    render();
+  },
+  'period-end-prompt': () => {
+    APP.banner = { type: 'period-end', fromPeriod: APP.match.period };
+    render();
+  },
+  'next-overtime': () => {
+    const newP = nextPeriod(APP.banner.fromPeriod);
+    APP.match.period = newP;
+    APP.banner = { type: 'swap-question', newPeriod: newP };
+    render();
+  },
+  'cancel-banner': () => { APP.banner = null; render(); },
+
+  // Sides
+  'swap-sides': () => {
+    APP.match.team_A_side = APP.match.team_A_side === 'left' ? 'right' : 'left';
+    APP.banner = null;
+    render();
+  },
+  'swap-answer': (yes) => {
+    if (yes === 'yes') {
+      APP.match.team_A_side = APP.match.team_A_side === 'left' ? 'right' : 'left';
+    }
+    APP.banner = null;
+    render();
+  },
+
+  // Own-half mode
+  'own-half-toggle': () => {
+    APP.match.own_half_mode = APP.match.own_half_mode === 'active' ? null : 'active';
+    APP.banner = APP.match.own_half_mode === 'active' ? { type: 'own-half' } : null;
+    render();
+  },
+  'cancel-own-half': () => { APP.match.own_half_mode = null; APP.banner = null; render(); },
+
+  'toggle-zones':   () => { APP.match.show_zones        = !APP.match.show_zones;        render(); },
+  'toggle-history': () => { APP.match.history_expanded  = !APP.match.history_expanded;  render(); },
+
+  // Event creation/edit/delete
+  'submit-result': (result) => {
+    const pending = APP.modal.pending;
+    const manUp   = document.getElementById('flag-man-up').checked;
+    const manDown = document.getElementById('flag-man-down').checked;
+    recordEvent({
+      shot_x: pending.shot_x, shot_y: pending.shot_y,
+      zone_name: pending.zone_name, team_event: pending.team_event,
+      result, man_up: manUp, man_down: manDown
+    });
+    APP.modal = null;
+    render();
+  },
+
+  'edit-event': (id) => {
+    const e = DATA.events.find(x => String(x.id) === String(id));
+    if (!e) return;
+    APP.modal = { type: 'edit-event', event: e };
+    render();
+  },
+  'submit-edit': (id) => {
+    const team    = document.getElementById('edit-team').value;
+    const period  = document.getElementById('edit-period').value;
+    const result  = document.getElementById('edit-result').value;
+    const manUp   = document.getElementById('edit-man-up').checked;
+    const manDown = document.getElementById('edit-man-down').checked;
+    updateEvent(id, { team_event: team, period, result, man_up: manUp, man_down: manDown });
+    APP.modal = null;
+    render();
+  },
+  'delete-event': (id) => {
+    if (!confirm('Usunąć ten event?')) return;
+    deleteEvent(id);
+    render();
+  },
+
+  // End match
+  'end-match':         () => { APP.modal = { type: 'confirm-end' }; APP.banner = null; render(); },
+  'confirm-end-match': () => {
+    const match = DATA.scheduledMatches.find(m => m.id === APP.matchId);
+    if (match) {
+      match.status = 'finished';
+      gasUpdateMatch(match.id, { status: 'finished' }).catch(function () {});
+    }
+    goHome();
+  },
+
+  // Modal actions
+  'cancel-modal': () => closeModal(),
+
+  // Ad-hoc match creation
+  'create-ad-hoc': () => {
+    const tournament = document.getElementById('adhoc-tournament').value.trim();
+    const teamA      = document.getElementById('adhoc-team-a').value.trim();
+    const teamB      = document.getElementById('adhoc-team-b').value.trim();
+    const date       = document.getElementById('adhoc-date').value;
+    if (!teamA || !teamB || !date) { alert('Wypełnij drużyny i datę.'); return; }
+
+    // Twórz mecz lokalnie od razu (optimistic), wyślij do GAS async
+    const localId = 'adhoc_' + Date.now();
+    const newMatch = {
+      id: localId,
+      tournament, team_A: teamA, team_B: teamB, match_date: date, status: 'live'
+    };
+    DATA.scheduledMatches.push(newMatch);
+    APP.modal = null;
+    openMatchInput(localId);
+
+    // Async zapis do GAS (aktualizuje ID w tle — ale mecz już otwarty lokalnie)
+    gasCreateMatch({ tournament, team_A: teamA, team_B: teamB, match_date: date, status: 'live' })
+      .then(function (result) {
+        // Zamień lokalny ID na GAS ID
+        const m = DATA.scheduledMatches.find(function (x) { return x.id === localId; });
+        if (m) m.id = result.id;
+        if (APP.matchId === localId) APP.matchId = result.id;
+        // Zaktualizuj match_id w eventach tego meczu
+        DATA.events.forEach(function (e) {
+          if (e.match_id === localId) e.match_id = result.id;
+        });
+      })
+      .catch(function () { /* DEV_MODE lub błąd — lokalny ID zostaje */ });
+  },
+
+  // Mutex flags (man-up XOR man-down)
+  'mutex-flag': (which) => {
+    const up = document.getElementById('flag-man-up');
+    const down = document.getElementById('flag-man-down');
+    if (!up || !down) return;
+    if (which === 'man-up'   && up.checked)   down.checked = false;
+    if (which === 'man-down' && down.checked) up.checked   = false;
+  },
+  'mutex-edit-flag': (which) => {
+    const up = document.getElementById('edit-man-up');
+    const down = document.getElementById('edit-man-down');
+    if (!up || !down) return;
+    if (which === 'man-up'   && up.checked)   down.checked = false;
+    if (which === 'man-down' && down.checked) up.checked   = false;
+  },
+
+  'modal-bg-click': () => { /* handled separately in click listener */ }
+};
+
+// ===== Event delegation =====
+
+document.addEventListener('click', (e) => {
+  // Click on .modal-bg directly (not on its children) closes the modal.
+  if (e.target.classList && e.target.classList.contains('modal-bg')) {
+    closeModal();
+    return;
+  }
+  const target = e.target.closest('[data-action]');
+  if (!target) return;
+  // <select> dispatches via 'change' instead.
+  if (target.tagName === 'SELECT') return;
+  const action = target.dataset.action;
+  if (action === 'modal-bg-click') return;
+  const handler = HANDLERS[action];
+  if (handler) handler(target.dataset.arg);
+});
+
+document.addEventListener('change', (e) => {
+  const target = e.target.closest('[data-action]');
+  if (!target) return;
+  if (target.tagName !== 'SELECT' && target.type !== 'checkbox') return;
+  const handler = HANDLERS[target.dataset.action];
+  if (handler) handler(target.dataset.arg);
+});
+
+// ==============================================================================
+// app.js
+// ==============================================================================
+
+
+// Top-level render dispatcher + init.
+
+const APP_VERSION = 'v2.0.0';
+
+function _renderFooter(container) {
+  const f = document.createElement('footer');
+  f.className = 'app-footer';
+  f.textContent = 'Lacrosse Stats ' + APP_VERSION;
+  container.appendChild(f);
+}
+
+function render() {
+  const app = document.getElementById('app');
+  app.innerHTML = '';
+  if      (APP.screen === 'home')          renderHome(app);
+  else if (APP.screen === 'admin')         renderAdmin(app);
+  else if (APP.screen === 'match-input')   renderMatchInput(app);
+  else if (APP.screen === 'match-viewer')  renderMatchViewer(app);
+
+  _renderFooter(app);
+
+  // Strip stale modals from previous render
+  const oldModal = document.querySelector('.modal-bg');
+  if (oldModal) oldModal.remove();
+
+  if (APP.modal) renderModal();
+}
+
+// Init — must be last after all modules loaded.
+render();
+</script>
+</body>
+</html>

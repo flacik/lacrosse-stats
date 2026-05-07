@@ -2,13 +2,24 @@
 
 // Top-level render dispatcher + init.
 
+const APP_VERSION = 'v2.0.0';
+
+function _renderFooter(container) {
+  const f = document.createElement('footer');
+  f.className = 'app-footer';
+  f.textContent = 'Lacrosse Stats ' + APP_VERSION;
+  container.appendChild(f);
+}
+
 function render() {
   const app = document.getElementById('app');
   app.innerHTML = '';
-  if      (APP.screen === 'home')         renderHome(app);
-  else if (APP.screen === 'match-input')  renderMatchInput(app);
-  else if (APP.screen === 'match-viewer') renderMatchViewer(app);
-  else if (APP.screen === 'admin')        renderAdmin(app);
+  if      (APP.screen === 'home')          renderHome(app);
+  else if (APP.screen === 'admin')         renderAdmin(app);
+  else if (APP.screen === 'match-input')   renderMatchInput(app);
+  else if (APP.screen === 'match-viewer')  renderMatchViewer(app);
+
+  _renderFooter(app);
 
   // Strip stale modals from previous render
   const oldModal = document.querySelector('.modal-bg');
