@@ -2,7 +2,7 @@
 
 A web application for recording shot statistics during lacrosse matches, with a real-time viewer mode for coaches.
 
-**Live demo:** https://script.google.com/macros/s/AKfycbz3_lNbzPPteOgOIUxSNuPpo_KgXtSI5ws8JWGD6s5Z2a-NXTePsxtghSg3kiiRfHrwdA/exec
+**Live demo:** https://script.google.com/macros/s/AKfycbxtJOywKiTnvXvgLIgkL1d5ECjAUkDpw1YY5rVuAYSK0FDvs8qxrtxFAJy518QtSDcALw/exec
 
 ---
 
