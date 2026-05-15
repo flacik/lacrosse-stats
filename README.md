@@ -111,4 +111,11 @@ cd lacrosse-stats-v2/
 
 ## Status
 
-Version 2.0.0 — production-ready. Smoke tested against all 8 core scenarios (shot recording, real-time viewer, admin CRUD, offline recovery, edit/delete flows).
+Version 2.0.0 — production-ready. Smoke tested 2026-05-15 against all 8 core scenarios: shot recording, real-time viewer, admin CRUD, offline buffer recovery, edit/delete flows.
+
+Four bugs found and fixed during smoke testing:
+
+- Match disappearing from Home after entering input mode (GAS date formatting in UTC vs. Warsaw timezone)
+- Admin panel showing no matches (filter initialization logic)
+- Edit event button not responding (number vs. string ID comparison)
+- Crash on load when events had no `period` field (missing guard in stats.js)
