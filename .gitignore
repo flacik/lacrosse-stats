@@ -2,6 +2,10 @@
 node_modules/
 *.log
 
+gas/.clasp.json
+gas/Code.js
+gas/index.html
+
 # Internal project management files
 CAREER-HANDOFF.md
 CONVERSATION-HANDOFF.md
