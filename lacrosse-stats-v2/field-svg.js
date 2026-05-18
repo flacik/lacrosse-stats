@@ -93,6 +93,8 @@ function buildFieldSvg(match) {
   });
   fieldG.appendChild(markersG);
 
+  drawZoneLabels(fieldG, APP.match.team_A_side);
+
   svg.appendChild(fieldG);
   svg.addEventListener('click', handleFieldClick);
   return svg;
@@ -181,6 +183,7 @@ function drawFullFieldChart(svg, match, filtered, viewer) {
   const fieldG = svgEl('g', { transform: 'translate(0, 50)' });
   drawFieldMarkings(fieldG, 1100, 600);
   drawShotsFullField(fieldG, filtered, match, viewer.display_mode);
+  drawZoneLabels(fieldG, 'left');  // canonical viewer: A always attacks right
   svg.appendChild(fieldG);
 }
 
@@ -258,14 +261,95 @@ function drawShotsFullField(g, events, match, displayMode) {
 }
 
 function drawShotMarker(g, cx, cy, color, result, isOwnHalf) {
-  const isGoal = result === 'gol';
-  const dot = svgEl('circle', {
-    cx, cy, r: 7,
-    fill: isGoal ? color : 'transparent',
-    stroke: isOwnHalf ? '#ca8a04' : (isGoal ? 'white' : color),
-    'stroke-width': isOwnHalf ? 3 : 2
+  const isGoal   = result === 'gol';
+  const isMissed = result === 'niecelny';
+  const strokeColor = isOwnHalf ? '#ca8a04' : color;
+
+  if (isMissed) {
+    const s = 5;
+    g.appendChild(svgEl('line', { x1: cx - s, y1: cy - s, x2: cx + s, y2: cy + s, stroke: strokeColor, 'stroke-width': 2 }));
+    g.appendChild(svgEl('line', { x1: cx + s, y1: cy - s, x2: cx - s, y2: cy + s, stroke: strokeColor, 'stroke-width': 2 }));
+  } else {
+    g.appendChild(svgEl('circle', {
+      cx, cy, r: 7,
+      fill: isGoal ? color : 'transparent',
+      stroke: isOwnHalf ? '#ca8a04' : (isGoal ? 'white' : color),
+      'stroke-width': 2
+    }));
+  }
+}
+
+// ── Etykiety stref A1–B6 (F-04) ──────────────────────────────────────────────
+
+function drawZoneLabels(g, team_A_side) {
+  const A_atk_right = team_A_side === 'left';
+  // X-centers (SVG field coords, 1100px wide)
+  // Attack/midfield boundary at shot_x=0.4368 → physical_x=0.7184 → 790px (right side)
+  //                                                                  0.2816 → 310px (left side)
+  const aAtckX = A_atk_right ? 945 : 155;  // center of attack zone for A
+  const aMidX  = A_atk_right ? 670 : 430;  // center of midfield zone for A
+  const bAtckX = A_atk_right ? 155 : 945;
+  const bMidX  = A_atk_right ? 430 : 670;
+  // Y-centers: left/center/right from attacker's POV
+  // Attacking right: left=top(100), center=mid(300), right=bottom(500)
+  // Attacking left:  left=bottom(500), center=mid(300), right=top(100)
+  const aY = A_atk_right ? [100, 300, 500] : [500, 300, 100];
+  const bY = A_atk_right ? [500, 300, 100] : [100, 300, 500];
+
+  const items = [
+    { l: 'A1', x: aAtckX, y: aY[0] }, { l: 'A2', x: aAtckX, y: aY[1] }, { l: 'A3', x: aAtckX, y: aY[2] },
+    { l: 'A4', x: aMidX,  y: aY[0] }, { l: 'A5', x: aMidX,  y: aY[1] }, { l: 'A6', x: aMidX,  y: aY[2] },
+    { l: 'B1', x: bAtckX, y: bY[0] }, { l: 'B2', x: bAtckX, y: bY[1] }, { l: 'B3', x: bAtckX, y: bY[2] },
+    { l: 'B4', x: bMidX,  y: bY[0] }, { l: 'B5', x: bMidX,  y: bY[1] }, { l: 'B6', x: bMidX,  y: bY[2] },
+  ];
+  items.forEach(({ l, x, y }) => {
+    const t = svgEl('text', {
+      x, y, 'text-anchor': 'middle', 'dominant-baseline': 'middle',
+      'font-size': 11, fill: '#9ca3af', 'pointer-events': 'none', 'font-weight': '600'
+    });
+    t.textContent = l;
+    g.appendChild(t);
   });
-  g.appendChild(dot);
+}
+
+// ── Legenda mapy boiska (F-03) ────────────────────────────────────────────────
+
+function buildFieldLegend(match) {
+  const div = document.createElement('div');
+  div.className = 'field-legend';
+  div.innerHTML = `
+    <span class="leg-item">
+      <svg width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7" r="6" fill="#1d4ed8"/></svg>
+      Bramka (A)
+    </span>
+    <span class="leg-item">
+      <svg width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7" r="5" fill="none" stroke="#1d4ed8" stroke-width="2"/></svg>
+      Celny (A)
+    </span>
+    <span class="leg-item">
+      <svg width="14" height="14" viewBox="0 0 14 14">
+        <line x1="2" y1="2" x2="12" y2="12" stroke="#1d4ed8" stroke-width="2"/>
+        <line x1="12" y1="2" x2="2" y2="12" stroke="#1d4ed8" stroke-width="2"/>
+      </svg>
+      Niecelny (A)
+    </span>
+    <span class="leg-item">
+      <svg width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7" r="6" fill="#b91c1c"/></svg>
+      Bramka (B)
+    </span>
+    <span class="leg-item">
+      <svg width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7" r="5" fill="none" stroke="#b91c1c" stroke-width="2"/></svg>
+      Celny (B)
+    </span>
+    <span class="leg-item">
+      <svg width="14" height="14" viewBox="0 0 14 14">
+        <line x1="2" y1="2" x2="12" y2="12" stroke="#b91c1c" stroke-width="2"/>
+        <line x1="12" y1="2" x2="2" y2="12" stroke="#b91c1c" stroke-width="2"/>
+      </svg>
+      Niecelny (B)
+    </span>
+  `;
+  return div;
 }
 
 function drawHeatBlob(g, cx, cy, color) {

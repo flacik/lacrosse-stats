@@ -60,13 +60,13 @@ function renderMatchViewer(root) {
       <button class="btn" data-action="back-home">← Wróć</button>
       <h1>${escapeHtml(match.team_A)} vs ${escapeHtml(match.team_B)} <span style="font-size:13px;color:#888;font-weight:normal">— tryb podgląd (read-only)</span></h1>
     </div>
-    <div class="match-info-bar">
+    <div class="match-info-bar ${match.status === 'live' ? 'header-live' : (match.status === 'finished' ? 'header-archived' : '')}">
       <div class="score">
         <span class="team-A-color">${escapeHtml(match.team_A)} ${score.A}</span>
         <span class="sep">:</span>
         <span class="team-B-color">${score.B} ${escapeHtml(match.team_B)}</span>
       </div>
-      <div class="period">${match.status === 'live' ? 'LIVE' : (match.status === 'finished' ? 'KONIEC' : 'planowany')}</div>
+      <div class="period">${match.status === 'live' ? '🔴 LIVE' : (match.status === 'finished' ? 'KONIEC' : 'PLANOWANY')}</div>
       <div class="tournament">${escapeHtml(match.tournament)}</div>
       <div class="sides-indicator"><span class="${tagClass}"><span class="dot"></span>${tagLabel}</span></div>
     </div>
@@ -81,23 +81,40 @@ function renderMatchViewer(root) {
   `;
 
   const chartHost = document.getElementById('viewer-chart-host');
-  if (chartHost) chartHost.appendChild(buildViewerChart(match, filtered));
+  if (chartHost) {
+    chartHost.appendChild(buildViewerChart(match, filtered));
+    if (APP.viewer.view_mode === 'full') chartHost.appendChild(buildFieldLegend(match));
+  }
 }
 
 /** Formatuje etykietę refresh-tag z czasem ostatniego odświeżenia. */
 function _viewerRefreshLabel() {
-  if (!APP.lastViewerRefresh) return 'Auto-odświeżanie co 5s';
+  if (!APP.lastViewerRefresh) return 'Ostatnia aktualizacja: —';
   const h = APP.lastViewerRefresh.getHours().toString().padStart(2, '0');
   const m = APP.lastViewerRefresh.getMinutes().toString().padStart(2, '0');
   const s = APP.lastViewerRefresh.getSeconds().toString().padStart(2, '0');
-  return 'odśw. ' + h + ':' + m + ':' + s;
+  return 'Ostatnia aktualizacja: ' + h + ':' + m + ':' + s;
+}
+
+function _splitBar(va, vb) {
+  const na = typeof va === 'number' ? va : (parseFloat(va) || 0);
+  const nb = typeof vb === 'number' ? vb : (parseFloat(vb) || 0);
+  const total = na + nb;
+  const pct = total > 0 ? Math.round(na / total * 100) : 50;
+  return APP.splitBars
+    ? `<tr class="split-bar-row"><td colspan="3"><div class="split-bar" style="--pct:${pct}%"></div></td></tr>`
+    : '';
 }
 
 function renderViewerStatsCard(statsA, statsB, match) {
   const fmt = (val, isRate) => val === '—' ? '—' : (isRate ? `${val}%` : val);
+  const toggleLabel = APP.splitBars ? 'Ukryj bary' : 'Pokaż bary';
   return `
     <div class="viewer-card">
-      <h3>Statystyki strzałów</h3>
+      <h3 style="display:flex;align-items:center;">
+        Statystyki strzałów
+        <button class="btn" data-action="toggle-split-bars" style="margin-left:auto;font-size:11px;padding:3px 8px;">${toggleLabel}</button>
+      </h3>
       <table class="stats-table">
         <thead>
           <tr class="header-row">
@@ -108,11 +125,17 @@ function renderViewerStatsCard(statsA, statsB, match) {
         </thead>
         <tbody>
           <tr><td class="num team-A">${statsA.total}</td><td class="label" style="text-align:center;">strzały (łącznie)</td><td class="num team-B">${statsB.total}</td></tr>
+          ${_splitBar(statsA.total, statsB.total)}
           <tr><td class="num team-A">${statsA.goals}</td><td class="label" style="text-align:center;">bramki</td><td class="num team-B">${statsB.goals}</td></tr>
+          ${_splitBar(statsA.goals, statsB.goals)}
           <tr><td class="num team-A">${statsA.onTarget}</td><td class="label" style="text-align:center;">strzały celne (z bramkami)</td><td class="num team-B">${statsB.onTarget}</td></tr>
+          ${_splitBar(statsA.onTarget, statsB.onTarget)}
           <tr><td class="num team-A">${statsA.offTarget}</td><td class="label" style="text-align:center;">strzały niecelne</td><td class="num team-B">${statsB.offTarget}</td></tr>
+          ${_splitBar(statsA.offTarget, statsB.offTarget)}
           <tr class="summary-row"><td class="num team-A">${fmt(statsA.goalRate, true)}</td><td class="label" style="text-align:center;">% skuteczność (gole/strzały)</td><td class="num team-B">${fmt(statsB.goalRate, true)}</td></tr>
+          ${_splitBar(statsA.goalRate, statsB.goalRate)}
           <tr class="summary-row"><td class="num team-A">${fmt(statsA.onTargetRate, true)}</td><td class="label" style="text-align:center;">% strzałów celnych</td><td class="num team-B">${fmt(statsB.onTargetRate, true)}</td></tr>
+          ${_splitBar(statsA.onTargetRate, statsB.onTargetRate)}
         </tbody>
       </table>
     </div>
@@ -146,7 +169,7 @@ function renderViewerGoalieCard(goalies, match) {
 
 function renderViewerPerPeriodCard(perPeriod, match) {
   return `
-    <div class="viewer-card">
+    <div class="viewer-card per-period">
       <h3>Podział per okres</h3>
       <table class="stats-table">
         <thead>

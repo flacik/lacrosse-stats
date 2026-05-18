@@ -372,7 +372,10 @@ const HANDLERS = {
     if (which === 'man-down' && down.checked) up.checked   = false;
   },
 
-  'modal-bg-click': () => { /* handled separately in click listener */ }
+  'modal-bg-click': () => { /* handled separately in click listener */ },
+
+  // Viewer: toggle split-barów (F-02)
+  'toggle-split-bars': () => { APP.splitBars = !APP.splitBars; render(); },
 };
 
 // ===== Event delegation =====
