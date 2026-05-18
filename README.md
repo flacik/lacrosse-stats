@@ -119,3 +119,14 @@ Four bugs found and fixed during smoke testing:
 - Admin panel showing no matches (filter initialization logic)
 - Edit event button not responding (number vs. string ID comparison)
 - Crash on load when events had no `period` field (missing guard in stats.js)
+
+**v3 MVP (2026-05-18, pending merge)** — 8 UI/UX improvements, frontend-only:
+
+- LIVE badge redesign — red pulsing header bar when match is live, grey when finished
+- Split bars in stats tables — proportional A vs B gradient under each row, toggleable
+- Field map legend — goal / saved / missed markers with team colours (viewer mode)
+- Zone labels A1–B6 on the field map (both input and viewer mode)
+- Shot modal colour semantics — saved=blue, missed=grey, goal=green; larger man-up/down checkboxes
+- Match card CTA hierarchy — "Input stats" primary, "View only" secondary; dominant score display
+- Last-updated timestamp replacing "auto-refresh every 5s"
+- Tablet responsive layout — two-column grid at ≥768px, fat-finger safe buttons (48px min)

@@ -13,6 +13,7 @@ function renderHome(root) {
         <h1>Lacrosse Stats</h1>
         <span class="meta">${today}</span>
         <button class="btn" data-action="open-admin">📋 Turnieje</button>
+        <button class="btn" data-action="open-analytics">📊 Analityka</button>
       </div>
       <div class="home-content">
         <div class="loading-state">
@@ -31,6 +32,7 @@ function renderHome(root) {
         <h1>Lacrosse Stats</h1>
         <span class="meta">${today}</span>
         <button class="btn" data-action="open-admin">📋 Turnieje</button>
+        <button class="btn" data-action="open-analytics">📊 Analityka</button>
       </div>
       <div class="home-content">
         <div class="error-state">
@@ -50,6 +52,7 @@ function renderHome(root) {
       <h1>Lacrosse Stats</h1>
       <span class="meta">${today}</span>
       <button class="btn" data-action="open-admin">📋 Turnieje</button>
+      <button class="btn" data-action="open-analytics">📊 Analityka</button>
     </div>
     <div class="home-content">
       <h2>Mecze dzisiaj</h2>

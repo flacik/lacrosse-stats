@@ -88,11 +88,11 @@ function computeGoalieStats(match, allEvents) {
 
 function computePerPeriodStats(matchId, match) {
   const events = DATA.events.filter(e => String(e.match_id) === String(matchId));
-  const periods = new Set(['1', '2', '3', '4']);
-  events.forEach(e => { if (e.period) periods.add(e.period); });
+  const periods = new Set();
+  events.forEach(e => { if (e.period !== undefined && e.period !== '') periods.add(String(e.period)); });
   const sorted = Array.from(periods).sort((a, b) => getPeriodOrder(a) - getPeriodOrder(b));
   return sorted.map(p => {
-    const periodEvents = events.filter(e => e.period === p);
+    const periodEvents = events.filter(e => String(e.period) === p);
     const A_shots = periodEvents.filter(e => e.team_event === match.team_A).length;
     const A_goals = periodEvents.filter(e => e.team_event === match.team_A && e.result === 'gol').length;
     const B_shots = periodEvents.filter(e => e.team_event === match.team_B).length;
@@ -103,7 +103,7 @@ function computePerPeriodStats(matchId, match) {
 
 function applyViewerFilters(events, viewer) {
   let filtered = events;
-  if (viewer.filter_period !== 'all') filtered = filtered.filter(e => e.period === viewer.filter_period);
+  if (viewer.filter_period !== 'all') filtered = filtered.filter(e => String(e.period) === viewer.filter_period);
   if (viewer.filter_result !== 'all') filtered = filtered.filter(e => e.result === viewer.filter_result);
   return filtered;
 }

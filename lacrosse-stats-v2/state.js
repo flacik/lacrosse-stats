@@ -30,6 +30,19 @@ let APP = {
 
   // Viewer: split-bary w tabelach statystyk (F-02)
   splitBars: true,
+
+  // Analytics (V4)
+  analyticsLoading:     false,
+  analyticsError:       null,
+  analyticsData:        null,   // { events: [], matches: [], tournaments: [] }
+  analyticsFilters:     {
+    tournament: '',
+    team:       '',
+    dateFrom:   '',
+    dateTo:     '',
+    period:     '',
+  },
+  analyticsHeatmapMode: 'fired',  // 'fired' | 'conceded'
 };
 
 // ── Routing ────────────────────────────────────────────────────────────────────
@@ -52,8 +65,10 @@ function go(screen, opts) {
   APP.viewerLoading = false;
   APP.viewerError   = null;
   APP.lastViewerRefresh = null;
-  APP.adminLoading = false;
-  APP.adminError   = null;
+  APP.adminLoading     = false;
+  APP.adminError       = null;
+  APP.analyticsLoading = false;
+  APP.analyticsError   = null;
 
   if (screen === 'home') {
     loadHomeData();                              // async — renderuje sam gdy gotowe
@@ -65,12 +80,15 @@ function go(screen, opts) {
     startViewerRefresh();
   } else if (screen === 'admin') {
     loadAdminData();                             // pełna lista meczów + turnieje
+  } else if (screen === 'analytics') {
+    loadAnalyticsData();
   }
   render();
 }
 
 function goHome()                 { go('home'); }
 function goAdmin()                { go('admin'); }
+function goAnalytics()            { go('analytics'); }
 function openMatchInput(matchId)  { go('match-input',  { matchId }); }
 function openMatchViewer(matchId) { go('match-viewer', { matchId }); }
 
@@ -127,6 +145,40 @@ async function loadAdminData() {
   }
 
   APP.adminLoading = false;
+  render();
+}
+
+// ── Ładowanie danych — tryb analityki historycznej ───────────────────────────
+
+async function loadAnalyticsData() {
+  APP.analyticsLoading = true;
+  APP.analyticsError   = null;
+  render();
+
+  try {
+    const [events, matches, tournaments] = await Promise.all([
+      gasListAllEvents(),
+      gasListAllMatches(),
+      gasListTournaments(),
+    ]);
+    APP.analyticsData = {
+      events:      events      || [],
+      matches:     matches     || [],
+      tournaments: tournaments || [],
+    };
+  } catch (e) {
+    if (e.code === 'DEV_MODE') {
+      APP.analyticsData = {
+        events:      SAMPLE_DATA.events,
+        matches:     JSON.parse(JSON.stringify(SAMPLE_DATA.scheduledMatches)),
+        tournaments: JSON.parse(JSON.stringify(SAMPLE_DATA.tournaments)),
+      };
+    } else {
+      APP.analyticsError = e.message || 'Błąd ładowania danych analityki';
+    }
+  }
+
+  APP.analyticsLoading = false;
   render();
 }
 

@@ -522,3 +522,25 @@ table.stats-table td.num {
   margin-top: 24px;
   letter-spacing: 0.02em;
 }
+
+/* ── Analytics (V4) ──────────────────────────────────────────────────────────── */
+.analytics-content { padding: 0 16px 32px; }
+.analytics-filters { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; }
+.filter-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+.filter-row label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #6b7280; }
+.filter-row select, .filter-row input[type=date] { font-size: 14px; padding: 6px 8px; border: 1px solid #d1d5db; border-radius: 6px; }
+.analytics-section { margin-bottom: 28px; }
+.analytics-section h2 { font-size: 18px; margin-bottom: 12px; }
+.analytics-section h3 { font-size: 14px; color: #6b7280; margin: 16px 0 8px; }
+.stats-grid { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; }
+.stat-box { background: #f3f4f6; border-radius: 8px; padding: 12px 16px; min-width: 80px; text-align: center; }
+.stat-val { font-size: 24px; font-weight: 700; }
+.stat-lbl { font-size: 12px; color: #6b7280; margin-top: 2px; }
+.analytics-count { color: #6b7280; font-size: 13px; margin-bottom: 16px; }
+.heatmap-toggle { display: flex; gap: 8px; margin-bottom: 12px; }
+.match-history-table td { vertical-align: middle; }
+.match-result { font-weight: 700; font-size: 16px; }
+.match-history-row.won  td:first-child { border-left: 3px solid #16a34a; }
+.match-history-row.lost td:first-child { border-left: 3px solid #dc2626; }
+.match-history-row.drew td:first-child { border-left: 3px solid #9ca3af; }
+.btn-sm { padding: 4px 10px; font-size: 13px; }

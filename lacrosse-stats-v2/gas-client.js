@@ -136,3 +136,8 @@ function gasListAllMatches() {
   return gasCall('listAllScheduledMatches');
 }
 
+/** Zwraca wszystkie eventy ze wszystkich meczów (analityka historyczna). */
+function gasListAllEvents() {
+  return gasCall('listAllEvents');
+}
+

@@ -20,6 +20,7 @@ JS_FILES=(
   render-home.js
   render-input.js
   render-viewer.js
+  render-analytics.js
   render-admin.js
   render-modal.js
   handlers.js
