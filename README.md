@@ -2,7 +2,7 @@
 
 A web application for recording shot statistics during lacrosse matches, with a real-time viewer mode for coaches.
 
-**Live demo:** https://script.google.com/macros/s/AKfycbxtJOywKiTnvXvgLIgkL1d5ECjAUkDpw1YY5rVuAYSK0FDvs8qxrtxFAJy518QtSDcALw/exec
+**Live demo:** https://script.google.com/macros/s/AKfycbz3_lNbzPPteOgOIUxSNuPpo_KgXtSI5ws8JWGD6s5Z2a-NXTePsxtghSg3kiiRfHrwdA/exec
 
 ---
 
@@ -111,16 +111,18 @@ cd lacrosse-stats-v2/
 
 ## Status
 
-Version 2.0.0 — production-ready. Smoke tested 2026-05-15 against all 8 core scenarios: shot recording, real-time viewer, admin CRUD, offline buffer recovery, edit/delete flows.
+**Current: V4 — deployed 2026-05-19**
 
-Four bugs found and fixed during smoke testing:
+**v4 (2026-05-19)** — historical analytics screen:
 
-- Match disappearing from Home after entering input mode (GAS date formatting in UTC vs. Warsaw timezone)
-- Admin panel showing no matches (filter initialization logic)
-- Edit event button not responding (number vs. string ID comparison)
-- Crash on load when events had no `period` field (missing guard in stats.js)
+- New **Analityka** screen (4th screen) with tournament / team / date / period filters
+- Team dropdown scoped to selected tournament
+- Stats grid: shots, goals, accuracy %, man-up/down, zone breakdown, per-period breakdown
+- Shot chart heatmap — fired vs. conceded toggle, reuses the half-field SVG renderer
+- Match history table with W/D/L colouring and viewer shortcut
+- Backend: `listAllEvents()` + `seedDummyData()` (3 tournaments, 14 matches, ~563 events)
 
-**v3 MVP (2026-05-18, pending merge)** — 8 UI/UX improvements, frontend-only:
+**v3 MVP (2026-05-18)** — 8 UI/UX improvements, frontend-only:
 
 - LIVE badge redesign — red pulsing header bar when match is live, grey when finished
 - Split bars in stats tables — proportional A vs B gradient under each row, toggleable
@@ -130,3 +132,5 @@ Four bugs found and fixed during smoke testing:
 - Match card CTA hierarchy — "Input stats" primary, "View only" secondary; dominant score display
 - Last-updated timestamp replacing "auto-refresh every 5s"
 - Tablet responsive layout — two-column grid at ≥768px, fat-finger safe buttons (48px min)
+
+**v2 (2026-05-15)** — production-ready baseline. Smoke tested against all 8 core scenarios: shot recording, real-time viewer, admin CRUD, offline buffer recovery, edit/delete flows.
