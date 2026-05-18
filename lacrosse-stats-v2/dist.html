@@ -23,6 +23,8 @@ body {
 .btn:hover { background: #f0f0eb; }
 .btn-primary { background: #1a1a1a; color: white; border-color: #1a1a1a; }
 .btn-primary:hover { background: #333; }
+.btn-secondary { border: 1px solid #374151; color: #374151; background: transparent; }
+.btn-secondary:hover { background: #f3f4f6; }
 .btn-danger { color: #b91c1c; border-color: #fecaca; }
 .btn-danger:hover { background: #fef2f2; }
 .btn-active { background: #1a1a1a; color: white; border-color: #1a1a1a; }
@@ -43,7 +45,29 @@ body {
   padding: 10px 20px; background: white;
   border-bottom: 1px solid #f0f0eb;
   font-size: 13px;
+  transition: background 0.3s;
 }
+.match-info-bar.header-live {
+  background: #dc2626; color: white;
+  animation: pulse-live 2s infinite;
+  border-bottom-color: #b91c1c;
+}
+.match-info-bar.header-archived { background: #6b7280; color: white; border-bottom-color: #4b5563; }
+.match-info-bar.header-live .team-A-color { color: #93c5fd; }
+.match-info-bar.header-live .team-B-color { color: #fca5a5; }
+.match-info-bar.header-live .sep         { color: rgba(255,255,255,0.7); }
+.match-info-bar.header-live .period,
+.match-info-bar.header-archived .period  { background: rgba(0,0,0,0.2); color: white; }
+.match-info-bar.header-live .refresh-tag,
+.match-info-bar.header-archived .refresh-tag {
+  background: rgba(0,0,0,0.2); border-color: rgba(255,255,255,0.3); color: white;
+}
+.match-info-bar.header-live .refresh-tag .dot,
+.match-info-bar.header-archived .refresh-tag .dot { background: white; animation: none; }
+.match-info-bar.header-archived .team-A-color { color: #bfdbfe; }
+.match-info-bar.header-archived .team-B-color { color: #fecaca; }
+.match-info-bar.header-archived .tournament   { color: rgba(255,255,255,0.8); }
+@keyframes pulse-live { 0%,100% { opacity:1; } 50% { opacity:.85; } }
 .match-info-bar .score {
   font-size: 18px; font-weight: 700; letter-spacing: 0.5px;
   display: flex; gap: 10px; align-items: center;
@@ -78,7 +102,18 @@ body {
   font-size: 17px; font-weight: 600; margin-bottom: 4px;
 }
 .match-teams .vs { color: #999; font-weight: 400; font-size: 14px; }
-.match-teams .match-score { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: #444; }
+.match-teams .match-score {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 1.6rem; font-weight: 700; color: #1a1a1a;
+  flex: 1; text-align: center;
+}
+.badge-live {
+  display: inline-block; background: #dc2626; color: white;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.05em;
+  padding: 2px 6px; border-radius: 3px;
+  animation: pulse-live 2s infinite;
+  vertical-align: middle;
+}
 .match-meta { font-size: 12px; color: #888; margin-bottom: 12px; }
 .match-meta .status-scheduled { color: #16a34a; }
 .match-meta .status-live { color: #ca8a04; font-weight: 600; }
@@ -240,22 +275,23 @@ svg.field.field-half {
   border-radius: 10px; cursor: pointer;
   display: flex; align-items: center; justify-content: center; gap: 10px;
 }
-.result-btn.niecelny { color: #555; border-color: #d4d4d0; }
+.result-btn.niecelny { color: #6b7280; border-color: #d1d5db; }
 .result-btn.niecelny:hover { background: #f7f7f5; }
-.result-btn.celny { color: #854d0e; border-color: #fde68a; background: #fefce8; }
-.result-btn.celny:hover { background: #fef9c3; }
+.result-btn.celny { color: #1d4ed8; border-color: #93c5fd; background: #eff6ff; }
+.result-btn.celny:hover { background: #dbeafe; }
 .result-btn.gol { color: white; border-color: #15803d; background: #16a34a; }
 .result-btn.gol:hover { background: #15803d; }
 
 .flag-row {
   display: flex; gap: 12px; margin-bottom: 16px;
-  background: #f7f7f5; padding: 10px 12px; border-radius: 8px;
+  background: #f7f7f5; padding: 12px 14px; border-radius: 8px;
 }
 .flag-row label {
-  display: flex; align-items: center; gap: 6px;
+  display: flex; align-items: center; gap: 8px;
   font-size: 13px; cursor: pointer; user-select: none;
+  padding: 2px 0;
 }
-.flag-row input { margin: 0; cursor: pointer; }
+.flag-row input[type="checkbox"] { width: 20px; height: 20px; margin: 0; cursor: pointer; }
 
 .modal-actions {
   display: flex; gap: 8px; justify-content: flex-end;
@@ -365,6 +401,37 @@ table.stats-table td.num {
 .no-events {
   text-align: center; padding: 30px; color: #999; font-size: 13px;
 }
+
+/* ── Split-bary w tabelach statystyk (F-02) ──────────────────────────────────── */
+.split-bar-row td { padding: 0 10px 6px; border-bottom: none; }
+.split-bar {
+  height: 6px; border-radius: 3px;
+  background: linear-gradient(to right, #3b82f6 var(--pct), #ef4444 var(--pct));
+}
+
+/* ── Legenda mapy boiska (F-03) ──────────────────────────────────────────────── */
+.field-legend {
+  display: flex; gap: 14px; flex-wrap: wrap;
+  font-size: 12px; color: #6b7280; margin-top: 8px; padding-top: 8px;
+  border-top: 1px solid #f0f0eb;
+}
+.leg-item { display: flex; align-items: center; gap: 5px; }
+.leg-item svg { flex-shrink: 0; }
+
+/* ── Tablet responsive layout (F-08) ────────────────────────────────────────── */
+@media (min-width: 768px) {
+  .viewer-section {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    align-items: start;
+  }
+  .viewer-card.shot-chart,
+  .viewer-card.per-period {
+    grid-column: 1 / -1;
+  }
+}
+.result-btn { min-height: 48px; }
 
 /* ===== Admin (etap C) ===== */
 .admin-content {
@@ -966,6 +1033,9 @@ let APP = {
   adminFilter: null,
   adminLoading: false,
   adminError: null,
+
+  // Viewer: split-bary w tabelach statystyk (F-02)
+  splitBars: true,
 };
 
 // ── Routing ────────────────────────────────────────────────────────────────────
@@ -1503,6 +1573,8 @@ function buildFieldSvg(match) {
   });
   fieldG.appendChild(markersG);
 
+  drawZoneLabels(fieldG, APP.match.team_A_side);
+
   svg.appendChild(fieldG);
   svg.addEventListener('click', handleFieldClick);
   return svg;
@@ -1591,6 +1663,7 @@ function drawFullFieldChart(svg, match, filtered, viewer) {
   const fieldG = svgEl('g', { transform: 'translate(0, 50)' });
   drawFieldMarkings(fieldG, 1100, 600);
   drawShotsFullField(fieldG, filtered, match, viewer.display_mode);
+  drawZoneLabels(fieldG, 'left');  // canonical viewer: A always attacks right
   svg.appendChild(fieldG);
 }
 
@@ -1668,14 +1741,95 @@ function drawShotsFullField(g, events, match, displayMode) {
 }
 
 function drawShotMarker(g, cx, cy, color, result, isOwnHalf) {
-  const isGoal = result === 'gol';
-  const dot = svgEl('circle', {
-    cx, cy, r: 7,
-    fill: isGoal ? color : 'transparent',
-    stroke: isOwnHalf ? '#ca8a04' : (isGoal ? 'white' : color),
-    'stroke-width': isOwnHalf ? 3 : 2
+  const isGoal   = result === 'gol';
+  const isMissed = result === 'niecelny';
+  const strokeColor = isOwnHalf ? '#ca8a04' : color;
+
+  if (isMissed) {
+    const s = 5;
+    g.appendChild(svgEl('line', { x1: cx - s, y1: cy - s, x2: cx + s, y2: cy + s, stroke: strokeColor, 'stroke-width': 2 }));
+    g.appendChild(svgEl('line', { x1: cx + s, y1: cy - s, x2: cx - s, y2: cy + s, stroke: strokeColor, 'stroke-width': 2 }));
+  } else {
+    g.appendChild(svgEl('circle', {
+      cx, cy, r: 7,
+      fill: isGoal ? color : 'transparent',
+      stroke: isOwnHalf ? '#ca8a04' : (isGoal ? 'white' : color),
+      'stroke-width': 2
+    }));
+  }
+}
+
+// ── Etykiety stref A1–B6 (F-04) ──────────────────────────────────────────────
+
+function drawZoneLabels(g, team_A_side) {
+  const A_atk_right = team_A_side === 'left';
+  // X-centers (SVG field coords, 1100px wide)
+  // Attack/midfield boundary at shot_x=0.4368 → physical_x=0.7184 → 790px (right side)
+  //                                                                  0.2816 → 310px (left side)
+  const aAtckX = A_atk_right ? 945 : 155;  // center of attack zone for A
+  const aMidX  = A_atk_right ? 670 : 430;  // center of midfield zone for A
+  const bAtckX = A_atk_right ? 155 : 945;
+  const bMidX  = A_atk_right ? 430 : 670;
+  // Y-centers: left/center/right from attacker's POV
+  // Attacking right: left=top(100), center=mid(300), right=bottom(500)
+  // Attacking left:  left=bottom(500), center=mid(300), right=top(100)
+  const aY = A_atk_right ? [100, 300, 500] : [500, 300, 100];
+  const bY = A_atk_right ? [500, 300, 100] : [100, 300, 500];
+
+  const items = [
+    { l: 'A1', x: aAtckX, y: aY[0] }, { l: 'A2', x: aAtckX, y: aY[1] }, { l: 'A3', x: aAtckX, y: aY[2] },
+    { l: 'A4', x: aMidX,  y: aY[0] }, { l: 'A5', x: aMidX,  y: aY[1] }, { l: 'A6', x: aMidX,  y: aY[2] },
+    { l: 'B1', x: bAtckX, y: bY[0] }, { l: 'B2', x: bAtckX, y: bY[1] }, { l: 'B3', x: bAtckX, y: bY[2] },
+    { l: 'B4', x: bMidX,  y: bY[0] }, { l: 'B5', x: bMidX,  y: bY[1] }, { l: 'B6', x: bMidX,  y: bY[2] },
+  ];
+  items.forEach(({ l, x, y }) => {
+    const t = svgEl('text', {
+      x, y, 'text-anchor': 'middle', 'dominant-baseline': 'middle',
+      'font-size': 11, fill: '#9ca3af', 'pointer-events': 'none', 'font-weight': '600'
+    });
+    t.textContent = l;
+    g.appendChild(t);
   });
-  g.appendChild(dot);
+}
+
+// ── Legenda mapy boiska (F-03) ────────────────────────────────────────────────
+
+function buildFieldLegend(match) {
+  const div = document.createElement('div');
+  div.className = 'field-legend';
+  div.innerHTML = `
+    <span class="leg-item">
+      <svg width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7" r="6" fill="#1d4ed8"/></svg>
+      Bramka (A)
+    </span>
+    <span class="leg-item">
+      <svg width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7" r="5" fill="none" stroke="#1d4ed8" stroke-width="2"/></svg>
+      Celny (A)
+    </span>
+    <span class="leg-item">
+      <svg width="14" height="14" viewBox="0 0 14 14">
+        <line x1="2" y1="2" x2="12" y2="12" stroke="#1d4ed8" stroke-width="2"/>
+        <line x1="12" y1="2" x2="2" y2="12" stroke="#1d4ed8" stroke-width="2"/>
+      </svg>
+      Niecelny (A)
+    </span>
+    <span class="leg-item">
+      <svg width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7" r="6" fill="#b91c1c"/></svg>
+      Bramka (B)
+    </span>
+    <span class="leg-item">
+      <svg width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7" r="5" fill="none" stroke="#b91c1c" stroke-width="2"/></svg>
+      Celny (B)
+    </span>
+    <span class="leg-item">
+      <svg width="14" height="14" viewBox="0 0 14 14">
+        <line x1="2" y1="2" x2="12" y2="12" stroke="#b91c1c" stroke-width="2"/>
+        <line x1="12" y1="2" x2="2" y2="12" stroke="#b91c1c" stroke-width="2"/>
+      </svg>
+      Niecelny (B)
+    </span>
+  `;
+  return div;
 }
 
 function drawHeatBlob(g, cx, cy, color) {
@@ -1752,9 +1906,13 @@ function renderHome(root) {
       const score      = computeScore(m.id);
       const eventCount = DATA.events.filter(e => e.match_id === m.id).length;
       const isFinished = m.status === 'finished';
+      const isLive = m.status === 'live';
       html += `
         <div class="match-card ${isFinished ? 'finished' : ''}">
-          <div class="match-tournament">${escapeHtml(m.tournament || '— brak turnieju —')}</div>
+          <div class="match-tournament">
+            ${escapeHtml(m.tournament || '— brak turnieju —')}
+            ${isLive ? ' <span class="badge-live">LIVE</span>' : ''}
+          </div>
           <div class="match-teams">
             <span>${escapeHtml(m.team_A)}</span>
             ${eventCount > 0 || isFinished
@@ -1763,12 +1921,12 @@ function renderHome(root) {
             <span>${escapeHtml(m.team_B)}</span>
           </div>
           <div class="match-meta">
-            ${m.match_date} · status: <span class="status-${m.status}">${m.status}</span>
+            ${m.match_date}
             ${eventCount > 0 ? ` · ${eventCount} eventów` : ''}
           </div>
           <div class="match-actions">
-            <button class="btn btn-primary" data-action="open-match"  data-arg="${m.id}">${isFinished ? 'Otwórz' : 'Wpisuj statystyki'}</button>
-            <button class="btn"             data-action="open-viewer" data-arg="${m.id}">Tylko podgląd</button>
+            <button class="btn btn-primary"   data-action="open-match"  data-arg="${m.id}">${isFinished ? 'Otwórz' : 'Wpisuj statystyki'}</button>
+            <button class="btn btn-secondary" data-action="open-viewer" data-arg="${m.id}">Tylko podgląd</button>
           </div>
         </div>
       `;
@@ -2000,13 +2158,13 @@ function renderMatchViewer(root) {
       <button class="btn" data-action="back-home">← Wróć</button>
       <h1>${escapeHtml(match.team_A)} vs ${escapeHtml(match.team_B)} <span style="font-size:13px;color:#888;font-weight:normal">— tryb podgląd (read-only)</span></h1>
     </div>
-    <div class="match-info-bar">
+    <div class="match-info-bar ${match.status === 'live' ? 'header-live' : (match.status === 'finished' ? 'header-archived' : '')}">
       <div class="score">
         <span class="team-A-color">${escapeHtml(match.team_A)} ${score.A}</span>
         <span class="sep">:</span>
         <span class="team-B-color">${score.B} ${escapeHtml(match.team_B)}</span>
       </div>
-      <div class="period">${match.status === 'live' ? 'LIVE' : (match.status === 'finished' ? 'KONIEC' : 'planowany')}</div>
+      <div class="period">${match.status === 'live' ? '🔴 LIVE' : (match.status === 'finished' ? 'KONIEC' : 'PLANOWANY')}</div>
       <div class="tournament">${escapeHtml(match.tournament)}</div>
       <div class="sides-indicator"><span class="${tagClass}"><span class="dot"></span>${tagLabel}</span></div>
     </div>
@@ -2021,23 +2179,40 @@ function renderMatchViewer(root) {
   `;
 
   const chartHost = document.getElementById('viewer-chart-host');
-  if (chartHost) chartHost.appendChild(buildViewerChart(match, filtered));
+  if (chartHost) {
+    chartHost.appendChild(buildViewerChart(match, filtered));
+    if (APP.viewer.view_mode === 'full') chartHost.appendChild(buildFieldLegend(match));
+  }
 }
 
 /** Formatuje etykietę refresh-tag z czasem ostatniego odświeżenia. */
 function _viewerRefreshLabel() {
-  if (!APP.lastViewerRefresh) return 'Auto-odświeżanie co 5s';
+  if (!APP.lastViewerRefresh) return 'Ostatnia aktualizacja: —';
   const h = APP.lastViewerRefresh.getHours().toString().padStart(2, '0');
   const m = APP.lastViewerRefresh.getMinutes().toString().padStart(2, '0');
   const s = APP.lastViewerRefresh.getSeconds().toString().padStart(2, '0');
-  return 'odśw. ' + h + ':' + m + ':' + s;
+  return 'Ostatnia aktualizacja: ' + h + ':' + m + ':' + s;
+}
+
+function _splitBar(va, vb) {
+  const na = typeof va === 'number' ? va : (parseFloat(va) || 0);
+  const nb = typeof vb === 'number' ? vb : (parseFloat(vb) || 0);
+  const total = na + nb;
+  const pct = total > 0 ? Math.round(na / total * 100) : 50;
+  return APP.splitBars
+    ? `<tr class="split-bar-row"><td colspan="3"><div class="split-bar" style="--pct:${pct}%"></div></td></tr>`
+    : '';
 }
 
 function renderViewerStatsCard(statsA, statsB, match) {
   const fmt = (val, isRate) => val === '—' ? '—' : (isRate ? `${val}%` : val);
+  const toggleLabel = APP.splitBars ? 'Ukryj bary' : 'Pokaż bary';
   return `
     <div class="viewer-card">
-      <h3>Statystyki strzałów</h3>
+      <h3 style="display:flex;align-items:center;">
+        Statystyki strzałów
+        <button class="btn" data-action="toggle-split-bars" style="margin-left:auto;font-size:11px;padding:3px 8px;">${toggleLabel}</button>
+      </h3>
       <table class="stats-table">
         <thead>
           <tr class="header-row">
@@ -2048,11 +2223,17 @@ function renderViewerStatsCard(statsA, statsB, match) {
         </thead>
         <tbody>
           <tr><td class="num team-A">${statsA.total}</td><td class="label" style="text-align:center;">strzały (łącznie)</td><td class="num team-B">${statsB.total}</td></tr>
+          ${_splitBar(statsA.total, statsB.total)}
           <tr><td class="num team-A">${statsA.goals}</td><td class="label" style="text-align:center;">bramki</td><td class="num team-B">${statsB.goals}</td></tr>
+          ${_splitBar(statsA.goals, statsB.goals)}
           <tr><td class="num team-A">${statsA.onTarget}</td><td class="label" style="text-align:center;">strzały celne (z bramkami)</td><td class="num team-B">${statsB.onTarget}</td></tr>
+          ${_splitBar(statsA.onTarget, statsB.onTarget)}
           <tr><td class="num team-A">${statsA.offTarget}</td><td class="label" style="text-align:center;">strzały niecelne</td><td class="num team-B">${statsB.offTarget}</td></tr>
+          ${_splitBar(statsA.offTarget, statsB.offTarget)}
           <tr class="summary-row"><td class="num team-A">${fmt(statsA.goalRate, true)}</td><td class="label" style="text-align:center;">% skuteczność (gole/strzały)</td><td class="num team-B">${fmt(statsB.goalRate, true)}</td></tr>
+          ${_splitBar(statsA.goalRate, statsB.goalRate)}
           <tr class="summary-row"><td class="num team-A">${fmt(statsA.onTargetRate, true)}</td><td class="label" style="text-align:center;">% strzałów celnych</td><td class="num team-B">${fmt(statsB.onTargetRate, true)}</td></tr>
+          ${_splitBar(statsA.onTargetRate, statsB.onTargetRate)}
         </tbody>
       </table>
     </div>
@@ -2086,7 +2267,7 @@ function renderViewerGoalieCard(goalies, match) {
 
 function renderViewerPerPeriodCard(perPeriod, match) {
   return `
-    <div class="viewer-card">
+    <div class="viewer-card per-period">
       <h3>Podział per okres</h3>
       <table class="stats-table">
         <thead>
@@ -2936,7 +3117,10 @@ const HANDLERS = {
     if (which === 'man-down' && down.checked) up.checked   = false;
   },
 
-  'modal-bg-click': () => { /* handled separately in click listener */ }
+  'modal-bg-click': () => { /* handled separately in click listener */ },
+
+  // Viewer: toggle split-barów (F-02)
+  'toggle-split-bars': () => { APP.splitBars = !APP.splitBars; render(); },
 };
 
 // ===== Event delegation =====

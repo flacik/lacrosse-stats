@@ -63,9 +63,13 @@ function renderHome(root) {
       const score      = computeScore(m.id);
       const eventCount = DATA.events.filter(e => e.match_id === m.id).length;
       const isFinished = m.status === 'finished';
+      const isLive = m.status === 'live';
       html += `
         <div class="match-card ${isFinished ? 'finished' : ''}">
-          <div class="match-tournament">${escapeHtml(m.tournament || '— brak turnieju —')}</div>
+          <div class="match-tournament">
+            ${escapeHtml(m.tournament || '— brak turnieju —')}
+            ${isLive ? ' <span class="badge-live">LIVE</span>' : ''}
+          </div>
           <div class="match-teams">
             <span>${escapeHtml(m.team_A)}</span>
             ${eventCount > 0 || isFinished
@@ -74,12 +78,12 @@ function renderHome(root) {
             <span>${escapeHtml(m.team_B)}</span>
           </div>
           <div class="match-meta">
-            ${m.match_date} · status: <span class="status-${m.status}">${m.status}</span>
+            ${m.match_date}
             ${eventCount > 0 ? ` · ${eventCount} eventów` : ''}
           </div>
           <div class="match-actions">
-            <button class="btn btn-primary" data-action="open-match"  data-arg="${m.id}">${isFinished ? 'Otwórz' : 'Wpisuj statystyki'}</button>
-            <button class="btn"             data-action="open-viewer" data-arg="${m.id}">Tylko podgląd</button>
+            <button class="btn btn-primary"   data-action="open-match"  data-arg="${m.id}">${isFinished ? 'Otwórz' : 'Wpisuj statystyki'}</button>
+            <button class="btn btn-secondary" data-action="open-viewer" data-arg="${m.id}">Tylko podgląd</button>
           </div>
         </div>
       `;

@@ -27,6 +27,9 @@ let APP = {
   adminFilter: null,
   adminLoading: false,
   adminError: null,
+
+  // Viewer: split-bary w tabelach statystyk (F-02)
+  splitBars: true,
 };
 
 // ── Routing ────────────────────────────────────────────────────────────────────

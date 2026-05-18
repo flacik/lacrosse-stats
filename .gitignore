@@ -1,6 +1,7 @@
 .DS_Store
 node_modules/
 *.log
+remote-control-qr.png
 
 gas/.clasp.json
 gas/Code.js
@@ -8,7 +9,8 @@ gas/index.html
 
 CLAUDE.md
 
-# Internal project management files
+# Internal project management files — never commit
+*-HANDOFF.md
 CAREER-HANDOFF.md
 CONVERSATION-HANDOFF.md
 Lacrosse-Stats-V3-Plan.docx
