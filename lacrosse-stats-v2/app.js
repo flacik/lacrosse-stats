@@ -18,6 +18,7 @@ function render() {
   else if (APP.screen === 'admin')         renderAdmin(app);
   else if (APP.screen === 'match-input')   renderMatchInput(app);
   else if (APP.screen === 'match-viewer')  renderMatchViewer(app);
+  else if (APP.screen === 'analytics')     renderAnalytics(app);
 
   _renderFooter(app);
 

@@ -3,10 +3,39 @@
 // HANDLERS map (data-action → fn) + global event delegation listeners (click + change).
 
 const HANDLERS = {
-  'open-admin': () => goAdmin(),
-  'home-retry':   () => loadHomeData(),
-  'viewer-retry': () => startViewerRefresh(),
-  'admin-retry':  () => loadAdminData(),
+  'open-admin':     () => goAdmin(),
+  'open-analytics': () => goAnalytics(),
+  'home-retry':     () => loadHomeData(),
+  'viewer-retry':   () => startViewerRefresh(),
+  'admin-retry':    () => loadAdminData(),
+
+  // Analytics
+  'analytics-retry':  () => loadAnalyticsData(),
+  'analytics-filter-change': (val, el) => {
+    const field = el.dataset.field;
+    if (field && field in APP.analyticsFilters) {
+      APP.analyticsFilters[field] = val;
+      if (field === 'tournament') APP.analyticsFilters.team = '';
+      render();
+    }
+  },
+  'go-home-from-analytics': () => goHome(),
+  'analytics-heatmap-toggle': (mode) => {
+    APP.analyticsHeatmapMode = mode;
+    render();
+  },
+  'open-viewer-from-analytics': (matchId) => {
+    // Sync analytics matches into DATA so viewer can find match info
+    const am = APP.analyticsData && APP.analyticsData.matches;
+    if (am) {
+      am.forEach(m => {
+        if (!DATA.scheduledMatches.find(x => String(x.id) === String(m.id))) {
+          DATA.scheduledMatches.push(m);
+        }
+      });
+    }
+    openMatchViewer(matchId);
+  },
 
   // Ręczny retry eventu z błędem sync (krok 8)
   'retry-event': (clientEventId) => {
@@ -399,8 +428,14 @@ document.addEventListener('click', (e) => {
 document.addEventListener('change', (e) => {
   const target = e.target.closest('[data-action]');
   if (!target) return;
-  if (target.tagName !== 'SELECT' && target.type !== 'checkbox') return;
-  const handler = HANDLERS[target.dataset.action];
-  if (handler) handler(target.dataset.arg);
+  if (target.tagName !== 'SELECT' && target.type !== 'checkbox' && target.type !== 'date') return;
+  const action = target.dataset.action;
+  const handler = HANDLERS[action];
+  if (!handler) return;
+  if (action === 'analytics-filter-change') {
+    handler(target.value, target);
+  } else {
+    handler(target.dataset.arg);
+  }
 });
 
