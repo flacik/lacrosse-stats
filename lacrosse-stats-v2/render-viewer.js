@@ -49,7 +49,7 @@ function renderMatchViewer(root) {
   const perPeriod = computePerPeriodStats(match.id, match);
 
   const periodSet = new Set();
-  allEvents.forEach(e => { if (e.period) periodSet.add(e.period); });
+  allEvents.forEach(e => { if (e.period !== undefined && e.period !== '') periodSet.add(String(e.period)); });
   const periodOptions = Array.from(periodSet).sort((a, b) => getPeriodOrder(a) - getPeriodOrder(b));
 
   const tagClass  = APP.refreshFlash ? 'refresh-tag refreshing' : 'refresh-tag';
