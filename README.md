@@ -111,18 +111,18 @@ cd lacrosse-stats-v2/
 
 ## Status
 
-**Current: V4 — deployed 2026-05-19**
+**Current: v4.0.0 — deployed 2026-05-19**
 
-**v4 (2026-05-19)** — historical analytics screen:
+**v4.0.0 (2026-05-19)** — historical analytics screen:
 
 - New **Analityka** screen (4th screen) with tournament / team / date / period filters
-- Team dropdown scoped to selected tournament
+- Team dropdown scoped to selected tournament; resets on tournament change
 - Stats grid: shots, goals, accuracy %, man-up/down, zone breakdown, per-period breakdown
 - Shot chart heatmap — fired vs. conceded toggle, reuses the half-field SVG renderer
 - Match history table with W/D/L colouring and viewer shortcut
 - Backend: `listAllEvents()` + `seedDummyData()` (3 tournaments, 14 matches, ~563 events)
 
-**v3 MVP (2026-05-18)** — 8 UI/UX improvements, frontend-only:
+**v3.0.0 (2026-05-18)** — UI/UX redesign, frontend-only:
 
 - LIVE badge redesign — red pulsing header bar when match is live, grey when finished
 - Split bars in stats tables — proportional A vs B gradient under each row, toggleable
@@ -133,4 +133,4 @@ cd lacrosse-stats-v2/
 - Last-updated timestamp replacing "auto-refresh every 5s"
 - Tablet responsive layout — two-column grid at ≥768px, fat-finger safe buttons (48px min)
 
-**v2 (2026-05-15)** — production-ready baseline. Smoke tested against all 8 core scenarios: shot recording, real-time viewer, admin CRUD, offline buffer recovery, edit/delete flows.
+**v2.0.0 (2026-05-15)** — production-ready baseline. Smoke tested against all 8 core scenarios: shot recording, real-time viewer, admin CRUD, offline buffer recovery, edit/delete flows.
