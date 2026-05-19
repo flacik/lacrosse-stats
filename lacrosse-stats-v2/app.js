@@ -27,6 +27,20 @@ function render() {
   if (oldModal) oldModal.remove();
 
   if (APP.modal) renderModal();
+  _syncThemeToggle();
+}
+
+// Init motywu — przed pierwszym render()
+(function() {
+  const saved = localStorage.getItem('lax_theme');
+  if (saved === 'dark' || saved === 'light') {
+    document.documentElement.dataset.theme = saved;
+  }
+})();
+
+function _syncThemeToggle() {
+  const btn = document.getElementById('theme-toggle');
+  if (btn) btn.textContent = document.documentElement.dataset.theme === 'dark' ? '☀' : '🌙';
 }
 
 // Init — must be last after all modules loaded.

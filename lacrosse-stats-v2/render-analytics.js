@@ -8,6 +8,7 @@ function renderAnalytics(root) {
       <div class="app-header">
         <h1>Lacrosse Stats</h1>
         <button class="btn" data-action="go-home-from-analytics">← Home</button>
+        <button class="btn" data-action="toggle-dark-mode" id="theme-toggle" title="Przełącz tryb ciemny">🌙</button>
       </div>
       <div class="home-content">
         <div class="loading-state">
@@ -24,6 +25,7 @@ function renderAnalytics(root) {
       <div class="app-header">
         <h1>Lacrosse Stats</h1>
         <button class="btn" data-action="go-home-from-analytics">← Home</button>
+        <button class="btn" data-action="toggle-dark-mode" id="theme-toggle" title="Przełącz tryb ciemny">🌙</button>
       </div>
       <div class="home-content">
         <div class="error-state">
@@ -46,6 +48,7 @@ function renderAnalytics(root) {
     <div class="app-header">
       <h1>Analityka historyczna</h1>
       <button class="btn" data-action="go-home-from-analytics">← Home</button>
+      <button class="btn" data-action="toggle-dark-mode" id="theme-toggle" title="Przełącz tryb ciemny">🌙</button>
     </div>
     <div class="analytics-content">
       ${_renderAnalyticsFilters(f, tournaments, allTeams, allPeriods)}

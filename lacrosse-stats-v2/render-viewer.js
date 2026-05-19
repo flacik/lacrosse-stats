@@ -15,6 +15,7 @@ function renderMatchViewer(root) {
       <div class="app-header">
         <button class="btn" data-action="back-home">← Wróć</button>
         <h1>${escapeHtml(match.team_A)} vs ${escapeHtml(match.team_B)} <span style="font-size:13px;color:#888;font-weight:normal">— tryb podgląd (read-only)</span></h1>
+        <button class="btn" data-action="toggle-dark-mode" id="theme-toggle" title="Przełącz tryb ciemny">🌙</button>
       </div>
       <div class="loading-state">
         <div class="spinner">⏳</div>
@@ -30,6 +31,7 @@ function renderMatchViewer(root) {
       <div class="app-header">
         <button class="btn" data-action="back-home">← Wróć</button>
         <h1>${escapeHtml(match.team_A)} vs ${escapeHtml(match.team_B)}</h1>
+        <button class="btn" data-action="toggle-dark-mode" id="theme-toggle" title="Przełącz tryb ciemny">🌙</button>
       </div>
       <div class="error-state">
         <p>⚠ Błąd ładowania danych: ${escapeHtml(APP.viewerError)}</p>
@@ -59,6 +61,7 @@ function renderMatchViewer(root) {
     <div class="app-header">
       <button class="btn" data-action="back-home">← Wróć</button>
       <h1>${escapeHtml(match.team_A)} vs ${escapeHtml(match.team_B)} <span style="font-size:13px;color:#888;font-weight:normal">— tryb podgląd (read-only)</span></h1>
+      <button class="btn" data-action="toggle-dark-mode" id="theme-toggle" title="Przełącz tryb ciemny">🌙</button>
     </div>
     <div class="match-info-bar ${match.status === 'live' ? 'header-live' : (match.status === 'finished' ? 'header-archived' : '')}">
       <div class="score">

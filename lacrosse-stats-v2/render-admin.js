@@ -25,6 +25,7 @@ function renderAdmin(root) {
       <button class="btn" data-action="back-home">← Wróć</button>
       <h1>Panel admin — turnieje i harmonogram</h1>
       <span class="meta">${todayISO()}</span>
+      <button class="btn" data-action="toggle-dark-mode" id="theme-toggle" title="Przełącz tryb ciemny">🌙</button>
     </div>
   `;
 

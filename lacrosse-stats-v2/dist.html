@@ -615,6 +615,192 @@ table.stats-table td.num {
 .csv-link-badge { font-size: 13px; }
 .csv-actions { display: flex; gap: 8px; align-items: center; }
 .csv-importing { font-size: 13px; color: #888; }
+
+/* ===== DARK MODE — Night Blue ===== */
+
+[data-theme="dark"] { color-scheme: dark; }
+[data-theme="dark"] body { background: #0d1117; color: #e6edf3; }
+
+/* Buttons */
+[data-theme="dark"] .btn { background: #161b22; color: #e6edf3; border-color: #30363d; }
+[data-theme="dark"] .btn:hover { background: #1c2128; }
+[data-theme="dark"] .btn-primary { background: #238636; color: #fff; border-color: #238636; }
+[data-theme="dark"] .btn-primary:hover { background: #2ea043; }
+[data-theme="dark"] .btn-danger { color: #f85149; border-color: #3d0e0e; }
+[data-theme="dark"] .btn-danger:hover { background: #1f0e0e; }
+[data-theme="dark"] .btn-active { background: #238636; color: #fff; border-color: #238636; }
+[data-theme="dark"] .btn-warning { color: #d29922; border-color: #3d2000; background: #2d2500; }
+[data-theme="dark"] .btn-warning:hover { background: #3d3000; }
+[data-theme="dark"] .btn-warning.btn-active { background: #9e6a03; color: #fff; border-color: #9e6a03; }
+
+/* Header */
+[data-theme="dark"] .app-header { background: #161b22; border-bottom-color: #21262d; }
+[data-theme="dark"] .app-header .meta { color: #8b949e; }
+
+/* Match info bar */
+[data-theme="dark"] .match-info-bar { background: #161b22; border-bottom-color: #21262d; }
+[data-theme="dark"] .match-info-bar .score .team-A-color { color: #58a6ff; }
+[data-theme="dark"] .match-info-bar .score .team-B-color { color: #f85149; }
+[data-theme="dark"] .match-info-bar .score .sep { color: #484f58; }
+[data-theme="dark"] .match-info-bar .period { background: #3d2000; color: #e3b341; }
+[data-theme="dark"] .match-info-bar .tournament { color: #8b949e; }
+[data-theme="dark"] .match-info-bar .sides-indicator { color: #8b949e; }
+
+/* Home */
+[data-theme="dark"] .home-content h2 { color: #8b949e; }
+[data-theme="dark"] .match-card { background: #161b22; border-color: #30363d; }
+[data-theme="dark"] .match-tournament { color: #8b949e; }
+[data-theme="dark"] .match-teams .vs { color: #484f58; }
+[data-theme="dark"] .match-teams .match-score { color: #8b949e; }
+[data-theme="dark"] .match-meta { color: #6e7681; }
+[data-theme="dark"] .match-meta .status-scheduled { color: #3fb950; }
+[data-theme="dark"] .match-meta .status-live { color: #d29922; }
+[data-theme="dark"] .match-meta .status-finished { color: #6e7681; }
+[data-theme="dark"] .add-match { background: #161b22; border-color: #30363d; color: #8b949e; }
+[data-theme="dark"] .add-match:hover { background: #1c2128; color: #e6edf3; border-color: #58a6ff; }
+
+/* Match controls */
+[data-theme="dark"] .match-controls { background: #161b22; border-color: #21262d; }
+[data-theme="dark"] .match-controls .sep { color: #30363d; }
+
+/* Banners */
+[data-theme="dark"] .match-banner { background: #2d2500; border-color: #3d3000; color: #d29922; }
+[data-theme="dark"] .match-banner.swap-question { background: #0d2149; border-color: #1f6feb; color: #79c0ff; }
+[data-theme="dark"] .match-banner.period-end { background: #1a0a3d; border-color: #6e40c9; color: #bc8cff; }
+[data-theme="dark"] .match-banner button { background: #161b22; }
+[data-theme="dark"] .match-banner button.cancel { color: #8b949e; border-color: #30363d; }
+[data-theme="dark"] .match-banner button.danger { color: #f85149; border-color: #3d0e0e; }
+
+/* History */
+[data-theme="dark"] .history-section { background: #161b22; border-color: #21262d; }
+[data-theme="dark"] .history-header { border-bottom-color: #21262d; color: #e6edf3; }
+[data-theme="dark"] .history-header:hover { background: #1c2128; }
+[data-theme="dark"] .history-header .count { color: #8b949e; }
+[data-theme="dark"] .history-empty { color: #6e7681; }
+[data-theme="dark"] .history-row { border-bottom-color: #21262d; }
+[data-theme="dark"] .history-row .period { background: #3d2000; color: #e3b341; }
+[data-theme="dark"] .history-row .team-tag.A { background: #0d2149; color: #58a6ff; }
+[data-theme="dark"] .history-row .team-tag.B { background: #3d0e0e; color: #f85149; }
+[data-theme="dark"] .history-row .result.gol { color: #3fb950; }
+[data-theme="dark"] .history-row .result.celny { color: #d29922; }
+[data-theme="dark"] .history-row .result.niecelny { color: #6e7681; }
+[data-theme="dark"] .history-row .zone { color: #8b949e; }
+[data-theme="dark"] .history-row .zone.own-half { color: #d29922; }
+[data-theme="dark"] .history-row .flag { background: #1c2128; color: #8b949e; }
+[data-theme="dark"] .history-row .flag.man-up { background: #0f2d1c; color: #3fb950; }
+[data-theme="dark"] .history-row .flag.man-down { background: #3d0e0e; color: #f85149; }
+[data-theme="dark"] .history-row .icon-btn { color: #6e7681; }
+[data-theme="dark"] .history-row .icon-btn:hover { background: #1c2128; color: #e6edf3; }
+[data-theme="dark"] .history-row .icon-btn.delete:hover { color: #f85149; background: #1f0e0e; }
+[data-theme="dark"] .history-row .icon-btn.retry { color: #58a6ff; }
+[data-theme="dark"] .history-row .icon-btn.retry:hover { background: #0d2149; color: #79c0ff; }
+
+/* Modal */
+[data-theme="dark"] .modal-bg { background: rgba(0,0,0,0.7); }
+[data-theme="dark"] .modal { background: #161b22; color: #e6edf3; }
+[data-theme="dark"] .modal h2 { color: #e6edf3; }
+[data-theme="dark"] .modal .modal-subtitle { color: #8b949e; }
+[data-theme="dark"] .modal-context { background: #1c2128; }
+[data-theme="dark"] .modal-context .label { color: #8b949e; }
+[data-theme="dark"] .modal-context .value.team-A { color: #58a6ff; }
+[data-theme="dark"] .modal-context .value.team-B { color: #f85149; }
+[data-theme="dark"] .modal-context .value.zone { color: #8b949e; }
+[data-theme="dark"] .result-btn.niecelny { color: #8b949e; border-color: #30363d; background: #1c2128; }
+[data-theme="dark"] .result-btn.niecelny:hover { background: #21262d; }
+[data-theme="dark"] .result-btn.celny { color: #79c0ff; border-color: #1f6feb; background: #0d2149; }
+[data-theme="dark"] .result-btn.celny:hover { background: #162a5e; }
+[data-theme="dark"] .result-btn.gol { color: #fff; border-color: #238636; background: #238636; }
+[data-theme="dark"] .result-btn.gol:hover { background: #2ea043; }
+[data-theme="dark"] .flag-row { background: #1c2128; }
+[data-theme="dark"] .modal-actions { border-top-color: #21262d; }
+
+/* Form fields */
+[data-theme="dark"] label.field .field-label { color: #8b949e; }
+[data-theme="dark"] label.field input,
+[data-theme="dark"] label.field select { background: #0d1117; border-color: #30363d; color: #e6edf3; }
+[data-theme="dark"] label.field input:focus,
+[data-theme="dark"] label.field select:focus { outline-color: #58a6ff; }
+
+/* SVG boisko */
+[data-theme="dark"] svg.field { background: #1c2128; }
+
+/* Viewer */
+[data-theme="dark"] .viewer-card { background: #161b22; border-color: #21262d; }
+[data-theme="dark"] .viewer-card h3 { color: #8b949e; }
+[data-theme="dark"] .refresh-tag { color: #3fb950; background: #0f2d1c; border-color: #1f5235; }
+[data-theme="dark"] .refresh-tag.refreshing { color: #d29922; background: #2d2500; border-color: #3d3000; }
+[data-theme="dark"] .refresh-tag .dot { background: #3fb950; }
+[data-theme="dark"] table.stats-table th,
+[data-theme="dark"] table.stats-table td { border-bottom-color: #21262d; }
+[data-theme="dark"] table.stats-table th { color: #8b949e; }
+[data-theme="dark"] table.stats-table th.team-A,
+[data-theme="dark"] table.stats-table td.team-A { color: #58a6ff; }
+[data-theme="dark"] table.stats-table th.team-B,
+[data-theme="dark"] table.stats-table td.team-B { color: #f85149; }
+[data-theme="dark"] table.stats-table td.label { color: #e6edf3; }
+[data-theme="dark"] table.stats-table tr.summary-row { background: #1c2128; }
+[data-theme="dark"] .viewer-controls select { background: #161b22; border-color: #30363d; color: #e6edf3; }
+[data-theme="dark"] .viewer-controls .ctrl-label { color: #8b949e; }
+[data-theme="dark"] .shot-chart-stats { border-top-color: #21262d; color: #8b949e; }
+[data-theme="dark"] .shot-chart-stats strong { color: #e6edf3; }
+[data-theme="dark"] .no-events { color: #6e7681; }
+[data-theme="dark"] .toggle-group .btn:last-child { border-right: 1px solid #30363d; }
+[data-theme="dark"] .toggle-group .btn.btn-active { border-color: #238636; }
+[data-theme="dark"] .toggle-group .btn.btn-active + .btn { border-left-color: #238636; }
+
+/* Admin */
+[data-theme="dark"] .admin-card { background: #161b22; border-color: #21262d; }
+[data-theme="dark"] .admin-card-header { border-bottom-color: #21262d; }
+[data-theme="dark"] .admin-card-header h2 { color: #8b949e; }
+[data-theme="dark"] .admin-filters { background: #1c2128; border-bottom-color: #21262d; }
+[data-theme="dark"] .admin-filter-field { color: #8b949e; }
+[data-theme="dark"] .admin-filter-field select { background: #161b22; border-color: #30363d; color: #e6edf3; }
+[data-theme="dark"] .admin-row { border-bottom-color: #21262d; }
+[data-theme="dark"] .admin-row-meta { color: #8b949e; }
+[data-theme="dark"] .admin-date { color: #8b949e; }
+[data-theme="dark"] .admin-date.today { color: #3fb950; }
+[data-theme="dark"] .admin-tournament { color: #8b949e; }
+[data-theme="dark"] .admin-match-teams .vs { color: #484f58; }
+[data-theme="dark"] .admin-status.status-scheduled { background: #0f2d1c; color: #3fb950; }
+[data-theme="dark"] .admin-status.status-live { background: #2d2500; color: #d29922; }
+[data-theme="dark"] .admin-status.status-finished { background: #1c2128; color: #6e7681; }
+[data-theme="dark"] .admin-event-count { color: #6e7681; }
+[data-theme="dark"] .admin-empty { color: #6e7681; }
+
+/* Loading / error */
+[data-theme="dark"] .loading-state { color: #8b949e; }
+[data-theme="dark"] .error-state p { color: #f85149; }
+
+/* Sync badges */
+[data-theme="dark"] .sync-badge.syncing { background: #0d2149; color: #58a6ff; }
+[data-theme="dark"] .sync-badge.error { background: #3d0e0e; color: #f85149; }
+[data-theme="dark"] .history-row.sync-error { background: #1f0e13; border-left-color: #f85149; }
+
+/* Empty states */
+[data-theme="dark"] .empty { color: #6e7681; }
+
+/* Footer */
+[data-theme="dark"] .app-footer { color: #484f58; }
+
+/* Analytics */
+[data-theme="dark"] .analytics-filters { background: #1c2128; border-color: #30363d; }
+[data-theme="dark"] .filter-row label { color: #8b949e; }
+[data-theme="dark"] .filter-row select,
+[data-theme="dark"] .filter-row input[type="date"] { background: #0d1117; border-color: #30363d; color: #e6edf3; color-scheme: dark; }
+[data-theme="dark"] .stat-box { background: #1c2128; }
+[data-theme="dark"] .stat-lbl { color: #8b949e; }
+[data-theme="dark"] .analytics-section h2 { color: #e6edf3; }
+[data-theme="dark"] .analytics-section h3 { color: #8b949e; }
+[data-theme="dark"] .analytics-count { color: #8b949e; }
+[data-theme="dark"] .sit-numbers { color: #8b949e; }
+[data-theme="dark"] .cmp-label { color: #8b949e; }
+[data-theme="dark"] .cmp-better { color: #3fb950; }
+[data-theme="dark"] .match-history-row.won  td:first-child { border-left-color: #3fb950; }
+[data-theme="dark"] .match-history-row.lost td:first-child { border-left-color: #f85149; }
+[data-theme="dark"] .match-history-row.drew td:first-child { border-left-color: #6e7681; }
+[data-theme="dark"] .donut-wrapper svg text { fill: #8b949e; }
+[data-theme="dark"] .period-chart-wrapper svg text { fill: #8b949e; }
+[data-theme="dark"] .period-chart-wrapper svg line { stroke: #30363d; }
 </style>
 </head>
 <body>
@@ -2109,6 +2295,7 @@ function renderHome(root) {
         <span class="meta">${today}</span>
         <button class="btn" data-action="open-admin">📋 Turnieje</button>
         <button class="btn" data-action="open-analytics">📊 Analityka</button>
+        <button class="btn" data-action="toggle-dark-mode" id="theme-toggle" title="Przełącz tryb ciemny">🌙</button>
       </div>
       <div class="home-content">
         <div class="loading-state">
@@ -2128,6 +2315,7 @@ function renderHome(root) {
         <span class="meta">${today}</span>
         <button class="btn" data-action="open-admin">📋 Turnieje</button>
         <button class="btn" data-action="open-analytics">📊 Analityka</button>
+        <button class="btn" data-action="toggle-dark-mode" id="theme-toggle" title="Przełącz tryb ciemny">🌙</button>
       </div>
       <div class="home-content">
         <div class="error-state">
@@ -2148,6 +2336,7 @@ function renderHome(root) {
       <span class="meta">${today}</span>
       <button class="btn" data-action="open-admin">📋 Turnieje</button>
       <button class="btn" data-action="open-analytics">📊 Analityka</button>
+      <button class="btn" data-action="toggle-dark-mode" id="theme-toggle" title="Przełącz tryb ciemny">🌙</button>
     </div>
     <div class="home-content">
       <h2>Mecze dzisiaj</h2>
@@ -2207,6 +2396,7 @@ function renderMatchInput(root) {
       <div class="app-header">
         <button class="btn" data-action="back-home">← Wróć</button>
         <h1>Ładowanie meczu…</h1>
+        <button class="btn" data-action="toggle-dark-mode" id="theme-toggle" title="Przełącz tryb ciemny">🌙</button>
       </div>
       <div class="home-content">
         <div class="loading-state">
@@ -2273,6 +2463,7 @@ function renderMatchInput(root) {
     <div class="app-header">
       <button class="btn" data-action="back-home">← Wróć</button>
       <h1>${escapeHtml(match.team_A)} vs ${escapeHtml(match.team_B)}</h1>
+      <button class="btn" data-action="toggle-dark-mode" id="theme-toggle" title="Przełącz tryb ciemny">🌙</button>
     </div>
     <div class="match-info-bar">
       <div class="score">
@@ -2369,6 +2560,7 @@ function renderMatchViewer(root) {
       <div class="app-header">
         <button class="btn" data-action="back-home">← Wróć</button>
         <h1>${escapeHtml(match.team_A)} vs ${escapeHtml(match.team_B)} <span style="font-size:13px;color:#888;font-weight:normal">— tryb podgląd (read-only)</span></h1>
+        <button class="btn" data-action="toggle-dark-mode" id="theme-toggle" title="Przełącz tryb ciemny">🌙</button>
       </div>
       <div class="loading-state">
         <div class="spinner">⏳</div>
@@ -2384,6 +2576,7 @@ function renderMatchViewer(root) {
       <div class="app-header">
         <button class="btn" data-action="back-home">← Wróć</button>
         <h1>${escapeHtml(match.team_A)} vs ${escapeHtml(match.team_B)}</h1>
+        <button class="btn" data-action="toggle-dark-mode" id="theme-toggle" title="Przełącz tryb ciemny">🌙</button>
       </div>
       <div class="error-state">
         <p>⚠ Błąd ładowania danych: ${escapeHtml(APP.viewerError)}</p>
@@ -2413,6 +2606,7 @@ function renderMatchViewer(root) {
     <div class="app-header">
       <button class="btn" data-action="back-home">← Wróć</button>
       <h1>${escapeHtml(match.team_A)} vs ${escapeHtml(match.team_B)} <span style="font-size:13px;color:#888;font-weight:normal">— tryb podgląd (read-only)</span></h1>
+      <button class="btn" data-action="toggle-dark-mode" id="theme-toggle" title="Przełącz tryb ciemny">🌙</button>
     </div>
     <div class="match-info-bar ${match.status === 'live' ? 'header-live' : (match.status === 'finished' ? 'header-archived' : '')}">
       <div class="score">
@@ -2604,6 +2798,7 @@ function renderAnalytics(root) {
       <div class="app-header">
         <h1>Lacrosse Stats</h1>
         <button class="btn" data-action="go-home-from-analytics">← Home</button>
+        <button class="btn" data-action="toggle-dark-mode" id="theme-toggle" title="Przełącz tryb ciemny">🌙</button>
       </div>
       <div class="home-content">
         <div class="loading-state">
@@ -2620,6 +2815,7 @@ function renderAnalytics(root) {
       <div class="app-header">
         <h1>Lacrosse Stats</h1>
         <button class="btn" data-action="go-home-from-analytics">← Home</button>
+        <button class="btn" data-action="toggle-dark-mode" id="theme-toggle" title="Przełącz tryb ciemny">🌙</button>
       </div>
       <div class="home-content">
         <div class="error-state">
@@ -2642,6 +2838,7 @@ function renderAnalytics(root) {
     <div class="app-header">
       <h1>Analityka historyczna</h1>
       <button class="btn" data-action="go-home-from-analytics">← Home</button>
+      <button class="btn" data-action="toggle-dark-mode" id="theme-toggle" title="Przełącz tryb ciemny">🌙</button>
     </div>
     <div class="analytics-content">
       ${_renderAnalyticsFilters(f, tournaments, allTeams, allPeriods)}
@@ -3244,6 +3441,7 @@ function renderAdmin(root) {
       <button class="btn" data-action="back-home">← Wróć</button>
       <h1>Panel admin — turnieje i harmonogram</h1>
       <span class="meta">${todayISO()}</span>
+      <button class="btn" data-action="toggle-dark-mode" id="theme-toggle" title="Przełącz tryb ciemny">🌙</button>
     </div>
   `;
 
@@ -4044,6 +4242,14 @@ const HANDLERS = {
   },
   'cancel-own-half': () => { APP.match.own_half_mode = null; APP.banner = null; render(); },
 
+  'toggle-dark-mode': () => {
+    const html = document.documentElement;
+    const isDark = html.dataset.theme === 'dark';
+    html.dataset.theme = isDark ? 'light' : 'dark';
+    localStorage.setItem('lax_theme', html.dataset.theme);
+    _syncThemeToggle();
+  },
+
   'toggle-zones':   () => { APP.match.show_zones        = !APP.match.show_zones;        render(); },
   'toggle-history': () => { APP.match.history_expanded  = !APP.match.history_expanded;  render(); },
 
@@ -4251,6 +4457,20 @@ function render() {
   if (oldModal) oldModal.remove();
 
   if (APP.modal) renderModal();
+  _syncThemeToggle();
+}
+
+// Init motywu — przed pierwszym render()
+(function() {
+  const saved = localStorage.getItem('lax_theme');
+  if (saved === 'dark' || saved === 'light') {
+    document.documentElement.dataset.theme = saved;
+  }
+})();
+
+function _syncThemeToggle() {
+  const btn = document.getElementById('theme-toggle');
+  if (btn) btn.textContent = document.documentElement.dataset.theme === 'dark' ? '☀' : '🌙';
 }
 
 // Init — must be last after all modules loaded.
