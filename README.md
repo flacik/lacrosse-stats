@@ -16,6 +16,10 @@ All data is stored in Google Sheets, so the club always has a permanent record o
 
 ## Features
 
+**Dark mode**
+- Toggle button in every screen header switches between light and Night Blue dark theme
+- Preference persisted in `localStorage` — survives page reload and navigation between screens
+
 **Shot recording (input mode)**
 - Tap the SVG field map to place a shot; a modal confirms result (goal / missed / saved / post) and other details (man-up, man-down, period)
 - Full shot history with inline edit and delete
@@ -120,7 +124,13 @@ cd lacrosse-stats-v2/
 
 ## Status
 
-**Current: v6.0.0 — deployed 2026-05-19**
+**Current: v6.1.0 — deployed 2026-05-19**
+
+**v6.1.0 (2026-05-19)** — dark mode:
+
+- Toggle button (🌙 / ☀) in every screen header (home, input, viewer, admin, analytics)
+- Night Blue theme: `#0d1117` background, `#e6edf3` text, `#1c2128` cards — full coverage including analytics filters, stat boxes, donut/bar chart SVG labels, match history borders
+- Preference stored in `localStorage` (`lax_theme`) and restored on every page load
 
 **v6.0.0 (2026-05-19)** — CSV bulk import + video URLs:
 
