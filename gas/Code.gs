@@ -57,7 +57,7 @@ var EVENT_COLS = [
 ];
 
 var MATCH_COLS = [
-  'id', 'tournament', 'match_date', 'team_A', 'team_B', 'created_at', 'status',
+  'id', 'tournament', 'match_date', 'team_A', 'team_B', 'created_at', 'status', 'video_url',
 ];
 
 var TOURNAMENT_COLS = ['id', 'name', 'created_at'];
@@ -101,6 +101,18 @@ function err(code, message) {
 }
 
 // ── HELPERS — TEKST ───────────────────────────────────────────────────────────
+
+/**
+ * Sanityzuje URL przed zapisem — przepuszcza tylko http(s), max 500 znaków.
+ */
+function sanitizeUrl(str) {
+  if (typeof str !== 'string') return '';
+  str = str.replace(/[\r\n\x00-\x1F\x7F]/g, '').trim();
+  if (!str) return '';
+  if (!/^https?:\/\//i.test(str)) return '';
+  if (str.length > 500) str = str.substring(0, 500);
+  return str;
+}
 
 /**
  * Sanityzuje pole tekstowe przed zapisem do Sheets:
@@ -320,14 +332,16 @@ function setupSheets() {
         Logger.log('Stworzono zakładkę: ' + name);
       }
       // Sprawdź/ustaw nagłówek
-      var firstCell = sheet.getLastRow() === 0 ? '' : sheet.getRange(1, 1).getValue();
-      if (String(firstCell) !== cols[0]) {
+      var lastRow = sheet.getLastRow();
+      var lastCol = sheet.getLastColumn();
+      var firstCell = (lastRow === 0 || lastCol === 0) ? '' : sheet.getRange(1, 1).getValue();
+      var needsUpdate = String(firstCell) !== cols[0] || lastCol < cols.length;
+      if (needsUpdate) {
         sheet.getRange(1, 1, 1, cols.length).setValues([cols]);
         sheet.getRange(1, 1, 1, cols.length).setFontWeight('bold');
         sheet.setFrozenRows(1);
-        // Ustaw szerokość kolumn dla czytelności
         sheet.autoResizeColumns(1, cols.length);
-        Logger.log('Ustawiono nagłówki w zakładce: ' + name);
+        Logger.log('Zaktualizowano nagłówki w zakładce: ' + name);
       }
       return sheet;
     }
@@ -523,6 +537,7 @@ function createScheduledMatch(matchObj) {
       if (col === 'id')         return id;
       if (col === 'created_at') return createdAt;
       if (col === 'status')     return matchObj.status || 'scheduled';
+      if (col === 'video_url')  return sanitizeUrl(matchObj.video_url || '');
       var val = matchObj[col];
       return typeof val === 'string' ? sanitizeText(val) : (val !== undefined ? val : '');
     });
@@ -559,6 +574,10 @@ function updateScheduledMatch(id, matchObj) {
     var row = MATCH_COLS.map(function(col) {
       if (col === 'id')         return id;
       if (col === 'created_at') return existing.created_at;
+      if (col === 'video_url') {
+        var urlVal = matchObj.video_url !== undefined ? matchObj.video_url : existing.video_url;
+        return sanitizeUrl(urlVal || '');
+      }
       // Partial update: jeśli pole podane → użyj nowego, w p.p. stare
       var val = matchObj[col] !== undefined ? matchObj[col] : existing[col];
       return typeof val === 'string' ? sanitizeText(val) : (val !== undefined ? val : '');
@@ -668,6 +687,55 @@ function deleteTournament(id) {
     if (rowNum === -1) return err('NOT_FOUND', 'Turniej nie istnieje: ' + id);
     sheet.deleteRow(rowNum);
     return ok(null);
+  } catch (e) {
+    return err('INTERNAL_ERROR', e.message);
+  }
+}
+
+/**
+ * Tworzy wiele zaplanowanych meczów naraz (bulk import z CSV).
+ *
+ * @param {Array} matchesArray - Tablica obiektów { tournament, match_date, team_A, team_B, video_url?, status? }
+ * @returns {{ ok, data: { ids: string[], count: number } }}
+ */
+function bulkCreateMatches(matchesArray) {
+  try {
+    if (!Array.isArray(matchesArray) || matchesArray.length === 0) {
+      return err('SCHEMA_INVALID', 'Pusta lista meczów');
+    }
+    if (matchesArray.length > 200) {
+      return err('SCHEMA_INVALID', 'Za dużo meczów naraz (max 200)');
+    }
+
+    var sheet = getSheet(CONFIG.SHEET_MATCHES);
+    var createdAt = new Date().toISOString();
+    var rows = [];
+    var ids = [];
+
+    for (var i = 0; i < matchesArray.length; i++) {
+      var m = matchesArray[i];
+      if (!m.tournament || !m.match_date || !m.team_A || !m.team_B) {
+        return err('SCHEMA_INVALID', 'Mecz ' + (i + 1) + ': wymagane pola: tournament, match_date, team_A, team_B');
+      }
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(String(m.match_date))) {
+        return err('SCHEMA_INVALID', 'Mecz ' + (i + 1) + ': match_date musi być w formacie YYYY-MM-DD');
+      }
+      var id = generateId('m');
+      ids.push(id);
+      var row = MATCH_COLS.map(function(col) {
+        if (col === 'id')         return id;
+        if (col === 'created_at') return createdAt;
+        if (col === 'status')     return m.status || 'scheduled';
+        if (col === 'video_url')  return sanitizeUrl(m.video_url || '');
+        var val = m[col];
+        return typeof val === 'string' ? sanitizeText(val) : (val !== undefined ? val : '');
+      });
+      rows.push(row);
+    }
+
+    // Batch write — jeden setValues zamiast pętli appendRow
+    sheet.getRange(sheet.getLastRow() + 1, 1, rows.length, MATCH_COLS.length).setValues(rows);
+    return ok({ ids: ids, count: rows.length });
   } catch (e) {
     return err('INTERNAL_ERROR', e.message);
   }

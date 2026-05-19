@@ -49,6 +49,7 @@ function renderAdmin(root) {
     <div class="admin-content">
       ${renderTournamentsCard()}
       ${renderMatchesCard(filter)}
+      ${renderCsvImportCard()}
     </div>
   `;
 }
@@ -130,6 +131,7 @@ function renderMatchesCard(filter) {
               <strong>${escapeHtml(m.team_B)}</strong>
               <span class="admin-status status-${m.status}">${m.status}</span>
               ${eventCount > 0 ? `<span class="admin-event-count">${eventCount} eventów</span>` : ''}
+              ${m.video_url ? `<a class="admin-video-link" href="${escapeHtml(m.video_url)}" target="_blank" rel="noopener" title="Otwórz nagranie">▶ nagranie</a>` : ''}
             </div>
           </div>
           <div class="admin-row-actions">
@@ -170,6 +172,64 @@ function renderMatchesCard(filter) {
         </label>
       </div>
       ${rows}
+    </section>
+  `;
+}
+
+function renderCsvImportCard() {
+  const ci = APP.csvImport;
+  let previewHtml = '';
+
+  if (ci) {
+    const validRows = ci.rows.filter(r => !r._error);
+    const errorRows = ci.rows.filter(r => r._error);
+
+    const tableRows = ci.rows.map(r => `
+      <tr class="${r._error ? 'csv-row-error' : ''}">
+        <td class="csv-linenum">${r._lineNum}</td>
+        <td>${escapeHtml(r.tournament)}</td>
+        <td>${escapeHtml(r.match_date)}</td>
+        <td>${escapeHtml(r.team_A)}</td>
+        <td>${escapeHtml(r.team_B)}</td>
+        <td>${r.video_url ? '<span class="csv-link-badge">🔗</span>' : ''}</td>
+        <td>${r._error ? `<span class="csv-err-msg">${escapeHtml(r._error)}</span>` : ''}</td>
+      </tr>
+    `).join('');
+
+    previewHtml = `
+      <div class="csv-preview">
+        <div class="csv-stats">
+          <span class="csv-stat-ok">${validRows.length} poprawnych</span>
+          ${errorRows.length > 0 ? `<span class="csv-stat-err">${errorRows.length} z błędem</span>` : ''}
+        </div>
+        ${ci.rows.length > 0 ? `
+          <div class="csv-table-wrap">
+            <table class="csv-table">
+              <thead><tr><th>#</th><th>Turniej</th><th>Data</th><th>Drużyna A</th><th>Drużyna B</th><th>Link</th><th></th></tr></thead>
+              <tbody>${tableRows}</tbody>
+            </table>
+          </div>
+        ` : '<div class="admin-empty">Brak wierszy danych.</div>'}
+        <div class="csv-actions">
+          ${validRows.length > 0 && !ci.importing
+            ? `<button class="btn btn-primary" data-action="csv-import-submit">Importuj ${validRows.length} meczy</button>`
+            : ''}
+          ${ci.importing ? '<span class="csv-importing">Importowanie…</span>' : ''}
+          <button class="btn" data-action="csv-import-cancel">Anuluj</button>
+        </div>
+      </div>
+    `;
+  }
+
+  return `
+    <section class="admin-card">
+      <header class="admin-card-header">
+        <h2>Import CSV</h2>
+        <label class="btn btn-primary csv-file-label" for="csv-import-input">Wgraj plik CSV</label>
+        <input type="file" id="csv-import-input" accept=".csv,.txt" style="display:none" data-action="csv-import-file">
+      </header>
+      <div class="admin-card-hint">Format: <code>turniej,data,druzyna_a,druzyna_b,link</code> (link opcjonalny). Data: <code>RRRR-MM-DD</code>. Separator: przecinek lub średnik.</div>
+      ${previewHtml}
     </section>
   `;
 }
@@ -237,6 +297,10 @@ function renderMatchModal(m) {
           <option value="live"      ${isEdit && m.status === 'live'      ? 'selected' : ''}>W trakcie</option>
           <option value="finished"  ${isEdit && m.status === 'finished'  ? 'selected' : ''}>Zakończony</option>
         </select>
+      </label>
+      <label class="field">
+        <span class="field-label">Link do nagrania (opcjonalny)</span>
+        <input id="match-video-url" type="url" placeholder="https://youtube.com/..." value="${isEdit && m.video_url ? escapeHtml(m.video_url) : ''}">
       </label>
       <div class="modal-actions">
         <button class="btn" data-action="cancel-modal">Anuluj</button>

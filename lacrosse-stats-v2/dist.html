@@ -572,6 +572,49 @@ table.stats-table td.num {
 .cmp-label { color: #6b7280; font-size: 13px; }
 .cmp-val { text-align: center; font-weight: 600; font-size: 15px; }
 .cmp-better { color: #16a34a; }
+
+/* ── Video link ─────────────────────────────────────────────────────────────── */
+.btn-video {
+  font-size: 12px; padding: 5px 10px; text-decoration: none;
+  background: #fefce8; color: #854d0e; border-color: #fde68a;
+  white-space: nowrap;
+}
+.btn-video:hover { background: #fef9c3; }
+.admin-video-link {
+  font-size: 11px; color: #854d0e; text-decoration: none;
+  padding: 1px 6px; border-radius: 3px; background: #fefce8; border: 1px solid #fde68a;
+}
+.admin-video-link:hover { background: #fef9c3; }
+
+/* ── CSV import ─────────────────────────────────────────────────────────────── */
+.admin-card-hint {
+  padding: 8px 18px; font-size: 12px; color: #888;
+  border-bottom: 1px solid #f0f0eb; background: #fafaf7;
+}
+.admin-card-hint code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px; background: #f0f0eb; padding: 1px 4px; border-radius: 3px;
+}
+.csv-file-label { cursor: pointer; }
+.csv-preview { padding: 16px 18px; }
+.csv-stats { display: flex; gap: 12px; margin-bottom: 12px; font-size: 13px; font-weight: 600; }
+.csv-stat-ok  { color: #15803d; }
+.csv-stat-err { color: #b91c1c; }
+.csv-table-wrap { overflow-x: auto; margin-bottom: 12px; }
+.csv-table {
+  width: 100%; border-collapse: collapse; font-size: 12px;
+}
+.csv-table th {
+  text-align: left; padding: 6px 8px;
+  background: #fafaf7; border-bottom: 2px solid #e5e5e0; color: #666; font-weight: 600;
+}
+.csv-table td { padding: 5px 8px; border-bottom: 1px solid #f0f0eb; }
+.csv-table .csv-linenum { color: #aaa; font-size: 11px; width: 24px; }
+.csv-row-error td { background: #fef2f2; }
+.csv-err-msg { color: #b91c1c; font-size: 11px; }
+.csv-link-badge { font-size: 13px; }
+.csv-actions { display: flex; gap: 8px; align-items: center; }
+.csv-importing { font-size: 13px; color: #888; }
 </style>
 </head>
 <body>
@@ -723,6 +766,11 @@ function gasListAllMatches() {
 /** Zwraca wszystkie eventy ze wszystkich meczów (analityka historyczna). */
 function gasListAllEvents() {
   return gasCall('listAllEvents');
+}
+
+/** Tworzy wiele meczów naraz (bulk import z CSV). Zwraca { ids, count }. */
+function gasBulkCreateMatches(matchesArray) {
+  return gasCall('bulkCreateMatches', matchesArray);
 }
 
 
@@ -1198,6 +1246,9 @@ let APP = {
     period:     '',
   },
   analyticsHeatmapMode: 'fired',  // 'fired' | 'conceded'
+
+  // CSV bulk import (panel admin)
+  csvImport: null,  // null | { rows: [], importing: bool }
 };
 
 // ── Routing ────────────────────────────────────────────────────────────────────
@@ -2232,6 +2283,7 @@ function renderMatchInput(root) {
       <div class="period">${periodLabel(APP.match.period)}</div>
       <div class="tournament">${escapeHtml(match.tournament)}</div>
       <div class="sides-indicator">A po stronie: <strong>${A_left ? 'lewej' : 'prawej'}</strong></div>
+      ${match.video_url ? `<a class="btn btn-video" href="${escapeHtml(match.video_url)}" target="_blank" rel="noopener">▶ Nagranie</a>` : ''}
     </div>
     <div class="match-screen">
       <div class="match-section">
@@ -3216,6 +3268,7 @@ function renderAdmin(root) {
     <div class="admin-content">
       ${renderTournamentsCard()}
       ${renderMatchesCard(filter)}
+      ${renderCsvImportCard()}
     </div>
   `;
 }
@@ -3297,6 +3350,7 @@ function renderMatchesCard(filter) {
               <strong>${escapeHtml(m.team_B)}</strong>
               <span class="admin-status status-${m.status}">${m.status}</span>
               ${eventCount > 0 ? `<span class="admin-event-count">${eventCount} eventów</span>` : ''}
+              ${m.video_url ? `<a class="admin-video-link" href="${escapeHtml(m.video_url)}" target="_blank" rel="noopener" title="Otwórz nagranie">▶ nagranie</a>` : ''}
             </div>
           </div>
           <div class="admin-row-actions">
@@ -3337,6 +3391,64 @@ function renderMatchesCard(filter) {
         </label>
       </div>
       ${rows}
+    </section>
+  `;
+}
+
+function renderCsvImportCard() {
+  const ci = APP.csvImport;
+  let previewHtml = '';
+
+  if (ci) {
+    const validRows = ci.rows.filter(r => !r._error);
+    const errorRows = ci.rows.filter(r => r._error);
+
+    const tableRows = ci.rows.map(r => `
+      <tr class="${r._error ? 'csv-row-error' : ''}">
+        <td class="csv-linenum">${r._lineNum}</td>
+        <td>${escapeHtml(r.tournament)}</td>
+        <td>${escapeHtml(r.match_date)}</td>
+        <td>${escapeHtml(r.team_A)}</td>
+        <td>${escapeHtml(r.team_B)}</td>
+        <td>${r.video_url ? '<span class="csv-link-badge">🔗</span>' : ''}</td>
+        <td>${r._error ? `<span class="csv-err-msg">${escapeHtml(r._error)}</span>` : ''}</td>
+      </tr>
+    `).join('');
+
+    previewHtml = `
+      <div class="csv-preview">
+        <div class="csv-stats">
+          <span class="csv-stat-ok">${validRows.length} poprawnych</span>
+          ${errorRows.length > 0 ? `<span class="csv-stat-err">${errorRows.length} z błędem</span>` : ''}
+        </div>
+        ${ci.rows.length > 0 ? `
+          <div class="csv-table-wrap">
+            <table class="csv-table">
+              <thead><tr><th>#</th><th>Turniej</th><th>Data</th><th>Drużyna A</th><th>Drużyna B</th><th>Link</th><th></th></tr></thead>
+              <tbody>${tableRows}</tbody>
+            </table>
+          </div>
+        ` : '<div class="admin-empty">Brak wierszy danych.</div>'}
+        <div class="csv-actions">
+          ${validRows.length > 0 && !ci.importing
+            ? `<button class="btn btn-primary" data-action="csv-import-submit">Importuj ${validRows.length} meczy</button>`
+            : ''}
+          ${ci.importing ? '<span class="csv-importing">Importowanie…</span>' : ''}
+          <button class="btn" data-action="csv-import-cancel">Anuluj</button>
+        </div>
+      </div>
+    `;
+  }
+
+  return `
+    <section class="admin-card">
+      <header class="admin-card-header">
+        <h2>Import CSV</h2>
+        <label class="btn btn-primary csv-file-label" for="csv-import-input">Wgraj plik CSV</label>
+        <input type="file" id="csv-import-input" accept=".csv,.txt" style="display:none" data-action="csv-import-file">
+      </header>
+      <div class="admin-card-hint">Format: <code>turniej,data,druzyna_a,druzyna_b,link</code> (link opcjonalny). Data: <code>RRRR-MM-DD</code>. Separator: przecinek lub średnik.</div>
+      ${previewHtml}
     </section>
   `;
 }
@@ -3404,6 +3516,10 @@ function renderMatchModal(m) {
           <option value="live"      ${isEdit && m.status === 'live'      ? 'selected' : ''}>W trakcie</option>
           <option value="finished"  ${isEdit && m.status === 'finished'  ? 'selected' : ''}>Zakończony</option>
         </select>
+      </label>
+      <label class="field">
+        <span class="field-label">Link do nagrania (opcjonalny)</span>
+        <input id="match-video-url" type="url" placeholder="https://youtube.com/..." value="${isEdit && m.video_url ? escapeHtml(m.video_url) : ''}">
       </label>
       <div class="modal-actions">
         <button class="btn" data-action="cancel-modal">Anuluj</button>
@@ -3773,6 +3889,7 @@ const HANDLERS = {
     const teamB      = document.getElementById('match-team-b').value.trim();
     const matchDate  = document.getElementById('match-date').value;
     const status     = document.getElementById('match-status').value;
+    const videoUrl   = (document.getElementById('match-video-url').value || '').trim();
     if (!teamA || !teamB || !matchDate) {
       alert('Wypełnij obie drużyny i datę.');
       return;
@@ -3780,11 +3897,11 @@ const HANDLERS = {
     if (id) {
       // Edit — optimistic update
       const m = DATA.scheduledMatches.find(x => x.id === id);
-      if (m) Object.assign(m, { tournament, team_A: teamA, team_B: teamB, match_date: matchDate, status });
+      if (m) Object.assign(m, { tournament, team_A: teamA, team_B: teamB, match_date: matchDate, status, video_url: videoUrl });
       APP.modal = null;
       render();
       // Async GAS
-      gasUpdateMatch(id, { tournament, team_A: teamA, team_B: teamB, match_date: matchDate, status })
+      gasUpdateMatch(id, { tournament, team_A: teamA, team_B: teamB, match_date: matchDate, status, video_url: videoUrl })
         .catch(function(e) {
           if (e.code !== 'DEV_MODE') {
             APP.banner = { type: 'error', msg: 'Błąd zapisu meczu: ' + (e.message || e) };
@@ -3796,12 +3913,12 @@ const HANDLERS = {
       const localId = 'mlocal_' + Date.now();
       DATA.scheduledMatches.push({
         id: localId,
-        tournament, team_A: teamA, team_B: teamB, match_date: matchDate, status: status || 'scheduled'
+        tournament, team_A: teamA, team_B: teamB, match_date: matchDate, status: status || 'scheduled', video_url: videoUrl
       });
       APP.modal = null;
       render();
       // Async GAS — podmień lokalny ID na GAS ID
-      gasCreateMatch({ tournament, team_A: teamA, team_B: teamB, match_date: matchDate, status: status || 'scheduled' })
+      gasCreateMatch({ tournament, team_A: teamA, team_B: teamB, match_date: matchDate, status: status || 'scheduled', video_url: videoUrl })
         .then(function(result) {
           const m = DATA.scheduledMatches.find(x => x.id === localId);
           if (m) m.id = result.id;
@@ -3814,6 +3931,62 @@ const HANDLERS = {
           }
         });
     }
+  },
+
+  // CSV bulk import
+  'csv-import-file': (val, el) => {
+    if (!el || !el.files || el.files.length === 0) return;
+    const file = el.files[0];
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+      APP.csvImport = parseCsvMatches(ev.target.result);
+      render();
+    };
+    reader.readAsText(file, 'UTF-8');
+    el.value = '';
+  },
+  'csv-import-cancel': () => {
+    APP.csvImport = null;
+    render();
+  },
+  'csv-import-submit': () => {
+    if (!APP.csvImport) return;
+    const validRows = APP.csvImport.rows.filter(r => !r._error);
+    if (validRows.length === 0) return;
+
+    APP.csvImport = Object.assign({}, APP.csvImport, { importing: true });
+    render();
+
+    const matches = validRows.map(r => ({
+      tournament: r.tournament,
+      match_date: r.match_date,
+      team_A:     r.team_A,
+      team_B:     r.team_B,
+      video_url:  r.video_url || '',
+      status:     'scheduled',
+    }));
+
+    gasBulkCreateMatches(matches).then(function(result) {
+      matches.forEach(function(m, i) {
+        DATA.scheduledMatches.push(Object.assign({ id: result.ids[i] }, m));
+      });
+      APP.csvImport = null;
+      alert('Zaimportowano ' + result.count + ' meczy.');
+      render();
+    }).catch(function(e) {
+      if (e.code === 'DEV_MODE') {
+        matches.forEach(function(m, i) {
+          DATA.scheduledMatches.push(Object.assign({ id: 'csv_' + Date.now() + '_' + i }, m));
+        });
+        APP.csvImport = null;
+        alert('[DEV] Zaimportowano ' + matches.length + ' meczy lokalnie.');
+        render();
+      } else {
+        APP.csvImport = Object.assign({}, APP.csvImport, { importing: false });
+        alert('Błąd importu: ' + (e.message || e));
+        render();
+      }
+    });
   },
 
   // Viewer controls
@@ -4000,16 +4173,50 @@ document.addEventListener('click', (e) => {
 document.addEventListener('change', (e) => {
   const target = e.target.closest('[data-action]');
   if (!target) return;
-  if (target.tagName !== 'SELECT' && target.type !== 'checkbox' && target.type !== 'date') return;
+  if (target.tagName !== 'SELECT' && target.type !== 'checkbox' && target.type !== 'date' && target.type !== 'file') return;
   const action = target.dataset.action;
   const handler = HANDLERS[action];
   if (!handler) return;
-  if (action === 'analytics-filter-change') {
+  if (action === 'analytics-filter-change' || action === 'csv-import-file') {
     handler(target.value, target);
   } else {
     handler(target.dataset.arg);
   }
 });
+
+// ── CSV parsing ────────────────────────────────────────────────────────────────
+
+function parseCsvMatches(text) {
+  const lines = text.split(/\r?\n/).filter(l => l.trim() !== '');
+  if (lines.length === 0) return { rows: [] };
+
+  const sep = lines[0].indexOf(';') >= 0 ? ';' : ',';
+
+  // Auto-detect header row
+  const firstCells = lines[0].split(sep).map(c => c.trim().toLowerCase().replace(/^"|"$/g, ''));
+  const hasHeader = ['turniej', 'tournament', 'data', 'date', 'druzyna_a', 'team_a'].some(h => firstCells.includes(h));
+  const dataLines = hasHeader ? lines.slice(1) : lines;
+
+  const rows = dataLines.map(function(line, i) {
+    const cells = line.split(sep).map(c => c.trim().replace(/^"|"$/g, ''));
+    const tournament = cells[0] || '';
+    const match_date = cells[1] || '';
+    const team_A     = cells[2] || '';
+    const team_B     = cells[3] || '';
+    const video_url  = cells[4] || '';
+
+    let _error = null;
+    if (!tournament)                               _error = 'Brak nazwy turnieju';
+    else if (!match_date)                          _error = 'Brak daty';
+    else if (!/^\d{4}-\d{2}-\d{2}$/.test(match_date)) _error = 'Nieprawidłowa data — wymagany format RRRR-MM-DD';
+    else if (!team_A)                              _error = 'Brak drużyny A';
+    else if (!team_B)                              _error = 'Brak drużyny B';
+
+    return { tournament, match_date, team_A, team_B, video_url, _error, _lineNum: i + (hasHeader ? 2 : 1) };
+  });
+
+  return { rows };
+}
 
 
 // ==============================================================================

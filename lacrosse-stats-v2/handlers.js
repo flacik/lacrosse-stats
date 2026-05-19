@@ -201,6 +201,7 @@ const HANDLERS = {
     const teamB      = document.getElementById('match-team-b').value.trim();
     const matchDate  = document.getElementById('match-date').value;
     const status     = document.getElementById('match-status').value;
+    const videoUrl   = (document.getElementById('match-video-url').value || '').trim();
     if (!teamA || !teamB || !matchDate) {
       alert('Wypełnij obie drużyny i datę.');
       return;
@@ -208,11 +209,11 @@ const HANDLERS = {
     if (id) {
       // Edit — optimistic update
       const m = DATA.scheduledMatches.find(x => x.id === id);
-      if (m) Object.assign(m, { tournament, team_A: teamA, team_B: teamB, match_date: matchDate, status });
+      if (m) Object.assign(m, { tournament, team_A: teamA, team_B: teamB, match_date: matchDate, status, video_url: videoUrl });
       APP.modal = null;
       render();
       // Async GAS
-      gasUpdateMatch(id, { tournament, team_A: teamA, team_B: teamB, match_date: matchDate, status })
+      gasUpdateMatch(id, { tournament, team_A: teamA, team_B: teamB, match_date: matchDate, status, video_url: videoUrl })
         .catch(function(e) {
           if (e.code !== 'DEV_MODE') {
             APP.banner = { type: 'error', msg: 'Błąd zapisu meczu: ' + (e.message || e) };
@@ -224,12 +225,12 @@ const HANDLERS = {
       const localId = 'mlocal_' + Date.now();
       DATA.scheduledMatches.push({
         id: localId,
-        tournament, team_A: teamA, team_B: teamB, match_date: matchDate, status: status || 'scheduled'
+        tournament, team_A: teamA, team_B: teamB, match_date: matchDate, status: status || 'scheduled', video_url: videoUrl
       });
       APP.modal = null;
       render();
       // Async GAS — podmień lokalny ID na GAS ID
-      gasCreateMatch({ tournament, team_A: teamA, team_B: teamB, match_date: matchDate, status: status || 'scheduled' })
+      gasCreateMatch({ tournament, team_A: teamA, team_B: teamB, match_date: matchDate, status: status || 'scheduled', video_url: videoUrl })
         .then(function(result) {
           const m = DATA.scheduledMatches.find(x => x.id === localId);
           if (m) m.id = result.id;
@@ -242,6 +243,62 @@ const HANDLERS = {
           }
         });
     }
+  },
+
+  // CSV bulk import
+  'csv-import-file': (val, el) => {
+    if (!el || !el.files || el.files.length === 0) return;
+    const file = el.files[0];
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+      APP.csvImport = parseCsvMatches(ev.target.result);
+      render();
+    };
+    reader.readAsText(file, 'UTF-8');
+    el.value = '';
+  },
+  'csv-import-cancel': () => {
+    APP.csvImport = null;
+    render();
+  },
+  'csv-import-submit': () => {
+    if (!APP.csvImport) return;
+    const validRows = APP.csvImport.rows.filter(r => !r._error);
+    if (validRows.length === 0) return;
+
+    APP.csvImport = Object.assign({}, APP.csvImport, { importing: true });
+    render();
+
+    const matches = validRows.map(r => ({
+      tournament: r.tournament,
+      match_date: r.match_date,
+      team_A:     r.team_A,
+      team_B:     r.team_B,
+      video_url:  r.video_url || '',
+      status:     'scheduled',
+    }));
+
+    gasBulkCreateMatches(matches).then(function(result) {
+      matches.forEach(function(m, i) {
+        DATA.scheduledMatches.push(Object.assign({ id: result.ids[i] }, m));
+      });
+      APP.csvImport = null;
+      alert('Zaimportowano ' + result.count + ' meczy.');
+      render();
+    }).catch(function(e) {
+      if (e.code === 'DEV_MODE') {
+        matches.forEach(function(m, i) {
+          DATA.scheduledMatches.push(Object.assign({ id: 'csv_' + Date.now() + '_' + i }, m));
+        });
+        APP.csvImport = null;
+        alert('[DEV] Zaimportowano ' + matches.length + ' meczy lokalnie.');
+        render();
+      } else {
+        APP.csvImport = Object.assign({}, APP.csvImport, { importing: false });
+        alert('Błąd importu: ' + (e.message || e));
+        render();
+      }
+    });
   },
 
   // Viewer controls
@@ -428,14 +485,48 @@ document.addEventListener('click', (e) => {
 document.addEventListener('change', (e) => {
   const target = e.target.closest('[data-action]');
   if (!target) return;
-  if (target.tagName !== 'SELECT' && target.type !== 'checkbox' && target.type !== 'date') return;
+  if (target.tagName !== 'SELECT' && target.type !== 'checkbox' && target.type !== 'date' && target.type !== 'file') return;
   const action = target.dataset.action;
   const handler = HANDLERS[action];
   if (!handler) return;
-  if (action === 'analytics-filter-change') {
+  if (action === 'analytics-filter-change' || action === 'csv-import-file') {
     handler(target.value, target);
   } else {
     handler(target.dataset.arg);
   }
 });
+
+// ── CSV parsing ────────────────────────────────────────────────────────────────
+
+function parseCsvMatches(text) {
+  const lines = text.split(/\r?\n/).filter(l => l.trim() !== '');
+  if (lines.length === 0) return { rows: [] };
+
+  const sep = lines[0].indexOf(';') >= 0 ? ';' : ',';
+
+  // Auto-detect header row
+  const firstCells = lines[0].split(sep).map(c => c.trim().toLowerCase().replace(/^"|"$/g, ''));
+  const hasHeader = ['turniej', 'tournament', 'data', 'date', 'druzyna_a', 'team_a'].some(h => firstCells.includes(h));
+  const dataLines = hasHeader ? lines.slice(1) : lines;
+
+  const rows = dataLines.map(function(line, i) {
+    const cells = line.split(sep).map(c => c.trim().replace(/^"|"$/g, ''));
+    const tournament = cells[0] || '';
+    const match_date = cells[1] || '';
+    const team_A     = cells[2] || '';
+    const team_B     = cells[3] || '';
+    const video_url  = cells[4] || '';
+
+    let _error = null;
+    if (!tournament)                               _error = 'Brak nazwy turnieju';
+    else if (!match_date)                          _error = 'Brak daty';
+    else if (!/^\d{4}-\d{2}-\d{2}$/.test(match_date)) _error = 'Nieprawidłowa data — wymagany format RRRR-MM-DD';
+    else if (!team_A)                              _error = 'Brak drużyny A';
+    else if (!team_B)                              _error = 'Brak drużyny B';
+
+    return { tournament, match_date, team_A, team_B, video_url, _error, _lineNum: i + (hasHeader ? 2 : 1) };
+  });
+
+  return { rows };
+}
 
