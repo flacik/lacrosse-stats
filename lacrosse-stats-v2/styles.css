@@ -544,3 +544,24 @@ table.stats-table td.num {
 .match-history-row.lost td:first-child { border-left: 3px solid #dc2626; }
 .match-history-row.drew td:first-child { border-left: 3px solid #9ca3af; }
 .btn-sm { padding: 4px 10px; font-size: 13px; }
+
+/* ── Analytics V5 ────────────────────────────────────────────────────────────── */
+.donut-wrapper { display: flex; align-items: center; gap: 20px; margin-bottom: 16px; }
+.donut-legend { display: flex; flex-direction: column; gap: 6px; }
+.donut-legend-item { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.donut-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+.sit-card { min-width: 130px; text-align: center; }
+.sit-icon { font-size: 18px; margin-bottom: 4px; }
+.sit-numbers { font-size: 12px; color: #6b7280; margin: 4px 0 2px; }
+.sit-goals { font-weight: 600; }
+.sit-pct { font-size: 20px; margin-top: 4px; }
+
+.period-chart-wrapper { overflow-x: auto; margin-bottom: 8px; }
+.period-chart-wrapper svg { display: block; }
+
+.cmp-table { width: 100%; max-width: 420px; }
+.cmp-table th:not(:first-child) { text-align: center; font-size: 13px; }
+.cmp-label { color: #6b7280; font-size: 13px; }
+.cmp-val { text-align: center; font-weight: 600; font-size: 15px; }
+.cmp-better { color: #16a34a; }
