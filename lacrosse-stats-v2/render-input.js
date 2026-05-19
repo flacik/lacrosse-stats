@@ -9,6 +9,7 @@ function renderMatchInput(root) {
       <div class="app-header">
         <button class="btn" data-action="back-home">← Wróć</button>
         <h1>Ładowanie meczu…</h1>
+        <button class="btn" data-action="toggle-dark-mode" id="theme-toggle" title="Przełącz tryb ciemny">🌙</button>
       </div>
       <div class="home-content">
         <div class="loading-state">
@@ -75,6 +76,7 @@ function renderMatchInput(root) {
     <div class="app-header">
       <button class="btn" data-action="back-home">← Wróć</button>
       <h1>${escapeHtml(match.team_A)} vs ${escapeHtml(match.team_B)}</h1>
+      <button class="btn" data-action="toggle-dark-mode" id="theme-toggle" title="Przełącz tryb ciemny">🌙</button>
     </div>
     <div class="match-info-bar">
       <div class="score">

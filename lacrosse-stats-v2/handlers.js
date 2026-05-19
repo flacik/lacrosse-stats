@@ -356,6 +356,14 @@ const HANDLERS = {
   },
   'cancel-own-half': () => { APP.match.own_half_mode = null; APP.banner = null; render(); },
 
+  'toggle-dark-mode': () => {
+    const html = document.documentElement;
+    const isDark = html.dataset.theme === 'dark';
+    html.dataset.theme = isDark ? 'light' : 'dark';
+    localStorage.setItem('lax_theme', html.dataset.theme);
+    _syncThemeToggle();
+  },
+
   'toggle-zones':   () => { APP.match.show_zones        = !APP.match.show_zones;        render(); },
   'toggle-history': () => { APP.match.history_expanded  = !APP.match.history_expanded;  render(); },
 
