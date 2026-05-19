@@ -43,6 +43,9 @@ let APP = {
     period:     '',
   },
   analyticsHeatmapMode: 'fired',  // 'fired' | 'conceded'
+
+  // CSV bulk import (panel admin)
+  csvImport: null,  // null | { rows: [], importing: bool }
 };
 
 // ── Routing ────────────────────────────────────────────────────────────────────

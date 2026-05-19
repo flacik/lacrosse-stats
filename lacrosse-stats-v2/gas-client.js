@@ -141,3 +141,8 @@ function gasListAllEvents() {
   return gasCall('listAllEvents');
 }
 
+/** Tworzy wiele meczów naraz (bulk import z CSV). Zwraca { ids, count }. */
+function gasBulkCreateMatches(matchesArray) {
+  return gasCall('bulkCreateMatches', matchesArray);
+}
+

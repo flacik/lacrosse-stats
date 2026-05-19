@@ -85,6 +85,7 @@ function renderMatchInput(root) {
       <div class="period">${periodLabel(APP.match.period)}</div>
       <div class="tournament">${escapeHtml(match.tournament)}</div>
       <div class="sides-indicator">A po stronie: <strong>${A_left ? 'lewej' : 'prawej'}</strong></div>
+      ${match.video_url ? `<a class="btn btn-video" href="${escapeHtml(match.video_url)}" target="_blank" rel="noopener">▶ Nagranie</a>` : ''}
     </div>
     <div class="match-screen">
       <div class="match-section">

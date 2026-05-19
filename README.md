@@ -27,10 +27,19 @@ All data is stored in Google Sheets, so the club always has a permanent record o
 - Shot chart: full-field overview + half-field zoom with heatmap overlay
 - All coordinates stored in attacker-relative space (shot_x/shot_y ∈ [-1,1] / [0,1]) and converted to display coordinates on the fly
 - Refreshes every 5 seconds; header shows exact time of last update
+- "▶ Nagranie" button in the match bar when a recording URL is set
+
+**Analytics screen**
+- Tournament / team / date / period filters; team dropdown scoped to selected tournament
+- Stats grid: shots, goals, accuracy %, man-up/down, zone breakdown, per-period breakdown
+- Donut chart of shot results; bar chart of accuracy per period
+- Man-up / man-down / even-strength situation cards (hidden when no relevant events)
+- Shot chart with three modes: fired shots, conceded shots, zone efficiency heatmap
 
 **Admin panel**
 - Create and manage tournaments
-- Schedule matches (date, teams, venue); filter by tournament, date range, and status
+- Schedule matches (date, teams, venue, optional recording/stream URL); filter by tournament, date range, and status
+- CSV bulk import — upload a file (up to 200 rows), preview table, one-click import; auto-detects `,` or `;` separator and header row
 - Matches flow automatically into the home screen for scorers to pick up
 
 ---
@@ -74,7 +83,7 @@ Three Google Sheets tabs:
 | Tab | What's stored |
 |---|---|
 | `events` | Every shot: match_id, team, period, result, coordinates, timestamps |
-| `scheduled_matches` | Match schedule: date, teams, tournament, status |
+| `scheduled_matches` | Match schedule: date, teams, tournament, status, video_url |
 | `tournaments` | Tournament registry |
 
 Backend spreadsheet: https://docs.google.com/spreadsheets/d/1nrNDjbIFX6Ac-eMXmUe7mlh8RC1bkXWWcq_gaUULvio
@@ -111,7 +120,24 @@ cd lacrosse-stats-v2/
 
 ## Status
 
-**Current: v4.0.0 — deployed 2026-05-19**
+**Current: v6.0.0 — deployed 2026-05-19**
+
+**v6.0.0 (2026-05-19)** — CSV bulk import + video URLs:
+
+- Admin panel: new **Import CSV** card — upload file, preview table, one-click import (up to 200 matches)
+- CSV format: `turniej,data,druzyna_a,druzyna_b,link`; separator auto-detected (`,` or `;`), header row auto-detected
+- GAS: `bulkCreateMatches()` batch-writes all rows in one `setValues` call
+- New `video_url` field on every match — editable in the match modal, shown as "▶ nagranie" in the admin list
+- Input screen: "▶ Nagranie" button in the match-info bar when a recording link is set
+- `setupSheets()` now detects and adds missing columns (migration-safe, no manual sheet editing needed)
+- `sanitizeUrl()` helper: only allows `http(s)`, strips control chars, max 500 chars
+
+**v5.0.0 (2026-05-19)** — analytics visualizations:
+
+- Donut chart of shot results (goal / saved / missed) with percentage breakdown
+- Bar chart of goal accuracy per period (Q1…/OT1…) rendered alongside the period table
+- Man-up / man-down / even-strength situation cards with goals, shots, and accuracy %; hidden when no relevant events exist
+- Zone efficiency heatmap (3rd shot-chart mode): 6 zones coloured by goal % (grey → orange → green)
 
 **v4.0.0 (2026-05-19)** — historical analytics screen:
 
