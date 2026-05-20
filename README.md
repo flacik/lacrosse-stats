@@ -2,7 +2,10 @@
 
 A web application for recording shot statistics during lacrosse matches, with a real-time viewer mode for coaches.
 
-**Live demo:** https://script.google.com/macros/s/AKfycbw7lFeunyiHYkeHCZyp94LaviP0ymsjXYV3nBMzGUfyy_Z0xUK2BT4oRixlLvLLrJJdBA/exec
+**Live demo (sample data):** https://flacik.github.io/lacrosse-stats/
+
+> The demo runs entirely in the browser with built-in sample data — no login or Google account needed.
+> The production app (connected to a real Google Sheets database) is used by the club internally.
 
 ---
 
@@ -55,7 +58,7 @@ All data is stored in Google Sheets, so the club always has a permanent record o
 | Frontend | Vanilla JS (ES6), HTML5, CSS3 |
 | Backend | Google Apps Script (GAS) |
 | Database | Google Sheets (3 tabs: events, scheduled_matches, tournaments) |
-| Hosting | Google Apps Script Web App (no server costs) |
+| Hosting | Google Apps Script Web App (prod) + GitHub Pages (demo) |
 | Build | Shell script → single self-contained `dist.html` |
 
 ---
@@ -124,7 +127,13 @@ cd lacrosse-stats-v2/
 
 ## Status
 
-**Current: v6.2.0 — deployed 2026-05-20**
+**Current: v6.3.0 — deployed 2026-05-20**
+
+**v6.3.0 (2026-05-20)** — assist flag + past matches on home screen:
+
+- New **Asysta** checkbox in the shot modal (alongside man-up/man-down) — marks whether a goal was assisted; shown as a blue badge in shot history
+- Home screen now shows a **Mecze z przeszłości** section below today's matches — past matches load and can be opened for stat entry
+- GitHub Pages demo at https://flacik.github.io/lacrosse-stats/ — runs with sample data, no login needed
 
 **v6.2.0 (2026-05-20)** — standings: tournament leaderboard:
 
