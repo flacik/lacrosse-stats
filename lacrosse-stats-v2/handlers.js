@@ -214,8 +214,8 @@ const HANDLERS = {
   },
   'submit-match': (id) => {
     const tournament = (document.getElementById('match-tournament').value || '').trim();
-    const teamA      = document.getElementById('match-team-a').value.trim();
-    const teamB      = document.getElementById('match-team-b').value.trim();
+    const teamA      = document.getElementById('match-team-a').value.trim().replace(/\s+/g, ' ');
+    const teamB      = document.getElementById('match-team-b').value.trim().replace(/\s+/g, ' ');
     const matchDate  = document.getElementById('match-date').value;
     const status     = document.getElementById('match-status').value;
     const videoUrl   = (document.getElementById('match-video-url').value || '').trim();
@@ -437,8 +437,8 @@ const HANDLERS = {
   // Ad-hoc match creation
   'create-ad-hoc': () => {
     const tournament = document.getElementById('adhoc-tournament').value.trim();
-    const teamA      = document.getElementById('adhoc-team-a').value.trim();
-    const teamB      = document.getElementById('adhoc-team-b').value.trim();
+    const teamA      = document.getElementById('adhoc-team-a').value.trim().replace(/\s+/g, ' ');
+    const teamB      = document.getElementById('adhoc-team-b').value.trim().replace(/\s+/g, ' ');
     const date       = document.getElementById('adhoc-date').value;
     if (!teamA || !teamB || !date) { alert('Wypełnij drużyny i datę.'); return; }
 

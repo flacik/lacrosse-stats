@@ -131,12 +131,15 @@ function renderAdHocModal() {
       </label>
       <label class="field">
         <span class="field-label">Drużyna A</span>
-        <input id="adhoc-team-a" placeholder="np. Hawks">
+        <input id="adhoc-team-a" list="teams-datalist-adhoc" placeholder="np. Hawks">
       </label>
       <label class="field">
         <span class="field-label">Drużyna B</span>
-        <input id="adhoc-team-b" placeholder="np. Vikings">
+        <input id="adhoc-team-b" list="teams-datalist-adhoc" placeholder="np. Vikings">
       </label>
+      <datalist id="teams-datalist-adhoc">
+        ${uniqueTeamNames().map(n => `<option value="${escapeHtml(n)}">`).join('')}
+      </datalist>
       <label class="field">
         <span class="field-label">Data</span>
         <input id="adhoc-date" type="date" value="${todayISO()}">

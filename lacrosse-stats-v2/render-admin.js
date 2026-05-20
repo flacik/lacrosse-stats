@@ -11,6 +11,15 @@
 // renaming a tournament does NOT cascade to existing matches — admin sees a
 // warning if they try.
 
+function uniqueTeamNames() {
+  const names = new Set();
+  (APP.matches || []).forEach(m => {
+    if (m.team_A) names.add(m.team_A.trim());
+    if (m.team_B) names.add(m.team_B.trim());
+  });
+  return [...names].sort((a, b) => a.localeCompare(b));
+}
+
 function renderAdmin(root) {
   if (!APP.adminFilter) {
     APP.adminFilter = {
@@ -281,12 +290,15 @@ function renderMatchModal(m) {
       </label>
       <label class="field">
         <span class="field-label">Drużyna A</span>
-        <input id="match-team-a" placeholder="np. Hawks" value="${isEdit ? escapeHtml(m.team_A) : ''}">
+        <input id="match-team-a" list="teams-datalist" placeholder="np. Hawks" value="${isEdit ? escapeHtml(m.team_A) : ''}">
       </label>
       <label class="field">
         <span class="field-label">Drużyna B</span>
-        <input id="match-team-b" placeholder="np. Vikings" value="${isEdit ? escapeHtml(m.team_B) : ''}">
+        <input id="match-team-b" list="teams-datalist" placeholder="np. Vikings" value="${isEdit ? escapeHtml(m.team_B) : ''}">
       </label>
+      <datalist id="teams-datalist">
+        ${uniqueTeamNames().map(n => `<option value="${escapeHtml(n)}">`).join('')}
+      </datalist>
       <label class="field">
         <span class="field-label">Data</span>
         <input id="match-date" type="date" value="${isEdit ? m.match_date : todayISO()}">
