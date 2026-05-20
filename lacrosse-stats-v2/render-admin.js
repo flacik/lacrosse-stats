@@ -13,7 +13,7 @@
 
 function uniqueTeamNames() {
   const names = new Set();
-  (APP.matches || []).forEach(m => {
+  (DATA.scheduledMatches || []).forEach(m => {
     if (m.team_A) names.add(m.team_A.trim());
     if (m.team_B) names.add(m.team_B.trim());
   });
