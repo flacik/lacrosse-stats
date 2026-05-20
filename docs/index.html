@@ -2311,7 +2311,7 @@ function drawHalfFieldChart(svg, match, filtered, viewer) {
     const cx = e.shot_y * 540;
     const cy = (1 - e.shot_x) * 600;
     if (viewer.display_mode === 'heatmap') drawHeatBlob(fieldG, cx, cy, teamColor);
-    else                                    drawShotMarker(fieldG, cx, cy, teamColor, e.result, false);
+    else                                    drawShotMarker(fieldG, cx, cy, teamColor, e.result, false, e.man_up, e.man_down);
   });
 
   svg.appendChild(fieldG);
@@ -2342,14 +2342,26 @@ function drawShotsFullField(g, events, match, displayMode) {
     const cx = physical_x * 1100;
     const cy = physical_y * 600;
     if (displayMode === 'heatmap') drawHeatBlob(g, cx, cy, color);
-    else                            drawShotMarker(g, cx, cy, color, e.result, e.zone_name === 'own-half');
+    else                            drawShotMarker(g, cx, cy, color, e.result, e.zone_name === 'own-half', e.man_up, e.man_down);
   });
 }
 
-function drawShotMarker(g, cx, cy, color, result, isOwnHalf) {
+function drawShotMarker(g, cx, cy, color, result, isOwnHalf, manUp, manDown) {
   const isGoal   = result === 'gol';
   const isMissed = result === 'niecelny';
   const strokeColor = isOwnHalf ? '#ca8a04' : color;
+
+  // Man-up / man-down outer ring (rendered first, behind marker)
+  if (manUp || manDown) {
+    const ringAttrs = {
+      cx, cy, r: 12,
+      fill: 'transparent',
+      stroke: manUp ? '#f59e0b' : '#7c3aed',
+      'stroke-width': 2,
+    };
+    if (manDown) ringAttrs['stroke-dasharray'] = '3,2';
+    g.appendChild(svgEl('circle', ringAttrs));
+  }
 
   if (isMissed) {
     const s = 5;
@@ -2834,7 +2846,7 @@ function renderMatchViewer(root) {
   const chartHost = document.getElementById('viewer-chart-host');
   if (chartHost) {
     chartHost.appendChild(buildViewerChart(match, filtered));
-    if (APP.viewer.view_mode === 'full') chartHost.appendChild(buildFieldLegend(match));
+    if (APP.viewer.view_mode === 'full') chartHost.appendChild(buildFieldLegend(match, { includeManUp: true }));
   }
 }
 

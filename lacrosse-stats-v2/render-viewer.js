@@ -86,7 +86,7 @@ function renderMatchViewer(root) {
   const chartHost = document.getElementById('viewer-chart-host');
   if (chartHost) {
     chartHost.appendChild(buildViewerChart(match, filtered));
-    if (APP.viewer.view_mode === 'full') chartHost.appendChild(buildFieldLegend(match));
+    if (APP.viewer.view_mode === 'full') chartHost.appendChild(buildFieldLegend(match, { includeManUp: true }));
   }
 }
 
