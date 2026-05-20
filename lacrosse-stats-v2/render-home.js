@@ -14,6 +14,7 @@ function renderHome(root) {
         <span class="meta">${today}</span>
         <button class="btn" data-action="open-admin">📋 Turnieje</button>
         <button class="btn" data-action="open-analytics">📊 Analityka</button>
+        <button class="btn" data-action="open-standings">🏆 Tabela</button>
         <button class="btn" data-action="toggle-dark-mode" id="theme-toggle" title="Przełącz tryb ciemny">🌙</button>
       </div>
       <div class="home-content">
@@ -34,6 +35,7 @@ function renderHome(root) {
         <span class="meta">${today}</span>
         <button class="btn" data-action="open-admin">📋 Turnieje</button>
         <button class="btn" data-action="open-analytics">📊 Analityka</button>
+        <button class="btn" data-action="open-standings">🏆 Tabela</button>
         <button class="btn" data-action="toggle-dark-mode" id="theme-toggle" title="Przełącz tryb ciemny">🌙</button>
       </div>
       <div class="home-content">
@@ -55,6 +57,7 @@ function renderHome(root) {
       <span class="meta">${today}</span>
       <button class="btn" data-action="open-admin">📋 Turnieje</button>
       <button class="btn" data-action="open-analytics">📊 Analityka</button>
+      <button class="btn" data-action="open-standings">🏆 Tabela</button>
       <button class="btn" data-action="toggle-dark-mode" id="theme-toggle" title="Przełącz tryb ciemny">🌙</button>
     </div>
     <div class="home-content">
