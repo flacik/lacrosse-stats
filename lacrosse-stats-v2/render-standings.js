@@ -88,13 +88,16 @@ function _computeStandings(events, matches, tournament) {
       matchIds.has(String(e.match_id)) && e.team_event !== team
     );
 
-    const shots      = teamEvents.length;
     const goals      = teamEvents.filter(e => e.result === 'gol').length;
+    const celne      = teamEvents.filter(e => e.result === 'celny').length;
+    const niecelne   = teamEvents.filter(e => e.result === 'niecelny').length;
+    const shots      = goals + celne + niecelne;
     const conceded   = oppEvents.filter(e => e.result === 'gol').length;
     const manUpGoals = teamEvents.filter(e => e.result === 'gol' && e.man_up).length;
-    const pct        = shots > 0 ? Math.round(goals / shots * 100) : 0;
+    const pctSkut    = shots > 0 ? Math.round(goals / shots * 100) : 0;
+    const pctCel     = shots > 0 ? Math.round((goals + celne) / shots * 100) : 0;
 
-    return { team, matches: teamMatches.length, goals, conceded, shots, pct, manUpGoals };
+    return { team, matches: teamMatches.length, goals, conceded, celne, niecelne, pctSkut, pctCel, manUpGoals };
   });
 }
 
@@ -106,8 +109,10 @@ function _sortStandings(rows, sort) {
     matches:     r => r.matches,
     goals:       r => r.goals,
     conceded:    r => r.conceded,
-    shots:       r => r.shots,
-    pct:         r => r.pct,
+    celne:       r => r.celne,
+    niecelne:    r => r.niecelne,
+    pctSkut:     r => r.pctSkut,
+    pctCel:      r => r.pctCel,
     manUpGoals:  r => r.manUpGoals,
   };
   const fn = keyMap[key] || (r => r.goals);
@@ -123,13 +128,15 @@ function _sortStandings(rows, sort) {
 
 function _renderStandingsTable(rows, sort) {
   const cols = [
-    { key: 'team',       label: 'Drużyna',   align: 'left'   },
-    { key: 'matches',    label: 'M',         align: 'center' },
-    { key: 'goals',      label: 'G+',        align: 'center' },
-    { key: 'conceded',   label: 'G−',        align: 'center' },
-    { key: 'shots',      label: 'Strzały',   align: 'center' },
-    { key: 'pct',        label: '% skut.',   align: 'center' },
-    { key: 'manUpGoals', label: 'Man-up G',  align: 'center' },
+    { key: 'team',       label: 'Drużyna',      align: 'left'   },
+    { key: 'matches',    label: 'Mecze',         align: 'center' },
+    { key: 'goals',      label: 'Gole+',         align: 'center' },
+    { key: 'conceded',   label: 'Gole−',         align: 'center' },
+    { key: 'celne',      label: 'Celne',         align: 'center' },
+    { key: 'niecelne',   label: 'Niecelne',      align: 'center' },
+    { key: 'pctSkut',    label: '% skuteczności', align: 'center' },
+    { key: 'pctCel',     label: '% celności',    align: 'center' },
+    { key: 'manUpGoals', label: 'Man-up gole',   align: 'center' },
   ];
 
   const headers = cols.map(c => {
@@ -144,8 +151,10 @@ function _renderStandingsTable(rows, sort) {
       <td class="center">${r.matches}</td>
       <td class="center goals-scored">${r.goals}</td>
       <td class="center goals-conceded">${r.conceded}</td>
-      <td class="center">${r.shots}</td>
-      <td class="center">${r.pct}%</td>
+      <td class="center">${r.celne}</td>
+      <td class="center">${r.niecelne}</td>
+      <td class="center">${r.pctSkut}%</td>
+      <td class="center">${r.pctCel}%</td>
       <td class="center">${r.manUpGoals || '—'}</td>
     </tr>`).join('');
 
