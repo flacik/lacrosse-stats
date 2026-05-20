@@ -41,6 +41,7 @@ function renderResultModal(pending) {
       <div class="flag-row">
         <label><input type="checkbox" id="flag-man-up"   data-action="mutex-flag" data-arg="man-up"> Przewaga (man-up)</label>
         <label><input type="checkbox" id="flag-man-down" data-action="mutex-flag" data-arg="man-down"> Osłabienie (man-down)</label>
+        <label><input type="checkbox" id="flag-assisted"> Asysta</label>
       </div>
       <div class="result-buttons">
         <button class="result-btn niecelny" data-action="submit-result" data-arg="niecelny">Niecelny</button>
@@ -89,6 +90,7 @@ function renderEditEventModal(e) {
       <div class="flag-row">
         <label><input type="checkbox" id="edit-man-up"   data-action="mutex-edit-flag" data-arg="man-up"   ${e.man_up   ? 'checked' : ''}> Przewaga</label>
         <label><input type="checkbox" id="edit-man-down" data-action="mutex-edit-flag" data-arg="man-down" ${e.man_down ? 'checked' : ''}> Osłabienie</label>
+        <label><input type="checkbox" id="edit-assisted" ${e.assisted ? 'checked' : ''}> Asysta</label>
       </div>
       <div class="modal-actions">
         <button class="btn" data-action="cancel-modal">Anuluj</button>

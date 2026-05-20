@@ -52,7 +52,7 @@ var EVENT_COLS = [
   'tournament', 'team_A', 'team_B', 'match_date',
   'period', 'team_event',
   'shot_x', 'shot_y', 'zone_name',
-  'result', 'man_up', 'man_down',
+  'result', 'man_up', 'man_down', 'assisted',
   'created_at',
 ];
 
@@ -398,8 +398,9 @@ function saveEvent(eventObj) {
     var row = EVENT_COLS.map(function(col) {
       if (col === 'id')         return newId;
       if (col === 'created_at') return createdAt;
-      if (col === 'man_up')     return eventObj.man_up  ? true : false;
+      if (col === 'man_up')     return eventObj.man_up   ? true : false;
       if (col === 'man_down')   return eventObj.man_down ? true : false;
+      if (col === 'assisted')   return eventObj.assisted ? true : false;
       if (col === 'shot_x')     return parseFloat(eventObj.shot_x);
       if (col === 'shot_y')     return parseFloat(eventObj.shot_y);
       var val = eventObj[col];
@@ -438,8 +439,9 @@ function updateEvent(id, eventObj) {
     var row = EVENT_COLS.map(function(col) {
       if (col === 'id')         return id;
       if (col === 'created_at') return origCreatedAt;
-      if (col === 'man_up')     return eventObj.man_up  ? true : false;
+      if (col === 'man_up')     return eventObj.man_up   ? true : false;
       if (col === 'man_down')   return eventObj.man_down ? true : false;
+      if (col === 'assisted')   return eventObj.assisted ? true : false;
       if (col === 'shot_x')     return parseFloat(eventObj.shot_x);
       if (col === 'shot_y')     return parseFloat(eventObj.shot_y);
       var val = eventObj[col];

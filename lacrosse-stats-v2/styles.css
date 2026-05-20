@@ -222,6 +222,7 @@ svg.field.field-half {
 }
 .history-row .flag.man-up { background: #dcfce7; color: #166534; }
 .history-row .flag.man-down { background: #fee2e2; color: #991b1b; }
+.history-row .flag.assisted { background: #dbeafe; color: #1d4ed8; }
 .history-row .actions { display: flex; gap: 4px; }
 .history-row .icon-btn {
   background: none; border: none; cursor: pointer;
@@ -682,6 +683,7 @@ table.stats-table td.num {
 [data-theme="dark"] .history-row .flag { background: #1c2128; color: #8b949e; }
 [data-theme="dark"] .history-row .flag.man-up { background: #0f2d1c; color: #3fb950; }
 [data-theme="dark"] .history-row .flag.man-down { background: #3d0e0e; color: #f85149; }
+[data-theme="dark"] .history-row .flag.assisted { background: #0d1b33; color: #58a6ff; }
 [data-theme="dark"] .history-row .icon-btn { color: #6e7681; }
 [data-theme="dark"] .history-row .icon-btn:hover { background: #1c2128; color: #e6edf3; }
 [data-theme="dark"] .history-row .icon-btn.delete:hover { color: #f85149; background: #1f0e0e; }

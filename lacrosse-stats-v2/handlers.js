@@ -386,13 +386,14 @@ const HANDLERS = {
 
   // Event creation/edit/delete
   'submit-result': (result) => {
-    const pending = APP.modal.pending;
-    const manUp   = document.getElementById('flag-man-up').checked;
-    const manDown = document.getElementById('flag-man-down').checked;
+    const pending  = APP.modal.pending;
+    const manUp    = document.getElementById('flag-man-up').checked;
+    const manDown  = document.getElementById('flag-man-down').checked;
+    const assisted = document.getElementById('flag-assisted')?.checked ?? false;
     recordEvent({
       shot_x: pending.shot_x, shot_y: pending.shot_y,
       zone_name: pending.zone_name, team_event: pending.team_event,
-      result, man_up: manUp, man_down: manDown
+      result, man_up: manUp, man_down: manDown, assisted
     });
     APP.modal = null;
     render();
@@ -405,12 +406,13 @@ const HANDLERS = {
     render();
   },
   'submit-edit': (id) => {
-    const team    = document.getElementById('edit-team').value;
-    const period  = document.getElementById('edit-period').value;
-    const result  = document.getElementById('edit-result').value;
-    const manUp   = document.getElementById('edit-man-up').checked;
-    const manDown = document.getElementById('edit-man-down').checked;
-    updateEvent(id, { team_event: team, period, result, man_up: manUp, man_down: manDown });
+    const team     = document.getElementById('edit-team').value;
+    const period   = document.getElementById('edit-period').value;
+    const result   = document.getElementById('edit-result').value;
+    const manUp    = document.getElementById('edit-man-up').checked;
+    const manDown  = document.getElementById('edit-man-down').checked;
+    const assisted = document.getElementById('edit-assisted')?.checked ?? false;
+    updateEvent(id, { team_event: team, period, result, man_up: manUp, man_down: manDown, assisted });
     APP.modal = null;
     render();
   },

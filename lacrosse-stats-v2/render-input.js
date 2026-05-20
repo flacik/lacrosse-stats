@@ -122,8 +122,9 @@ function renderMatchInput(root) {
 function renderHistoryRow(e, match) {
   const slot  = teamSlot(match.id, e.team_event);
   const flags = [];
-  if (e.man_up)   flags.push('<span class="flag man-up">man-up</span>');
-  if (e.man_down) flags.push('<span class="flag man-down">man-down</span>');
+  if (e.man_up)                          flags.push('<span class="flag man-up">man-up</span>');
+  if (e.man_down)                        flags.push('<span class="flag man-down">man-down</span>');
+  if (e.assisted && e.result === 'gol') flags.push('<span class="flag assisted">asysta</span>');
 
   // Wskaźnik synchronizacji z GAS
   let syncBadge = '';
