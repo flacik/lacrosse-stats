@@ -54,6 +54,7 @@ var EVENT_COLS = [
   'shot_x', 'shot_y', 'zone_name',
   'result', 'man_up', 'man_down',
   'created_at', 'assisted',
+  'event_type', 'goalie_number',
 ];
 
 var MATCH_COLS = [
@@ -217,19 +218,29 @@ function findRowById(sheet, id) {
  * Zwraca null jeśli OK, lub string z opisem błędu.
  */
 function validateEvent(ev) {
-  // 1. Required fields
+  var isGoalieSet = ev.event_type === 'goalie_set';
+
+  // 1. Required fields (all event types)
   var required = [
     'client_event_id', 'match_id',
     'tournament', 'team_A', 'team_B', 'match_date',
     'period', 'team_event',
-    'shot_x', 'shot_y', 'zone_name',
-    'result',
   ];
+  if (!isGoalieSet) {
+    required = required.concat(['shot_x', 'shot_y', 'zone_name', 'result']);
+  }
   for (var i = 0; i < required.length; i++) {
     var f = required[i];
     if (ev[f] === undefined || ev[f] === null || ev[f] === '') {
       return 'Brakujące pole: ' + f;
     }
+  }
+
+  // goalie_set: waliduj numer, pomiń resztę
+  if (isGoalieSet) {
+    var gn = String(ev.goalie_number !== undefined && ev.goalie_number !== null ? ev.goalie_number : '');
+    if (!/^\d{1,2}$/.test(gn)) return 'goalie_number musi być liczbą 0–99: ' + gn;
+    return null;
   }
 
   // 2. result
@@ -401,8 +412,8 @@ function saveEvent(eventObj) {
       if (col === 'man_up')     return eventObj.man_up   ? true : false;
       if (col === 'man_down')   return eventObj.man_down ? true : false;
       if (col === 'assisted')   return eventObj.assisted ? true : false;
-      if (col === 'shot_x')     return parseFloat(eventObj.shot_x);
-      if (col === 'shot_y')     return parseFloat(eventObj.shot_y);
+      if (col === 'shot_x')     return eventObj.event_type === 'goalie_set' ? '' : parseFloat(eventObj.shot_x);
+      if (col === 'shot_y')     return eventObj.event_type === 'goalie_set' ? '' : parseFloat(eventObj.shot_y);
       var val = eventObj[col];
       if (typeof val === 'string') return sanitizeText(val);
       return val !== undefined ? val : '';
@@ -442,8 +453,8 @@ function updateEvent(id, eventObj) {
       if (col === 'man_up')     return eventObj.man_up   ? true : false;
       if (col === 'man_down')   return eventObj.man_down ? true : false;
       if (col === 'assisted')   return eventObj.assisted ? true : false;
-      if (col === 'shot_x')     return parseFloat(eventObj.shot_x);
-      if (col === 'shot_y')     return parseFloat(eventObj.shot_y);
+      if (col === 'shot_x')     return eventObj.event_type === 'goalie_set' ? '' : parseFloat(eventObj.shot_x);
+      if (col === 'shot_y')     return eventObj.event_type === 'goalie_set' ? '' : parseFloat(eventObj.shot_y);
       var val = eventObj[col];
       if (typeof val === 'string') return sanitizeText(val);
       return val !== undefined ? val : '';

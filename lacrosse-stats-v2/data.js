@@ -175,6 +175,12 @@ const VALID_ZONES   = ['attack-left', 'attack-center', 'attack-right',
 const PERIOD_REGEX  = /^([1-4]|OT\d+)$/;
 
 function validateEventPayload(ev) {
+  if (ev.event_type === 'goalie_set') {
+    const gn = String(ev.goalie_number !== undefined && ev.goalie_number !== null ? ev.goalie_number : '');
+    if (!/^\d{1,2}$/.test(gn)) return 'Nieprawidłowy numer bramkarza: ' + gn;
+    if (!PERIOD_REGEX.test(String(ev.period))) return 'Nieprawidłowy okres: ' + ev.period;
+    return null;
+  }
   if (!VALID_RESULTS.includes(ev.result))            return 'Nieprawidłowy wynik: ' + ev.result;
   if (typeof ev.shot_x !== 'number' || ev.shot_x < -1 || ev.shot_x > 1) return 'Nieprawidłowa pozycja shot_x';
   if (typeof ev.shot_y !== 'number' || ev.shot_y < 0  || ev.shot_y > 1) return 'Nieprawidłowa pozycja shot_y';

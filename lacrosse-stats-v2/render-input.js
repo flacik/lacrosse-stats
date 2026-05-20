@@ -29,6 +29,9 @@ function renderMatchInput(root) {
   const score = computeScore(match.id);
   const A_left = APP.match.team_A_side === 'left';
   const events = eventsForMatch(match.id);
+  const allMatchEvents = DATA.events.filter(e => String(e.match_id) === String(match.id));
+  const goalieA = getCurrentGoalieNumber(match.team_A, allMatchEvents);
+  const goalieB = getCurrentGoalieNumber(match.team_B, allMatchEvents);
   const isFinal = APP.match.period === '4' || (APP.match.period && APP.match.period.startsWith('OT'));
 
   let bannerHtml = '';
@@ -102,6 +105,19 @@ function renderMatchInput(root) {
           <div class="right">
             <button class="btn btn-danger" data-action="end-match">🏁 Koniec meczu</button>
           </div>
+        </div>
+        <div class="goalie-bar">
+          <span class="goalie-slot team-A">
+            BRK ${escapeHtml(match.team_A)}: ${goalieA !== null ? '#' + goalieA : '—'}
+            <button data-action="open-goalie-modal" data-arg="A" class="goalie-edit-btn">✎</button>
+          </span>
+          <span class="goalie-slot team-B">
+            BRK ${escapeHtml(match.team_B)}: ${goalieB !== null ? '#' + goalieB : '—'}
+            <button data-action="open-goalie-modal" data-arg="B" class="goalie-edit-btn">✎</button>
+          </span>
+        </div>
+        <div class="goalie-retroactive-link">
+          <button data-action="open-goalie-retroactive" class="btn-link">Edytuj bramkarzy po meczu</button>
         </div>
         <div class="history-section">
           <div class="history-header ${APP.match.history_expanded ? '' : 'collapsed no-border'}" data-action="toggle-history">

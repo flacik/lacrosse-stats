@@ -950,3 +950,39 @@ table.stats-table td.num {
   .sit-grid { grid-template-columns: 1fr; }
 }
 [data-theme="dark"] .standings-empty { color: #8b949e; }
+
+/* F-11 — Bramkarze */
+.goalie-bar {
+  display: flex;
+  gap: 16px;
+  padding: 8px 0;
+  font-size: 13px;
+  color: #6b7280;
+  border-bottom: 1px solid #e5e7eb;
+  margin-bottom: 8px;
+}
+.goalie-edit-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #9ca3af;
+  font-size: 12px;
+  padding: 0 4px;
+}
+.goalie-edit-btn:hover { color: #374151; }
+.goalie-retroactive-link {
+  text-align: right;
+  margin-bottom: 12px;
+}
+.btn-link {
+  background: none;
+  border: none;
+  color: #6b7280;
+  font-size: 11px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.goalie-name { font-size: 12px; color: #6b7280; font-style: italic; }
+[data-theme="dark"] .goalie-bar { color: #9ca3af; border-color: #374151; }
+[data-theme="dark"] .goalie-edit-btn:hover { color: #d1d5db; }
+[data-theme="dark"] .btn-link { color: #9ca3af; }

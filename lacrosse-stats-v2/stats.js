@@ -49,8 +49,15 @@ function teamSlot(matchId, teamName) {
 
 function eventsForMatch(matchId) {
   return DATA.events
-    .filter(e => String(e.match_id) === String(matchId))
+    .filter(e => String(e.match_id) === String(matchId) && e.event_type !== 'goalie_set')
     .sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
+}
+
+function getCurrentGoalieNumber(teamName, events) {
+  const sets = events
+    .filter(e => e.event_type === 'goalie_set' && e.team_event === teamName)
+    .sort((a, b) => getPeriodOrder(a.period) - getPeriodOrder(b.period));
+  return sets.length > 0 ? sets[sets.length - 1].goalie_number : null;
 }
 
 function computeTeamStats(matchId, teamName, events) {
@@ -68,26 +75,59 @@ function computeTeamStats(matchId, teamName, events) {
 }
 
 function computeGoalieStats(match, allEvents) {
-  // Goalkeeper of team X faces shots from the opposing team.
-  // Saves = opponent's "celny" (per A.4: includes posts).
-  // Goals against = opponent's "gol".
-  function statsForGoalie(shotsFaced) {
-    const saves        = shotsFaced.filter(e => e.result === 'celny').length;
-    const goalsAgainst = shotsFaced.filter(e => e.result === 'gol').length;
+  const goalieSetEvents = allEvents.filter(e => e.event_type === 'goalie_set');
+  const shots = allEvents.filter(e => e.event_type !== 'goalie_set');
+
+  function getActiveGoalie(teamName, period) {
+    const assignments = goalieSetEvents
+      .filter(e => e.team_event === teamName)
+      .sort((a, b) => getPeriodOrder(a.period) - getPeriodOrder(b.period));
+    let number = null;
+    for (const a of assignments) {
+      if (getPeriodOrder(a.period) <= getPeriodOrder(period)) number = a.goalie_number;
+    }
+    return number;
+  }
+
+  function statsForTeam(goalieTeamName, shotTeamName) {
+    const faced = shots.filter(e => e.team_event === shotTeamName);
+    const byGoalie = {};
+    for (const shot of faced) {
+      const num = getActiveGoalie(goalieTeamName, shot.period) || '__none__';
+      if (!byGoalie[num]) byGoalie[num] = [];
+      byGoalie[num].push(shot);
+    }
+    return Object.entries(byGoalie).map(([num, shotList]) => {
+      const saves        = shotList.filter(e => e.result === 'celny').length;
+      const goalsAgainst = shotList.filter(e => e.result === 'gol').length;
+      const shotsOnGoal  = saves + goalsAgainst;
+      return {
+        number: num === '__none__' ? null : num,
+        saves, goalsAgainst, shotsOnGoal,
+        savePct: shotsOnGoal > 0 ? (saves / shotsOnGoal * 100).toFixed(1) : '—'
+      };
+    });
+  }
+
+  function aggregate(list) {
+    const saves        = list.reduce((s, g) => s + g.saves, 0);
+    const goalsAgainst = list.reduce((s, g) => s + g.goalsAgainst, 0);
     const shotsOnGoal  = saves + goalsAgainst;
     return {
       saves, goalsAgainst, shotsOnGoal,
-      savePct: shotsOnGoal > 0 ? (saves / shotsOnGoal * 100).toFixed(1) : '—'
+      savePct: shotsOnGoal > 0 ? (saves / shotsOnGoal * 100).toFixed(1) : '—',
+      goalies: list,
     };
   }
+
   return {
-    A: statsForGoalie(allEvents.filter(e => e.team_event === match.team_B)),
-    B: statsForGoalie(allEvents.filter(e => e.team_event === match.team_A))
+    A: aggregate(statsForTeam(match.team_A, match.team_B)),
+    B: aggregate(statsForTeam(match.team_B, match.team_A)),
   };
 }
 
 function computePerPeriodStats(matchId, match) {
-  const events = DATA.events.filter(e => String(e.match_id) === String(matchId));
+  const events = DATA.events.filter(e => String(e.match_id) === String(matchId) && e.event_type !== 'goalie_set');
   const periods = new Set();
   events.forEach(e => { if (e.period !== undefined && e.period !== '') periods.add(String(e.period)); });
   const sorted = Array.from(periods).sort((a, b) => getPeriodOrder(a) - getPeriodOrder(b));

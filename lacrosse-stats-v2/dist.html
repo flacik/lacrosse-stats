@@ -957,6 +957,42 @@ table.stats-table td.num {
   .sit-grid { grid-template-columns: 1fr; }
 }
 [data-theme="dark"] .standings-empty { color: #8b949e; }
+
+/* F-11 — Bramkarze */
+.goalie-bar {
+  display: flex;
+  gap: 16px;
+  padding: 8px 0;
+  font-size: 13px;
+  color: #6b7280;
+  border-bottom: 1px solid #e5e7eb;
+  margin-bottom: 8px;
+}
+.goalie-edit-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #9ca3af;
+  font-size: 12px;
+  padding: 0 4px;
+}
+.goalie-edit-btn:hover { color: #374151; }
+.goalie-retroactive-link {
+  text-align: right;
+  margin-bottom: 12px;
+}
+.btn-link {
+  background: none;
+  border: none;
+  color: #6b7280;
+  font-size: 11px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.goalie-name { font-size: 12px; color: #6b7280; font-style: italic; }
+[data-theme="dark"] .goalie-bar { color: #9ca3af; border-color: #374151; }
+[data-theme="dark"] .goalie-edit-btn:hover { color: #d1d5db; }
+[data-theme="dark"] .btn-link { color: #9ca3af; }
 </style>
 </head>
 <body>
@@ -1324,6 +1360,12 @@ const VALID_ZONES   = ['attack-left', 'attack-center', 'attack-right',
 const PERIOD_REGEX  = /^([1-4]|OT\d+)$/;
 
 function validateEventPayload(ev) {
+  if (ev.event_type === 'goalie_set') {
+    const gn = String(ev.goalie_number !== undefined && ev.goalie_number !== null ? ev.goalie_number : '');
+    if (!/^\d{1,2}$/.test(gn)) return 'Nieprawidłowy numer bramkarza: ' + gn;
+    if (!PERIOD_REGEX.test(String(ev.period))) return 'Nieprawidłowy okres: ' + ev.period;
+    return null;
+  }
   if (!VALID_RESULTS.includes(ev.result))            return 'Nieprawidłowy wynik: ' + ev.result;
   if (typeof ev.shot_x !== 'number' || ev.shot_x < -1 || ev.shot_x > 1) return 'Nieprawidłowa pozycja shot_x';
   if (typeof ev.shot_y !== 'number' || ev.shot_y < 0  || ev.shot_y > 1) return 'Nieprawidłowa pozycja shot_y';
@@ -1481,8 +1523,15 @@ function teamSlot(matchId, teamName) {
 
 function eventsForMatch(matchId) {
   return DATA.events
-    .filter(e => String(e.match_id) === String(matchId))
+    .filter(e => String(e.match_id) === String(matchId) && e.event_type !== 'goalie_set')
     .sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
+}
+
+function getCurrentGoalieNumber(teamName, events) {
+  const sets = events
+    .filter(e => e.event_type === 'goalie_set' && e.team_event === teamName)
+    .sort((a, b) => getPeriodOrder(a.period) - getPeriodOrder(b.period));
+  return sets.length > 0 ? sets[sets.length - 1].goalie_number : null;
 }
 
 function computeTeamStats(matchId, teamName, events) {
@@ -1500,26 +1549,59 @@ function computeTeamStats(matchId, teamName, events) {
 }
 
 function computeGoalieStats(match, allEvents) {
-  // Goalkeeper of team X faces shots from the opposing team.
-  // Saves = opponent's "celny" (per A.4: includes posts).
-  // Goals against = opponent's "gol".
-  function statsForGoalie(shotsFaced) {
-    const saves        = shotsFaced.filter(e => e.result === 'celny').length;
-    const goalsAgainst = shotsFaced.filter(e => e.result === 'gol').length;
+  const goalieSetEvents = allEvents.filter(e => e.event_type === 'goalie_set');
+  const shots = allEvents.filter(e => e.event_type !== 'goalie_set');
+
+  function getActiveGoalie(teamName, period) {
+    const assignments = goalieSetEvents
+      .filter(e => e.team_event === teamName)
+      .sort((a, b) => getPeriodOrder(a.period) - getPeriodOrder(b.period));
+    let number = null;
+    for (const a of assignments) {
+      if (getPeriodOrder(a.period) <= getPeriodOrder(period)) number = a.goalie_number;
+    }
+    return number;
+  }
+
+  function statsForTeam(goalieTeamName, shotTeamName) {
+    const faced = shots.filter(e => e.team_event === shotTeamName);
+    const byGoalie = {};
+    for (const shot of faced) {
+      const num = getActiveGoalie(goalieTeamName, shot.period) || '__none__';
+      if (!byGoalie[num]) byGoalie[num] = [];
+      byGoalie[num].push(shot);
+    }
+    return Object.entries(byGoalie).map(([num, shotList]) => {
+      const saves        = shotList.filter(e => e.result === 'celny').length;
+      const goalsAgainst = shotList.filter(e => e.result === 'gol').length;
+      const shotsOnGoal  = saves + goalsAgainst;
+      return {
+        number: num === '__none__' ? null : num,
+        saves, goalsAgainst, shotsOnGoal,
+        savePct: shotsOnGoal > 0 ? (saves / shotsOnGoal * 100).toFixed(1) : '—'
+      };
+    });
+  }
+
+  function aggregate(list) {
+    const saves        = list.reduce((s, g) => s + g.saves, 0);
+    const goalsAgainst = list.reduce((s, g) => s + g.goalsAgainst, 0);
     const shotsOnGoal  = saves + goalsAgainst;
     return {
       saves, goalsAgainst, shotsOnGoal,
-      savePct: shotsOnGoal > 0 ? (saves / shotsOnGoal * 100).toFixed(1) : '—'
+      savePct: shotsOnGoal > 0 ? (saves / shotsOnGoal * 100).toFixed(1) : '—',
+      goalies: list,
     };
   }
+
   return {
-    A: statsForGoalie(allEvents.filter(e => e.team_event === match.team_B)),
-    B: statsForGoalie(allEvents.filter(e => e.team_event === match.team_A))
+    A: aggregate(statsForTeam(match.team_A, match.team_B)),
+    B: aggregate(statsForTeam(match.team_B, match.team_A)),
   };
 }
 
 function computePerPeriodStats(matchId, match) {
-  const events = DATA.events.filter(e => String(e.match_id) === String(matchId));
+  const events = DATA.events.filter(e => String(e.match_id) === String(matchId) && e.event_type !== 'goalie_set');
   const periods = new Set();
   events.forEach(e => { if (e.period !== undefined && e.period !== '') periods.add(String(e.period)); });
   const sorted = Array.from(periods).sort((a, b) => getPeriodOrder(a) - getPeriodOrder(b));
@@ -2703,6 +2785,9 @@ function renderMatchInput(root) {
   const score = computeScore(match.id);
   const A_left = APP.match.team_A_side === 'left';
   const events = eventsForMatch(match.id);
+  const allMatchEvents = DATA.events.filter(e => String(e.match_id) === String(match.id));
+  const goalieA = getCurrentGoalieNumber(match.team_A, allMatchEvents);
+  const goalieB = getCurrentGoalieNumber(match.team_B, allMatchEvents);
   const isFinal = APP.match.period === '4' || (APP.match.period && APP.match.period.startsWith('OT'));
 
   let bannerHtml = '';
@@ -2776,6 +2861,19 @@ function renderMatchInput(root) {
           <div class="right">
             <button class="btn btn-danger" data-action="end-match">🏁 Koniec meczu</button>
           </div>
+        </div>
+        <div class="goalie-bar">
+          <span class="goalie-slot team-A">
+            BRK ${escapeHtml(match.team_A)}: ${goalieA !== null ? '#' + goalieA : '—'}
+            <button data-action="open-goalie-modal" data-arg="A" class="goalie-edit-btn">✎</button>
+          </span>
+          <span class="goalie-slot team-B">
+            BRK ${escapeHtml(match.team_B)}: ${goalieB !== null ? '#' + goalieB : '—'}
+            <button data-action="open-goalie-modal" data-arg="B" class="goalie-edit-btn">✎</button>
+          </span>
+        </div>
+        <div class="goalie-retroactive-link">
+          <button data-action="open-goalie-retroactive" class="btn-link">Edytuj bramkarzy po meczu</button>
         </div>
         <div class="history-section">
           <div class="history-header ${APP.match.history_expanded ? '' : 'collapsed no-border'}" data-action="toggle-history">
@@ -2877,14 +2975,15 @@ function renderMatchViewer(root) {
   }
 
   // Fix type mismatch: match_id z GAS może być liczbą lub stringiem
-  const allEvents = DATA.events.filter(e => String(e.match_id) === String(match.id));
-  const filtered  = applyViewerFilters(allEvents, APP.viewer);
-  const score     = computeScore(match.id);
-  const statsA    = computeTeamStats(match.id, match.team_A, allEvents);
-  const statsB    = computeTeamStats(match.id, match.team_B, allEvents);
-  const goalies   = computeGoalieStats(match, allEvents);
-  const perPeriod = computePerPeriodStats(match.id, match);
-  const situation = computeSituationStats(match.id, match, allEvents);
+  const allEvents  = DATA.events.filter(e => String(e.match_id) === String(match.id));
+  const shotEvents = allEvents.filter(e => e.event_type !== 'goalie_set');
+  const filtered   = applyViewerFilters(shotEvents, APP.viewer);
+  const score      = computeScore(match.id);
+  const statsA     = computeTeamStats(match.id, match.team_A, shotEvents);
+  const statsB     = computeTeamStats(match.id, match.team_B, shotEvents);
+  const goalies    = computeGoalieStats(match, allEvents);
+  const perPeriod  = computePerPeriodStats(match.id, match);
+  const situation  = computeSituationStats(match.id, match, shotEvents);
 
   const periodSet = new Set();
   allEvents.forEach(e => { if (e.period !== undefined && e.period !== '') periodSet.add(String(e.period)); });
@@ -3024,27 +3123,72 @@ function renderViewerSituationCard(situation, match) {
 
 function renderViewerGoalieCard(goalies, match) {
   const fmt = (val) => val === '—' ? '—' : val + '%';
+
+  function goalieLabel(teamName, goalieList) {
+    if (!goalieList || goalieList.length === 0) return `Bramkarz ${escapeHtml(teamName)} — numer nie wpisany`;
+    if (goalieList.length === 1 && goalieList[0].number !== null) return `Bramkarz ${escapeHtml(teamName)} #${goalieList[0].number}`;
+    return `Bramkarz ${escapeHtml(teamName)}`;
+  }
+
+  function goalieRows(teamSlot, goalieList, otherGoalieList) {
+    if (!goalieList || goalieList.length === 0) return '';
+    return goalieList.map((g, i) => {
+      const label = g.number !== null ? `#${g.number}` : '(brak numeru)';
+      const multipleGoalies = goalieList.length > 1;
+      return `
+        ${multipleGoalies ? `<tr><td class="goalie-name ${teamSlot}" colspan="3">${label}</td></tr>` : ''}
+        <tr><td class="num ${teamSlot}">${g.saves}</td><td class="label" style="text-align:center;">obrony</td><td class="num ${otherGoalieList[i] ? otherGoalieList[i].saves : ''}">${otherGoalieList[i] ? otherGoalieList[i].saves : ''}</td></tr>
+      `;
+    }).join('');
+  }
+
+  const hasMultipleA = goalies.A.goalies && goalies.A.goalies.length > 1;
+  const hasMultipleB = goalies.B.goalies && goalies.B.goalies.length > 1;
+  const hasMultiple  = hasMultipleA || hasMultipleB;
+
   return `
     <div class="viewer-card">
       <h3>Statystyki bramkarzy</h3>
       <table class="stats-table">
         <thead>
           <tr class="header-row">
-            <th class="team-A">Bramkarz ${escapeHtml(match.team_A)}</th>
+            <th class="team-A">${goalieLabel(match.team_A, goalies.A.goalies)}</th>
             <th class="label" style="text-align:center;">&nbsp;</th>
-            <th class="team-B">Bramkarz ${escapeHtml(match.team_B)}</th>
+            <th class="team-B">${goalieLabel(match.team_B, goalies.B.goalies)}</th>
           </tr>
         </thead>
         <tbody>
+          ${hasMultiple ? _renderGoalieMultiRows(goalies, match) : `
           <tr><td class="num team-A">${goalies.A.saves}</td><td class="label" style="text-align:center;">obrony</td><td class="num team-B">${goalies.B.saves}</td></tr>
           <tr><td class="num team-A">${goalies.A.goalsAgainst}</td><td class="label" style="text-align:center;">bramki stracone</td><td class="num team-B">${goalies.B.goalsAgainst}</td></tr>
           <tr><td class="num team-A">${goalies.A.shotsOnGoal}</td><td class="label" style="text-align:center;">strzały na bramkę (faced)</td><td class="num team-B">${goalies.B.shotsOnGoal}</td></tr>
           <tr class="summary-row"><td class="num team-A">${fmt(goalies.A.savePct)}</td><td class="label" style="text-align:center;">% obron</td><td class="num team-B">${fmt(goalies.B.savePct)}</td></tr>
+          `}
         </tbody>
       </table>
       <div style="margin-top:8px;font-size:11px;color:#888;">obrona = strzał celny przeciwnika (zgodnie z konwencją: obrona bramkarza lub trafienie w słupek księgowane razem)</div>
     </div>
   `;
+}
+
+function _renderGoalieMultiRows(goalies, match) {
+  const fmt = (val) => val === '—' ? '—' : val + '%';
+  const listA = goalies.A.goalies || [];
+  const listB = goalies.B.goalies || [];
+  const maxLen = Math.max(listA.length, listB.length);
+  let html = '';
+  for (let i = 0; i < maxLen; i++) {
+    const gA = listA[i];
+    const gB = listB[i];
+    const labelA = gA ? (gA.number !== null ? `#${gA.number}` : '(brak nr)') : '';
+    const labelB = gB ? (gB.number !== null ? `#${gB.number}` : '(brak nr)') : '';
+    html += `<tr><td class="goalie-name team-A">${labelA}</td><td></td><td class="goalie-name team-B">${labelB}</td></tr>`;
+    html += `<tr><td class="num team-A">${gA ? gA.saves : ''}</td><td class="label" style="text-align:center;">obrony</td><td class="num team-B">${gB ? gB.saves : ''}</td></tr>`;
+    html += `<tr><td class="num team-A">${gA ? gA.goalsAgainst : ''}</td><td class="label" style="text-align:center;">bramki stracone</td><td class="num team-B">${gB ? gB.goalsAgainst : ''}</td></tr>`;
+    html += `<tr><td class="num team-A">${gA ? gA.shotsOnGoal : ''}</td><td class="label" style="text-align:center;">strzały na bramkę</td><td class="num team-B">${gB ? gB.shotsOnGoal : ''}</td></tr>`;
+    html += `<tr class="summary-row"><td class="num team-A">${gA ? fmt(gA.savePct) : ''}</td><td class="label" style="text-align:center;">% obron</td><td class="num team-B">${gB ? fmt(gB.savePct) : ''}</td></tr>`;
+  }
+  return html;
 }
 
 function renderViewerPerPeriodCard(perPeriod, match) {
@@ -4253,12 +4397,14 @@ function renderModal() {
   bg.className = 'modal-bg';
   bg.dataset.action = 'modal-bg-click';
 
-  if      (APP.modal.type === 'result')         bg.innerHTML = renderResultModal(APP.modal.pending);
-  else if (APP.modal.type === 'edit-event')     bg.innerHTML = renderEditEventModal(APP.modal.event);
-  else if (APP.modal.type === 'confirm-end')    bg.innerHTML = renderConfirmEnd();
-  else if (APP.modal.type === 'ad-hoc')         bg.innerHTML = renderAdHocModal();
-  else if (APP.modal.type === 'tournament-form') bg.innerHTML = renderTournamentModal(APP.modal.tournament);
-  else if (APP.modal.type === 'match-form')      bg.innerHTML = renderMatchModal(APP.modal.match);
+  if      (APP.modal.type === 'result')              bg.innerHTML = renderResultModal(APP.modal.pending);
+  else if (APP.modal.type === 'edit-event')          bg.innerHTML = renderEditEventModal(APP.modal.event);
+  else if (APP.modal.type === 'confirm-end')         bg.innerHTML = renderConfirmEnd();
+  else if (APP.modal.type === 'ad-hoc')              bg.innerHTML = renderAdHocModal();
+  else if (APP.modal.type === 'tournament-form')     bg.innerHTML = renderTournamentModal(APP.modal.tournament);
+  else if (APP.modal.type === 'match-form')          bg.innerHTML = renderMatchModal(APP.modal.match);
+  else if (APP.modal.type === 'goalie-form')         bg.innerHTML = renderGoalieFormModal();
+  else if (APP.modal.type === 'goalie-retroactive')  bg.innerHTML = renderGoalieRetroactiveModal();
 
   document.body.appendChild(bg);
 }
@@ -4395,6 +4541,80 @@ function renderAdHocModal() {
       <div class="modal-actions">
         <button class="btn" data-action="cancel-modal">Anuluj</button>
         <button class="btn btn-primary" data-action="create-ad-hoc">Utwórz i wpisuj statystyki</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderGoalieFormModal() {
+  const match     = DATA.scheduledMatches.find(m => String(m.id) === String(APP.matchId));
+  const slot      = APP.modal.team_slot;
+  const teamName  = slot === 'A' ? match.team_A : match.team_B;
+  const allEvents = DATA.events.filter(e => String(e.match_id) === String(match.id));
+  const current   = getCurrentGoalieNumber(teamName, allEvents);
+  return `
+    <div class="modal" data-stop-propagation="true">
+      <h2>Bramkarz — ${escapeHtml(teamName)}</h2>
+      <label class="field">
+        <span class="field-label">Numer (0–99)</span>
+        <input type="number" id="goalie-number-input" min="0" max="99" inputmode="numeric"
+               value="${current !== null ? escapeHtml(String(current)) : ''}" style="width:100px;">
+      </label>
+      <p class="modal-hint">Obowiązuje od: ${periodLabel(APP.match.period)}</p>
+      <div class="modal-actions">
+        <button class="btn" data-action="cancel-modal">Anuluj</button>
+        <button class="btn btn-primary" data-action="save-goalie" data-arg="${slot}">Zapisz</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderGoalieRetroactiveModal() {
+  const match     = DATA.scheduledMatches.find(m => String(m.id) === String(APP.matchId));
+  const allEvents = DATA.events.filter(e => String(e.match_id) === String(match.id));
+  const shotEvents = allEvents.filter(e => e.event_type !== 'goalie_set');
+  const goalieEvents = allEvents.filter(e => e.event_type === 'goalie_set');
+
+  const periodSet = new Set();
+  shotEvents.forEach(e => { if (e.period !== undefined && e.period !== '') periodSet.add(String(e.period)); });
+  const periods = Array.from(periodSet).sort((a, b) => getPeriodOrder(a) - getPeriodOrder(b));
+  if (periods.length === 0) periods.push(APP.match.period);
+
+  function currentFor(period, teamName) {
+    const ev = goalieEvents
+      .filter(e => e.team_event === teamName && String(e.period) === String(period))
+      .sort((a, b) => (b.created_at || 0) - (a.created_at || 0))[0];
+    return ev ? ev.goalie_number : '';
+  }
+
+  const rows = periods.map(p => `
+    <tr>
+      <td style="padding:4px 8px;">${periodLabel(p)}</td>
+      <td style="padding:4px 8px;"><input type="number" min="0" max="99" inputmode="numeric"
+        data-period="${escapeHtml(p)}" data-team="A"
+        value="${escapeHtml(String(currentFor(p, match.team_A)))}" style="width:70px;"></td>
+      <td style="padding:4px 8px;"><input type="number" min="0" max="99" inputmode="numeric"
+        data-period="${escapeHtml(p)}" data-team="B"
+        value="${escapeHtml(String(currentFor(p, match.team_B)))}" style="width:70px;"></td>
+    </tr>
+  `).join('');
+
+  return `
+    <div class="modal" data-stop-propagation="true">
+      <h2>Bramkarze po meczu</h2>
+      <table style="border-collapse:collapse;width:100%;">
+        <thead>
+          <tr>
+            <th style="text-align:left;padding:4px 8px;">Kwarta</th>
+            <th style="text-align:left;padding:4px 8px;">${escapeHtml(match.team_A)}</th>
+            <th style="text-align:left;padding:4px 8px;">${escapeHtml(match.team_B)}</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <div class="modal-actions">
+        <button class="btn" data-action="cancel-modal">Anuluj</button>
+        <button class="btn btn-primary" data-action="save-goalie-retroactive">Zapisz wszystkie</button>
       </div>
     </div>
   `;
@@ -4894,6 +5114,104 @@ const HANDLERS = {
 
   // Viewer: toggle split-barów (F-02)
   'toggle-split-bars': () => { APP.splitBars = !APP.splitBars; render(); },
+
+  // Bramkarze (F-11)
+  'open-goalie-modal': (slot) => {
+    APP.modal = { type: 'goalie-form', team_slot: slot };
+    render();
+  },
+
+  'save-goalie': (slot) => {
+    const input = document.getElementById('goalie-number-input');
+    if (!input) return;
+    const raw = input.value.trim();
+    if (raw === '' || isNaN(Number(raw)) || Number(raw) < 0 || Number(raw) > 99 || !Number.isInteger(Number(raw))) {
+      alert('Podaj numer bramkarza (0–99).');
+      return;
+    }
+    const num = String(parseInt(raw, 10));
+    const match = DATA.scheduledMatches.find(m => String(m.id) === String(APP.matchId));
+    const teamName = slot === 'A' ? match.team_A : match.team_B;
+    const period = APP.match.period;
+
+    // Jeśli istnieje goalie_set dla tej (period, team) — zaktualizuj, w przeciwnym razie utwórz
+    const existing = DATA.events.find(e =>
+      String(e.match_id) === String(match.id) &&
+      e.event_type === 'goalie_set' &&
+      e.team_event === teamName &&
+      String(e.period) === String(period)
+    );
+
+    APP.modal = null;
+    if (existing) {
+      updateEvent(existing.id, { goalie_number: num });
+    } else {
+      recordEvent({
+        event_type:    'goalie_set',
+        team_event:    teamName,
+        goalie_number: num,
+        period,
+        result:        null,
+        shot_x:        null,
+        shot_y:        null,
+        zone_name:     null,
+        man_up:        false,
+        man_down:      false,
+      });
+    }
+    render();
+  },
+
+  'open-goalie-retroactive': () => {
+    APP.modal = { type: 'goalie-retroactive' };
+    render();
+  },
+
+  'save-goalie-retroactive': () => {
+    const match = DATA.scheduledMatches.find(m => String(m.id) === String(APP.matchId));
+    const inputs = document.querySelectorAll('.modal [data-period][data-team]');
+    APP.modal = null;
+    render();
+
+    inputs.forEach(input => {
+      const period   = input.dataset.period;
+      const slot     = input.dataset.team;
+      const teamName = slot === 'A' ? match.team_A : match.team_B;
+      const raw      = input.value.trim();
+
+      const existing = DATA.events.find(e =>
+        String(e.match_id) === String(match.id) &&
+        e.event_type === 'goalie_set' &&
+        e.team_event === teamName &&
+        String(e.period) === String(period)
+      );
+
+      if (raw === '') {
+        if (existing) deleteEvent(existing.id);
+        return;
+      }
+      if (isNaN(Number(raw)) || Number(raw) < 0 || Number(raw) > 99 || !Number.isInteger(Number(raw))) return;
+      const num = String(parseInt(raw, 10));
+
+      if (existing) {
+        if (String(existing.goalie_number) !== num) updateEvent(existing.id, { goalie_number: num });
+      } else {
+        recordEvent({
+          event_type:    'goalie_set',
+          team_event:    teamName,
+          goalie_number: num,
+          period,
+          result:        null,
+          shot_x:        null,
+          shot_y:        null,
+          zone_name:     null,
+          man_up:        false,
+          man_down:      false,
+        });
+      }
+    });
+    render();
+  },
 };
 
 // ===== Event delegation =====

@@ -42,14 +42,15 @@ function renderMatchViewer(root) {
   }
 
   // Fix type mismatch: match_id z GAS może być liczbą lub stringiem
-  const allEvents = DATA.events.filter(e => String(e.match_id) === String(match.id));
-  const filtered  = applyViewerFilters(allEvents, APP.viewer);
-  const score     = computeScore(match.id);
-  const statsA    = computeTeamStats(match.id, match.team_A, allEvents);
-  const statsB    = computeTeamStats(match.id, match.team_B, allEvents);
-  const goalies   = computeGoalieStats(match, allEvents);
-  const perPeriod = computePerPeriodStats(match.id, match);
-  const situation = computeSituationStats(match.id, match, allEvents);
+  const allEvents  = DATA.events.filter(e => String(e.match_id) === String(match.id));
+  const shotEvents = allEvents.filter(e => e.event_type !== 'goalie_set');
+  const filtered   = applyViewerFilters(shotEvents, APP.viewer);
+  const score      = computeScore(match.id);
+  const statsA     = computeTeamStats(match.id, match.team_A, shotEvents);
+  const statsB     = computeTeamStats(match.id, match.team_B, shotEvents);
+  const goalies    = computeGoalieStats(match, allEvents);
+  const perPeriod  = computePerPeriodStats(match.id, match);
+  const situation  = computeSituationStats(match.id, match, shotEvents);
 
   const periodSet = new Set();
   allEvents.forEach(e => { if (e.period !== undefined && e.period !== '') periodSet.add(String(e.period)); });
@@ -189,27 +190,72 @@ function renderViewerSituationCard(situation, match) {
 
 function renderViewerGoalieCard(goalies, match) {
   const fmt = (val) => val === '—' ? '—' : val + '%';
+
+  function goalieLabel(teamName, goalieList) {
+    if (!goalieList || goalieList.length === 0) return `Bramkarz ${escapeHtml(teamName)} — numer nie wpisany`;
+    if (goalieList.length === 1 && goalieList[0].number !== null) return `Bramkarz ${escapeHtml(teamName)} #${goalieList[0].number}`;
+    return `Bramkarz ${escapeHtml(teamName)}`;
+  }
+
+  function goalieRows(teamSlot, goalieList, otherGoalieList) {
+    if (!goalieList || goalieList.length === 0) return '';
+    return goalieList.map((g, i) => {
+      const label = g.number !== null ? `#${g.number}` : '(brak numeru)';
+      const multipleGoalies = goalieList.length > 1;
+      return `
+        ${multipleGoalies ? `<tr><td class="goalie-name ${teamSlot}" colspan="3">${label}</td></tr>` : ''}
+        <tr><td class="num ${teamSlot}">${g.saves}</td><td class="label" style="text-align:center;">obrony</td><td class="num ${otherGoalieList[i] ? otherGoalieList[i].saves : ''}">${otherGoalieList[i] ? otherGoalieList[i].saves : ''}</td></tr>
+      `;
+    }).join('');
+  }
+
+  const hasMultipleA = goalies.A.goalies && goalies.A.goalies.length > 1;
+  const hasMultipleB = goalies.B.goalies && goalies.B.goalies.length > 1;
+  const hasMultiple  = hasMultipleA || hasMultipleB;
+
   return `
     <div class="viewer-card">
       <h3>Statystyki bramkarzy</h3>
       <table class="stats-table">
         <thead>
           <tr class="header-row">
-            <th class="team-A">Bramkarz ${escapeHtml(match.team_A)}</th>
+            <th class="team-A">${goalieLabel(match.team_A, goalies.A.goalies)}</th>
             <th class="label" style="text-align:center;">&nbsp;</th>
-            <th class="team-B">Bramkarz ${escapeHtml(match.team_B)}</th>
+            <th class="team-B">${goalieLabel(match.team_B, goalies.B.goalies)}</th>
           </tr>
         </thead>
         <tbody>
+          ${hasMultiple ? _renderGoalieMultiRows(goalies, match) : `
           <tr><td class="num team-A">${goalies.A.saves}</td><td class="label" style="text-align:center;">obrony</td><td class="num team-B">${goalies.B.saves}</td></tr>
           <tr><td class="num team-A">${goalies.A.goalsAgainst}</td><td class="label" style="text-align:center;">bramki stracone</td><td class="num team-B">${goalies.B.goalsAgainst}</td></tr>
           <tr><td class="num team-A">${goalies.A.shotsOnGoal}</td><td class="label" style="text-align:center;">strzały na bramkę (faced)</td><td class="num team-B">${goalies.B.shotsOnGoal}</td></tr>
           <tr class="summary-row"><td class="num team-A">${fmt(goalies.A.savePct)}</td><td class="label" style="text-align:center;">% obron</td><td class="num team-B">${fmt(goalies.B.savePct)}</td></tr>
+          `}
         </tbody>
       </table>
       <div style="margin-top:8px;font-size:11px;color:#888;">obrona = strzał celny przeciwnika (zgodnie z konwencją: obrona bramkarza lub trafienie w słupek księgowane razem)</div>
     </div>
   `;
+}
+
+function _renderGoalieMultiRows(goalies, match) {
+  const fmt = (val) => val === '—' ? '—' : val + '%';
+  const listA = goalies.A.goalies || [];
+  const listB = goalies.B.goalies || [];
+  const maxLen = Math.max(listA.length, listB.length);
+  let html = '';
+  for (let i = 0; i < maxLen; i++) {
+    const gA = listA[i];
+    const gB = listB[i];
+    const labelA = gA ? (gA.number !== null ? `#${gA.number}` : '(brak nr)') : '';
+    const labelB = gB ? (gB.number !== null ? `#${gB.number}` : '(brak nr)') : '';
+    html += `<tr><td class="goalie-name team-A">${labelA}</td><td></td><td class="goalie-name team-B">${labelB}</td></tr>`;
+    html += `<tr><td class="num team-A">${gA ? gA.saves : ''}</td><td class="label" style="text-align:center;">obrony</td><td class="num team-B">${gB ? gB.saves : ''}</td></tr>`;
+    html += `<tr><td class="num team-A">${gA ? gA.goalsAgainst : ''}</td><td class="label" style="text-align:center;">bramki stracone</td><td class="num team-B">${gB ? gB.goalsAgainst : ''}</td></tr>`;
+    html += `<tr><td class="num team-A">${gA ? gA.shotsOnGoal : ''}</td><td class="label" style="text-align:center;">strzały na bramkę</td><td class="num team-B">${gB ? gB.shotsOnGoal : ''}</td></tr>`;
+    html += `<tr class="summary-row"><td class="num team-A">${gA ? fmt(gA.savePct) : ''}</td><td class="label" style="text-align:center;">% obron</td><td class="num team-B">${gB ? fmt(gB.savePct) : ''}</td></tr>`;
+  }
+  return html;
 }
 
 function renderViewerPerPeriodCard(perPeriod, match) {

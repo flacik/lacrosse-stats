@@ -7,12 +7,14 @@ function renderModal() {
   bg.className = 'modal-bg';
   bg.dataset.action = 'modal-bg-click';
 
-  if      (APP.modal.type === 'result')         bg.innerHTML = renderResultModal(APP.modal.pending);
-  else if (APP.modal.type === 'edit-event')     bg.innerHTML = renderEditEventModal(APP.modal.event);
-  else if (APP.modal.type === 'confirm-end')    bg.innerHTML = renderConfirmEnd();
-  else if (APP.modal.type === 'ad-hoc')         bg.innerHTML = renderAdHocModal();
-  else if (APP.modal.type === 'tournament-form') bg.innerHTML = renderTournamentModal(APP.modal.tournament);
-  else if (APP.modal.type === 'match-form')      bg.innerHTML = renderMatchModal(APP.modal.match);
+  if      (APP.modal.type === 'result')              bg.innerHTML = renderResultModal(APP.modal.pending);
+  else if (APP.modal.type === 'edit-event')          bg.innerHTML = renderEditEventModal(APP.modal.event);
+  else if (APP.modal.type === 'confirm-end')         bg.innerHTML = renderConfirmEnd();
+  else if (APP.modal.type === 'ad-hoc')              bg.innerHTML = renderAdHocModal();
+  else if (APP.modal.type === 'tournament-form')     bg.innerHTML = renderTournamentModal(APP.modal.tournament);
+  else if (APP.modal.type === 'match-form')          bg.innerHTML = renderMatchModal(APP.modal.match);
+  else if (APP.modal.type === 'goalie-form')         bg.innerHTML = renderGoalieFormModal();
+  else if (APP.modal.type === 'goalie-retroactive')  bg.innerHTML = renderGoalieRetroactiveModal();
 
   document.body.appendChild(bg);
 }
@@ -149,6 +151,80 @@ function renderAdHocModal() {
       <div class="modal-actions">
         <button class="btn" data-action="cancel-modal">Anuluj</button>
         <button class="btn btn-primary" data-action="create-ad-hoc">Utwórz i wpisuj statystyki</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderGoalieFormModal() {
+  const match     = DATA.scheduledMatches.find(m => String(m.id) === String(APP.matchId));
+  const slot      = APP.modal.team_slot;
+  const teamName  = slot === 'A' ? match.team_A : match.team_B;
+  const allEvents = DATA.events.filter(e => String(e.match_id) === String(match.id));
+  const current   = getCurrentGoalieNumber(teamName, allEvents);
+  return `
+    <div class="modal" data-stop-propagation="true">
+      <h2>Bramkarz — ${escapeHtml(teamName)}</h2>
+      <label class="field">
+        <span class="field-label">Numer (0–99)</span>
+        <input type="number" id="goalie-number-input" min="0" max="99" inputmode="numeric"
+               value="${current !== null ? escapeHtml(String(current)) : ''}" style="width:100px;">
+      </label>
+      <p class="modal-hint">Obowiązuje od: ${periodLabel(APP.match.period)}</p>
+      <div class="modal-actions">
+        <button class="btn" data-action="cancel-modal">Anuluj</button>
+        <button class="btn btn-primary" data-action="save-goalie" data-arg="${slot}">Zapisz</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderGoalieRetroactiveModal() {
+  const match     = DATA.scheduledMatches.find(m => String(m.id) === String(APP.matchId));
+  const allEvents = DATA.events.filter(e => String(e.match_id) === String(match.id));
+  const shotEvents = allEvents.filter(e => e.event_type !== 'goalie_set');
+  const goalieEvents = allEvents.filter(e => e.event_type === 'goalie_set');
+
+  const periodSet = new Set();
+  shotEvents.forEach(e => { if (e.period !== undefined && e.period !== '') periodSet.add(String(e.period)); });
+  const periods = Array.from(periodSet).sort((a, b) => getPeriodOrder(a) - getPeriodOrder(b));
+  if (periods.length === 0) periods.push(APP.match.period);
+
+  function currentFor(period, teamName) {
+    const ev = goalieEvents
+      .filter(e => e.team_event === teamName && String(e.period) === String(period))
+      .sort((a, b) => (b.created_at || 0) - (a.created_at || 0))[0];
+    return ev ? ev.goalie_number : '';
+  }
+
+  const rows = periods.map(p => `
+    <tr>
+      <td style="padding:4px 8px;">${periodLabel(p)}</td>
+      <td style="padding:4px 8px;"><input type="number" min="0" max="99" inputmode="numeric"
+        data-period="${escapeHtml(p)}" data-team="A"
+        value="${escapeHtml(String(currentFor(p, match.team_A)))}" style="width:70px;"></td>
+      <td style="padding:4px 8px;"><input type="number" min="0" max="99" inputmode="numeric"
+        data-period="${escapeHtml(p)}" data-team="B"
+        value="${escapeHtml(String(currentFor(p, match.team_B)))}" style="width:70px;"></td>
+    </tr>
+  `).join('');
+
+  return `
+    <div class="modal" data-stop-propagation="true">
+      <h2>Bramkarze po meczu</h2>
+      <table style="border-collapse:collapse;width:100%;">
+        <thead>
+          <tr>
+            <th style="text-align:left;padding:4px 8px;">Kwarta</th>
+            <th style="text-align:left;padding:4px 8px;">${escapeHtml(match.team_A)}</th>
+            <th style="text-align:left;padding:4px 8px;">${escapeHtml(match.team_B)}</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <div class="modal-actions">
+        <button class="btn" data-action="cancel-modal">Anuluj</button>
+        <button class="btn btn-primary" data-action="save-goalie-retroactive">Zapisz wszystkie</button>
       </div>
     </div>
   `;

@@ -489,6 +489,104 @@ const HANDLERS = {
 
   // Viewer: toggle split-barów (F-02)
   'toggle-split-bars': () => { APP.splitBars = !APP.splitBars; render(); },
+
+  // Bramkarze (F-11)
+  'open-goalie-modal': (slot) => {
+    APP.modal = { type: 'goalie-form', team_slot: slot };
+    render();
+  },
+
+  'save-goalie': (slot) => {
+    const input = document.getElementById('goalie-number-input');
+    if (!input) return;
+    const raw = input.value.trim();
+    if (raw === '' || isNaN(Number(raw)) || Number(raw) < 0 || Number(raw) > 99 || !Number.isInteger(Number(raw))) {
+      alert('Podaj numer bramkarza (0–99).');
+      return;
+    }
+    const num = String(parseInt(raw, 10));
+    const match = DATA.scheduledMatches.find(m => String(m.id) === String(APP.matchId));
+    const teamName = slot === 'A' ? match.team_A : match.team_B;
+    const period = APP.match.period;
+
+    // Jeśli istnieje goalie_set dla tej (period, team) — zaktualizuj, w przeciwnym razie utwórz
+    const existing = DATA.events.find(e =>
+      String(e.match_id) === String(match.id) &&
+      e.event_type === 'goalie_set' &&
+      e.team_event === teamName &&
+      String(e.period) === String(period)
+    );
+
+    APP.modal = null;
+    if (existing) {
+      updateEvent(existing.id, { goalie_number: num });
+    } else {
+      recordEvent({
+        event_type:    'goalie_set',
+        team_event:    teamName,
+        goalie_number: num,
+        period,
+        result:        null,
+        shot_x:        null,
+        shot_y:        null,
+        zone_name:     null,
+        man_up:        false,
+        man_down:      false,
+      });
+    }
+    render();
+  },
+
+  'open-goalie-retroactive': () => {
+    APP.modal = { type: 'goalie-retroactive' };
+    render();
+  },
+
+  'save-goalie-retroactive': () => {
+    const match = DATA.scheduledMatches.find(m => String(m.id) === String(APP.matchId));
+    const inputs = document.querySelectorAll('.modal [data-period][data-team]');
+    APP.modal = null;
+    render();
+
+    inputs.forEach(input => {
+      const period   = input.dataset.period;
+      const slot     = input.dataset.team;
+      const teamName = slot === 'A' ? match.team_A : match.team_B;
+      const raw      = input.value.trim();
+
+      const existing = DATA.events.find(e =>
+        String(e.match_id) === String(match.id) &&
+        e.event_type === 'goalie_set' &&
+        e.team_event === teamName &&
+        String(e.period) === String(period)
+      );
+
+      if (raw === '') {
+        if (existing) deleteEvent(existing.id);
+        return;
+      }
+      if (isNaN(Number(raw)) || Number(raw) < 0 || Number(raw) > 99 || !Number.isInteger(Number(raw))) return;
+      const num = String(parseInt(raw, 10));
+
+      if (existing) {
+        if (String(existing.goalie_number) !== num) updateEvent(existing.id, { goalie_number: num });
+      } else {
+        recordEvent({
+          event_type:    'goalie_set',
+          team_event:    teamName,
+          goalie_number: num,
+          period,
+          result:        null,
+          shot_x:        null,
+          shot_y:        null,
+          zone_name:     null,
+          man_up:        false,
+          man_down:      false,
+        });
+      }
+    });
+    render();
+  },
 };
 
 // ===== Event delegation =====
