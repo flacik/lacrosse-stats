@@ -116,7 +116,7 @@ async function loadHomeData() {
 
   try {
     const [matches, tournaments] = await Promise.all([
-      gasListMatchesForDate(todayISO()),
+      gasListAllMatches(),
       gasListTournaments()
     ]);
     DATA.scheduledMatches = matches      || [];

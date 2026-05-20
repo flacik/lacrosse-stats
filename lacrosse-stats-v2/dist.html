@@ -1604,7 +1604,7 @@ async function loadHomeData() {
 
   try {
     const [matches, tournaments] = await Promise.all([
-      gasListMatchesForDate(todayISO()),
+      gasListAllMatches(),
       gasListTournaments()
     ]);
     DATA.scheduledMatches = matches      || [];
@@ -2432,7 +2432,7 @@ function drawHeatBlob(g, cx, cy, color) {
 // ==============================================================================
 
 
-// Home screen: lista meczy dzisiejszego dnia + przycisk ad-hoc.
+// Home screen: lista meczy dzisiejszego dnia + przeszłe + przycisk ad-hoc.
 // Dane ładowane async przez loadHomeData() w state.js.
 
 function renderHome(root) {
@@ -2482,6 +2482,39 @@ function renderHome(root) {
 
   // ── Loaded ───────────────────────────────────────────────────────────────────
   const todayMatches = DATA.scheduledMatches.filter(m => m.match_date === today);
+  const pastMatches  = DATA.scheduledMatches
+    .filter(m => m.match_date < today)
+    .sort((a, b) => b.match_date.localeCompare(a.match_date));
+
+  function renderMatchCard(m) {
+    const score      = computeScore(m.id);
+    const eventCount = DATA.events.filter(e => e.match_id === m.id).length;
+    const isFinished = m.status === 'finished';
+    const isLive     = m.status === 'live';
+    return `
+      <div class="match-card ${isFinished ? 'finished' : ''}">
+        <div class="match-tournament">
+          ${escapeHtml(m.tournament || '— brak turnieju —')}
+          ${isLive ? ' <span class="badge-live">LIVE</span>' : ''}
+        </div>
+        <div class="match-teams">
+          <span>${escapeHtml(m.team_A)}</span>
+          ${eventCount > 0 || isFinished
+            ? `<span class="match-score">${score.A} : ${score.B}</span>`
+            : '<span class="vs">vs</span>'}
+          <span>${escapeHtml(m.team_B)}</span>
+        </div>
+        <div class="match-meta">
+          ${m.match_date}
+          ${eventCount > 0 ? ` · ${eventCount} eventów` : ''}
+        </div>
+        <div class="match-actions">
+          <button class="btn btn-primary"   data-action="open-match"  data-arg="${m.id}">${isFinished ? 'Otwórz' : 'Wpisuj statystyki'}</button>
+          <button class="btn btn-secondary" data-action="open-viewer" data-arg="${m.id}">Tylko podgląd</button>
+        </div>
+      </div>
+    `;
+  }
 
   let html = `
     <div class="app-header">
@@ -2500,35 +2533,14 @@ function renderHome(root) {
     html += '<div class="empty">Brak meczy zaplanowanych na dziś.<br>Dodaj mecze w panelu Turniejów lub utwórz mecz ad-hoc.</div>';
   } else {
     html += '<div class="match-list">';
-    todayMatches.forEach(m => {
-      const score      = computeScore(m.id);
-      const eventCount = DATA.events.filter(e => e.match_id === m.id).length;
-      const isFinished = m.status === 'finished';
-      const isLive = m.status === 'live';
-      html += `
-        <div class="match-card ${isFinished ? 'finished' : ''}">
-          <div class="match-tournament">
-            ${escapeHtml(m.tournament || '— brak turnieju —')}
-            ${isLive ? ' <span class="badge-live">LIVE</span>' : ''}
-          </div>
-          <div class="match-teams">
-            <span>${escapeHtml(m.team_A)}</span>
-            ${eventCount > 0 || isFinished
-              ? `<span class="match-score">${score.A} : ${score.B}</span>`
-              : '<span class="vs">vs</span>'}
-            <span>${escapeHtml(m.team_B)}</span>
-          </div>
-          <div class="match-meta">
-            ${m.match_date}
-            ${eventCount > 0 ? ` · ${eventCount} eventów` : ''}
-          </div>
-          <div class="match-actions">
-            <button class="btn btn-primary"   data-action="open-match"  data-arg="${m.id}">${isFinished ? 'Otwórz' : 'Wpisuj statystyki'}</button>
-            <button class="btn btn-secondary" data-action="open-viewer" data-arg="${m.id}">Tylko podgląd</button>
-          </div>
-        </div>
-      `;
-    });
+    todayMatches.forEach(m => { html += renderMatchCard(m); });
+    html += '</div>';
+  }
+
+  if (pastMatches.length > 0) {
+    html += '<h2 style="margin-top:1.5rem">Mecze z przeszłości</h2>';
+    html += '<div class="match-list">';
+    pastMatches.forEach(m => { html += renderMatchCard(m); });
     html += '</div>';
   }
 
