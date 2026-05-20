@@ -124,9 +124,9 @@ cd lacrosse-stats-v2/
 
 ## Status
 
-**Current: v7.0.0 — deployed 2026-05-20**
+**Current: v6.2.0 — deployed 2026-05-20**
 
-**v7.0.0 (2026-05-20)** — standings: tournament leaderboard:
+**v6.2.0 (2026-05-20)** — standings: tournament leaderboard:
 
 - New **🏆 Tabela** button on the home screen opens a per-tournament standings table
 - Columns: Drużyna / Mecze / Gole+ / Gole− / Celne / Niecelne / % skuteczności / % celności / Man-up gole
