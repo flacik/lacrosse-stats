@@ -49,6 +49,7 @@ function renderMatchViewer(root) {
   const statsB    = computeTeamStats(match.id, match.team_B, allEvents);
   const goalies   = computeGoalieStats(match, allEvents);
   const perPeriod = computePerPeriodStats(match.id, match);
+  const situation = computeSituationStats(match.id, match, allEvents);
 
   const periodSet = new Set();
   allEvents.forEach(e => { if (e.period !== undefined && e.period !== '') periodSet.add(String(e.period)); });
@@ -76,6 +77,7 @@ function renderMatchViewer(root) {
     <div class="viewer-screen">
       <div class="viewer-section">
         ${renderViewerStatsCard(statsA, statsB, match)}
+        ${renderViewerSituationCard(situation, match)}
         ${renderViewerGoalieCard(goalies, match)}
         ${renderViewerPerPeriodCard(perPeriod, match)}
         ${renderViewerShotChartCard(match, filtered, periodOptions)}
@@ -141,6 +143,46 @@ function renderViewerStatsCard(statsA, statsB, match) {
           ${_splitBar(statsA.onTargetRate, statsB.onTargetRate)}
         </tbody>
       </table>
+    </div>
+  `;
+}
+
+function renderViewerSituationCard(situation, match) {
+  function sitBlock(label, badgeClass, badgeText, dataA, dataB) {
+    const fmtRate = r => r === '—' ? '—' : r + '%';
+    return `
+      <div class="sit-col">
+        <div class="sit-badge ${badgeClass}">${badgeText}</div>
+        <div class="sit-subtitle">${label}</div>
+        <div class="sit-row">
+          <span class="sit-val-a">${dataA.shots}/${dataA.goals}</span>
+          <span class="sit-lbl">strzały/bramki</span>
+          <span class="sit-val-b">${dataB.shots}/${dataB.goals}</span>
+        </div>
+        <div class="sit-row">
+          <span class="sit-val-a">${fmtRate(dataA.rate)}</span>
+          <span class="sit-lbl">skuteczność</span>
+          <span class="sit-val-b">${fmtRate(dataB.rate)}</span>
+        </div>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="viewer-card">
+      <div class="sit-card-header">
+        <h3 style="margin:0;">Sytuacje specjalne</h3>
+        <div class="sit-teams">
+          <span class="team-A-label">${escapeHtml(match.team_A)}</span>
+          <span class="sit-teams-sep">·</span>
+          <span class="team-B-label">${escapeHtml(match.team_B)}</span>
+        </div>
+      </div>
+      <div class="sit-grid">
+        ${sitBlock('przewaga',     'sit-badge-up', 'man-up ↑',   situation.manUp.A,   situation.manUp.B)}
+        ${sitBlock('równa liczba', 'sit-badge-eq', '5v5 ·',      situation.equal.A,   situation.equal.B)}
+        ${sitBlock('osłabienie',   'sit-badge-dn', 'man-down ↓', situation.manDown.A, situation.manDown.B)}
+      </div>
     </div>
   `;
 }

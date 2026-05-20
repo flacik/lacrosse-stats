@@ -101,6 +101,26 @@ function computePerPeriodStats(matchId, match) {
   });
 }
 
+function computeSituationStats(matchId, match, allEvents) {
+  function statsForSituation(events, teamName) {
+    const teamEvents = events.filter(e => e.team_event === teamName);
+    const shots = teamEvents.length;
+    const goals = teamEvents.filter(e => e.result === 'gol').length;
+    const rate  = shots > 0 ? (goals / shots * 100).toFixed(1) : '—';
+    return { shots, goals, rate };
+  }
+
+  const manUpEvents   = allEvents.filter(e => e.man_up   === true);
+  const manDownEvents = allEvents.filter(e => e.man_down === true);
+  const equalEvents   = allEvents.filter(e => !e.man_up && !e.man_down);
+
+  return {
+    manUp:   { A: statsForSituation(manUpEvents,   match.team_A), B: statsForSituation(manUpEvents,   match.team_B) },
+    equal:   { A: statsForSituation(equalEvents,   match.team_A), B: statsForSituation(equalEvents,   match.team_B) },
+    manDown: { A: statsForSituation(manDownEvents, match.team_A), B: statsForSituation(manDownEvents, match.team_B) },
+  };
+}
+
 function applyViewerFilters(events, viewer) {
   let filtered = events;
   if (viewer.filter_period !== 'all') filtered = filtered.filter(e => String(e.period) === viewer.filter_period);

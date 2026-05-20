@@ -901,6 +901,61 @@ table.stats-table td.num {
 [data-theme="dark"] .standings-table tbody tr:first-child td { background: #0d1117; }
 [data-theme="dark"] .standings-table .goals-scored { color: #3fb950; }
 [data-theme="dark"] .standings-table .goals-conceded { color: #f85149; }
+
+/* ── Sytuacje specjalne ── */
+.sit-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.sit-teams { font-size: 12px; color: #888; }
+.sit-teams-sep { margin: 0 4px; }
+.sit-teams .team-A-label { color: #1d4ed8; font-weight: 600; }
+.sit-teams .team-B-label { color: #b91c1c; font-weight: 600; }
+
+.sit-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+}
+.sit-col {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+.sit-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 4px;
+  margin-bottom: 4px;
+}
+.sit-badge-up { background: #dcfce7; color: #166534; }
+.sit-badge-eq { background: #f3f4f6; color: #4b5563; }
+.sit-badge-dn { background: #fee2e2; color: #991b1b; }
+
+.sit-subtitle {
+  font-size: 11px;
+  color: #888;
+  margin-bottom: 8px;
+}
+.sit-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+.sit-row:last-child { margin-bottom: 0; }
+.sit-val-a { color: #1d4ed8; font-weight: 600; }
+.sit-val-b { color: #b91c1c; font-weight: 600; }
+.sit-lbl   { color: #888; font-size: 11px; }
+
+@media (max-width: 500px) {
+  .sit-grid { grid-template-columns: 1fr; }
+}
 [data-theme="dark"] .standings-empty { color: #8b949e; }
 </style>
 </head>
@@ -1476,6 +1531,26 @@ function computePerPeriodStats(matchId, match) {
     const B_goals = periodEvents.filter(e => e.team_event === match.team_B && e.result === 'gol').length;
     return { period: p, A_shots, A_goals, B_shots, B_goals };
   });
+}
+
+function computeSituationStats(matchId, match, allEvents) {
+  function statsForSituation(events, teamName) {
+    const teamEvents = events.filter(e => e.team_event === teamName);
+    const shots = teamEvents.length;
+    const goals = teamEvents.filter(e => e.result === 'gol').length;
+    const rate  = shots > 0 ? (goals / shots * 100).toFixed(1) : '—';
+    return { shots, goals, rate };
+  }
+
+  const manUpEvents   = allEvents.filter(e => e.man_up   === true);
+  const manDownEvents = allEvents.filter(e => e.man_down === true);
+  const equalEvents   = allEvents.filter(e => !e.man_up && !e.man_down);
+
+  return {
+    manUp:   { A: statsForSituation(manUpEvents,   match.team_A), B: statsForSituation(manUpEvents,   match.team_B) },
+    equal:   { A: statsForSituation(equalEvents,   match.team_A), B: statsForSituation(equalEvents,   match.team_B) },
+    manDown: { A: statsForSituation(manDownEvents, match.team_A), B: statsForSituation(manDownEvents, match.team_B) },
+  };
 }
 
 function applyViewerFilters(events, viewer) {
@@ -2809,6 +2884,7 @@ function renderMatchViewer(root) {
   const statsB    = computeTeamStats(match.id, match.team_B, allEvents);
   const goalies   = computeGoalieStats(match, allEvents);
   const perPeriod = computePerPeriodStats(match.id, match);
+  const situation = computeSituationStats(match.id, match, allEvents);
 
   const periodSet = new Set();
   allEvents.forEach(e => { if (e.period !== undefined && e.period !== '') periodSet.add(String(e.period)); });
@@ -2836,6 +2912,7 @@ function renderMatchViewer(root) {
     <div class="viewer-screen">
       <div class="viewer-section">
         ${renderViewerStatsCard(statsA, statsB, match)}
+        ${renderViewerSituationCard(situation, match)}
         ${renderViewerGoalieCard(goalies, match)}
         ${renderViewerPerPeriodCard(perPeriod, match)}
         ${renderViewerShotChartCard(match, filtered, periodOptions)}
@@ -2901,6 +2978,46 @@ function renderViewerStatsCard(statsA, statsB, match) {
           ${_splitBar(statsA.onTargetRate, statsB.onTargetRate)}
         </tbody>
       </table>
+    </div>
+  `;
+}
+
+function renderViewerSituationCard(situation, match) {
+  function sitBlock(label, badgeClass, badgeText, dataA, dataB) {
+    const fmtRate = r => r === '—' ? '—' : r + '%';
+    return `
+      <div class="sit-col">
+        <div class="sit-badge ${badgeClass}">${badgeText}</div>
+        <div class="sit-subtitle">${label}</div>
+        <div class="sit-row">
+          <span class="sit-val-a">${dataA.shots}/${dataA.goals}</span>
+          <span class="sit-lbl">strzały/bramki</span>
+          <span class="sit-val-b">${dataB.shots}/${dataB.goals}</span>
+        </div>
+        <div class="sit-row">
+          <span class="sit-val-a">${fmtRate(dataA.rate)}</span>
+          <span class="sit-lbl">skuteczność</span>
+          <span class="sit-val-b">${fmtRate(dataB.rate)}</span>
+        </div>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="viewer-card">
+      <div class="sit-card-header">
+        <h3 style="margin:0;">Sytuacje specjalne</h3>
+        <div class="sit-teams">
+          <span class="team-A-label">${escapeHtml(match.team_A)}</span>
+          <span class="sit-teams-sep">·</span>
+          <span class="team-B-label">${escapeHtml(match.team_B)}</span>
+        </div>
+      </div>
+      <div class="sit-grid">
+        ${sitBlock('przewaga',     'sit-badge-up', 'man-up ↑',   situation.manUp.A,   situation.manUp.B)}
+        ${sitBlock('równa liczba', 'sit-badge-eq', '5v5 ·',      situation.equal.A,   situation.equal.B)}
+        ${sitBlock('osłabienie',   'sit-badge-dn', 'man-down ↓', situation.manDown.A, situation.manDown.B)}
+      </div>
     </div>
   `;
 }
