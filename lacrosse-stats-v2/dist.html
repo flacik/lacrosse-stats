@@ -1692,23 +1692,20 @@ async function loadStandingsData() {
   APP.standingsError   = null;
   render();
   try {
-    const [evRes, matchRes, tourRes] = await Promise.all([
+    const [events, matches, tournaments] = await Promise.all([
       gasListAllEvents(),
       gasListAllMatches(),
       gasListTournaments(),
     ]);
-    if (!evRes.ok)    throw new Error(evRes.error.message);
-    if (!matchRes.ok) throw new Error(matchRes.error.message);
-    if (!tourRes.ok)  throw new Error(tourRes.error.message);
 
     APP.standingsData = {
-      events:      evRes.data,
-      matches:     matchRes.data,
-      tournaments: tourRes.data,
+      events:      events      || [],
+      matches:     matches     || [],
+      tournaments: tournaments || [],
     };
 
-    if (!APP.standingsTournament && tourRes.data.length > 0) {
-      APP.standingsTournament = tourRes.data[0].name;
+    if (!APP.standingsTournament && tournaments && tournaments.length > 0) {
+      APP.standingsTournament = tournaments[0].name;
     }
   } catch (e) {
     if (e.code === 'DEV_MODE') {
