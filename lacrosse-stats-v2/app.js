@@ -45,4 +45,4 @@ function _syncThemeToggle() {
 }
 
 // Init — must be last after all modules loaded.
-render();
+go('home');
