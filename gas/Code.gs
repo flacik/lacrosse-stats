@@ -52,8 +52,8 @@ var EVENT_COLS = [
   'tournament', 'team_A', 'team_B', 'match_date',
   'period', 'team_event',
   'shot_x', 'shot_y', 'zone_name',
-  'result', 'man_up', 'man_down', 'assisted',
-  'created_at',
+  'result', 'man_up', 'man_down',
+  'created_at', 'assisted',
 ];
 
 var MATCH_COLS = [
