@@ -2,7 +2,7 @@
 
 A web application for recording shot statistics during lacrosse matches, with a real-time viewer mode for coaches.
 
-**Live demo:** https://script.google.com/macros/s/AKfycbz3_lNbzPPteOgOIUxSNuPpo_KgXtSI5ws8JWGD6s5Z2a-NXTePsxtghSg3kiiRfHrwdA/exec
+**Live demo:** https://script.google.com/macros/s/AKfycbw7lFeunyiHYkeHCZyp94LaviP0ymsjXYV3nBMzGUfyy_Z0xUK2BT4oRixlLvLLrJJdBA/exec
 
 ---
 
@@ -62,7 +62,7 @@ All data is stored in Google Sheets, so the club always has a permanent record o
 
 ## Architecture
 
-The frontend is split into 15 focused modules (each under 300 lines), loaded in dependency order:
+The frontend is split into 16 focused modules (each under 300 lines), loaded in dependency order:
 
 ```
 gas-client → helpers → data → algorithms → stats → state
@@ -97,7 +97,7 @@ Backend spreadsheet: https://docs.google.com/spreadsheets/d/1nrNDjbIFX6Ac-eMXmUe
 ## Project structure
 
 ```
-lacrosse-stats-v2/   ← frontend source (15 JS modules + CSS + index.html)
+lacrosse-stats-v2/   ← frontend source (16 JS modules + CSS + index.html)
   build.sh           ← bundles everything into dist.html
   dist.html          ← production build (deployed to GAS)
 gas/
@@ -124,7 +124,18 @@ cd lacrosse-stats-v2/
 
 ## Status
 
-**Current: v6.1.0 — deployed 2026-05-19**
+**Current: v6.2.0 — deployed 2026-05-20**
+
+**v6.2.0 (2026-05-20)** — standings: tournament leaderboard:
+
+- New **🏆 Tabela** button on the home screen opens a per-tournament standings table
+- Columns: Drużyna / Mecze / Gole+ / Gole− / Celne / Niecelne / % skuteczności / % celności / Man-up gole
+- **% skuteczności** = goals / total shots; **% celności** = (goals + on-target saves) / total shots
+- Tournament dropdown — switch between all tournaments without leaving the screen
+- Click any column header to sort ascending / descending (default: Gole+ descending)
+- First-place row highlighted in green; Gole+ in green, Gole− in red
+- `seedProdData()` helper in Code.gs — seeds PROD spreadsheet with 3 tournaments, 14 matches, ~480 events in one click from the GAS editor
+- `mecze-template.xlsx` — Excel template for CSV bulk import (columns: turniej, data, druzyna_a, druzyna_b, link)
 
 **v6.1.0 (2026-05-19)** — dark mode:
 

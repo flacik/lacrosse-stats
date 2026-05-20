@@ -37,6 +37,23 @@ const HANDLERS = {
     openMatchViewer(matchId);
   },
 
+  // Standings (tabela ligowa)
+  'open-standings':            () => go('standings'),
+  'go-home-from-standings':    () => goHome(),
+  'standings-retry':           () => loadStandingsData(),
+  'standings-set-tournament':  (val) => {
+    APP.standingsTournament = val;
+    render();
+  },
+  'standings-sort': (col) => {
+    if (APP.standingsSort.col === col) {
+      APP.standingsSort.dir = APP.standingsSort.dir === 'asc' ? 'desc' : 'asc';
+    } else {
+      APP.standingsSort = { col, dir: 'desc' };
+    }
+    render();
+  },
+
   // Ręczny retry eventu z błędem sync (krok 8)
   'retry-event': (clientEventId) => {
     const ev = DATA.events.find(e => e.client_event_id === clientEventId);
@@ -497,7 +514,7 @@ document.addEventListener('change', (e) => {
   const action = target.dataset.action;
   const handler = HANDLERS[action];
   if (!handler) return;
-  if (action === 'analytics-filter-change' || action === 'csv-import-file') {
+  if (action === 'analytics-filter-change' || action === 'csv-import-file' || action === 'standings-set-tournament') {
     handler(target.value, target);
   } else {
     handler(target.dataset.arg);

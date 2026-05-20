@@ -46,6 +46,13 @@ let APP = {
 
   // CSV bulk import (panel admin)
   csvImport: null,  // null | { rows: [], importing: bool }
+
+  // Standings (tabela ligowa)
+  standingsLoading:    false,
+  standingsError:      null,
+  standingsData:       null,   // { events: [], matches: [], tournaments: [] }
+  standingsTournament: '',     // nazwa wybranego turnieju; '' = pierwszy dostępny
+  standingsSort:       { col: 'goals', dir: 'desc' },
 };
 
 // ── Routing ────────────────────────────────────────────────────────────────────
@@ -70,8 +77,10 @@ function go(screen, opts) {
   APP.lastViewerRefresh = null;
   APP.adminLoading     = false;
   APP.adminError       = null;
-  APP.analyticsLoading = false;
-  APP.analyticsError   = null;
+  APP.analyticsLoading  = false;
+  APP.analyticsError    = null;
+  APP.standingsLoading  = false;
+  APP.standingsError    = null;
 
   if (screen === 'home') {
     loadHomeData();                              // async — renderuje sam gdy gotowe
@@ -85,6 +94,8 @@ function go(screen, opts) {
     loadAdminData();                             // pełna lista meczów + turnieje
   } else if (screen === 'analytics') {
     loadAnalyticsData();
+  } else if (screen === 'standings') {
+    loadStandingsData();
   }
   render();
 }
@@ -92,6 +103,7 @@ function go(screen, opts) {
 function goHome()                 { go('home'); }
 function goAdmin()                { go('admin'); }
 function goAnalytics()            { go('analytics'); }
+function goStandings()            { go('standings'); }
 function openMatchInput(matchId)  { go('match-input',  { matchId }); }
 function openMatchViewer(matchId) { go('match-viewer', { matchId }); }
 
@@ -182,6 +194,46 @@ async function loadAnalyticsData() {
   }
 
   APP.analyticsLoading = false;
+  render();
+}
+
+// ── Ładowanie danych — tabela ligowa ─────────────────────────────────────────
+
+async function loadStandingsData() {
+  APP.standingsLoading = true;
+  APP.standingsError   = null;
+  render();
+  try {
+    const [events, matches, tournaments] = await Promise.all([
+      gasListAllEvents(),
+      gasListAllMatches(),
+      gasListTournaments(),
+    ]);
+
+    APP.standingsData = {
+      events:      events      || [],
+      matches:     matches     || [],
+      tournaments: tournaments || [],
+    };
+
+    if (!APP.standingsTournament && tournaments && tournaments.length > 0) {
+      APP.standingsTournament = tournaments[0].name;
+    }
+  } catch (e) {
+    if (e.code === 'DEV_MODE') {
+      APP.standingsData = {
+        events:      SAMPLE_DATA.events,
+        matches:     JSON.parse(JSON.stringify(SAMPLE_DATA.scheduledMatches)),
+        tournaments: JSON.parse(JSON.stringify(SAMPLE_DATA.tournaments)),
+      };
+      if (!APP.standingsTournament && APP.standingsData.tournaments.length > 0) {
+        APP.standingsTournament = APP.standingsData.tournaments[0].name;
+      }
+    } else {
+      APP.standingsError = e.message || 'Błąd ładowania danych tabeli';
+    }
+  }
+  APP.standingsLoading = false;
   render();
 }
 
