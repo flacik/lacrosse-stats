@@ -64,3 +64,9 @@ HTML_TAIL
 
 echo "Built: $OUT"
 wc -l "$OUT"
+
+# Aktualizuj docs/index.html (GitHub Pages demo) jeśli budujemy domyślny dist.html
+if [ "$OUT" = "$DIR/dist.html" ]; then
+  cp "$OUT" "$DIR/../docs/index.html"
+  echo "Updated: docs/index.html"
+fi
