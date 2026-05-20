@@ -81,9 +81,24 @@ function buildFieldSvg(match) {
     const fillColor = teamSlotName === 'A' ? '#1d4ed8' : '#b91c1c';
     const isOwnHalf = e.zone_name === 'own-half';
     const isGoal = e.result === 'gol';
+    const dotR = isLatest ? 11 : 7;
+
+    // Man-up / man-down outer ring (rendered before dot so dot sits on top)
+    if (e.man_up || e.man_down) {
+      const ringAttrs = {
+        cx: sx, cy: sy,
+        r: dotR + 5,
+        fill: 'transparent',
+        stroke: e.man_up ? '#f59e0b' : '#7c3aed',
+        'stroke-width': 2,
+      };
+      if (e.man_down) ringAttrs['stroke-dasharray'] = '3,2';
+      markersG.appendChild(svgEl('circle', ringAttrs));
+    }
+
     const dot = svgEl('circle', {
       cx: sx, cy: sy,
-      r: isLatest ? 11 : 7,
+      r: dotR,
       fill: isGoal ? fillColor : 'transparent',
       stroke: isOwnHalf ? '#ca8a04' : (isGoal ? 'white' : fillColor),
       'stroke-width': isLatest ? (isOwnHalf ? 4 : 3) : (isOwnHalf ? 3 : 2),
@@ -314,7 +329,8 @@ function drawZoneLabels(g, team_A_side) {
 
 // ── Legenda mapy boiska (F-03) ────────────────────────────────────────────────
 
-function buildFieldLegend(match) {
+function buildFieldLegend(match, opts) {
+  opts = opts || {};
   const div = document.createElement('div');
   div.className = 'field-legend';
   div.innerHTML = `
@@ -348,6 +364,22 @@ function buildFieldLegend(match) {
       </svg>
       Niecelny (B)
     </span>
+    ${opts.includeManUp ? `
+    <span class="leg-item">
+      <svg width="20" height="20" viewBox="0 0 20 20">
+        <circle cx="10" cy="10" r="9" fill="none" stroke="#f59e0b" stroke-width="1.5"/>
+        <circle cx="10" cy="10" r="5" fill="#1d4ed8"/>
+      </svg>
+      Man-up
+    </span>
+    <span class="leg-item">
+      <svg width="20" height="20" viewBox="0 0 20 20">
+        <circle cx="10" cy="10" r="9" fill="none" stroke="#7c3aed" stroke-width="1.5" stroke-dasharray="3,2"/>
+        <circle cx="10" cy="10" r="5" fill="#1d4ed8"/>
+      </svg>
+      Man-down
+    </span>
+    ` : ''}
   `;
   return div;
 }

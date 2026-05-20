@@ -116,7 +116,9 @@ function renderMatchInput(root) {
   `;
 
   // Inject SVG via DOM (innerHTML strips event handlers)
-  document.getElementById('field-wrap').appendChild(buildFieldSvg(match));
+  const fieldWrap = document.getElementById('field-wrap');
+  fieldWrap.appendChild(buildFieldSvg(match));
+  fieldWrap.appendChild(buildFieldLegend(match, { includeManUp: true }));
 }
 
 function renderHistoryRow(e, match) {
