@@ -135,6 +135,7 @@ cd lacrosse-stats-v2/
 - Click any column header to sort ascending / descending (default: Gole+ descending)
 - First-place row highlighted in green; Gole+ in green, Gole− in red
 - `seedProdData()` helper in Code.gs — seeds PROD spreadsheet with 3 tournaments, 14 matches, ~480 events in one click from the GAS editor
+- `mecze-template.xlsx` — Excel template for CSV bulk import (columns: turniej, data, druzyna_a, druzyna_b, link)
 
 **v6.1.0 (2026-05-19)** — dark mode:
 
