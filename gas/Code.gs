@@ -948,3 +948,132 @@ function testConnection() {
 
   Logger.log('Test zakończony.');
 }
+
+// ── SEED PROD — jednorazowe zasilenie danych na PROD ─────────────────────────
+
+/**
+ * Zasilenie PROD spreadsheet danymi testowymi — identyczne z seedDummyData(),
+ * ale zawsze celuje w PROD_SPREADSHEET_ID, niezależnie od IS_DEV.
+ * Uruchom JEDEN RAZ z edytora GAS: Run → seedProdData.
+ */
+function seedProdData() {
+  try {
+    var ss = SpreadsheetApp.openById(CONFIG.PROD_SPREADSHEET_ID);
+    var tourSheet  = ss.getSheetByName(CONFIG.SHEET_TOURNAMENTS);
+    var matchSheet = ss.getSheetByName(CONFIG.SHEET_MATCHES);
+    var eventSheet = ss.getSheetByName(CONFIG.SHEET_EVENTS);
+
+    if (!tourSheet || !matchSheet || !eventSheet) {
+      Logger.log('Brak zakładek w PROD. Uruchom najpierw setupSheets() z IS_DEV=false.');
+      return;
+    }
+
+    var now = new Date().toISOString();
+
+    // ── Turnieje ────────────────────────────────────────────────────────────────
+    var tours = [
+      ['tseed_1', 'Liga PL Wiosna 2026',  now],
+      ['tseed_2', 'Puchar Polski 2026',   now],
+      ['tseed_3', 'Sparingi Wiosna 2026', now],
+    ];
+    tours.forEach(function(t) { tourSheet.appendRow(t); });
+
+    // ── Mecze ───────────────────────────────────────────────────────────────────
+    // MATCH_COLS: id, tournament, match_date, team_A, team_B, created_at, status, video_url
+    var matches = [
+      ['mseed_01','Liga PL Wiosna 2026',  '2026-04-05','Hawks',  'Vikings', now,'finished',''],
+      ['mseed_02','Liga PL Wiosna 2026',  '2026-04-05','Hussars','Eagles',  now,'finished',''],
+      ['mseed_03','Liga PL Wiosna 2026',  '2026-04-12','Wolves', 'Bears',   now,'finished',''],
+      ['mseed_04','Liga PL Wiosna 2026',  '2026-04-12','Hawks',  'Hussars', now,'finished',''],
+      ['mseed_05','Liga PL Wiosna 2026',  '2026-04-19','Vikings','Eagles',  now,'finished',''],
+      ['mseed_06','Liga PL Wiosna 2026',  '2026-04-19','Bears',  'Hawks',   now,'finished',''],
+      ['mseed_07','Liga PL Wiosna 2026',  '2026-04-26','Hussars','Wolves',  now,'finished',''],
+      ['mseed_08','Liga PL Wiosna 2026',  '2026-05-03','Eagles', 'Vikings', now,'finished',''],
+      ['mseed_09','Liga PL Wiosna 2026',  '2026-05-10','Hawks',  'Bears',   now,'finished',''],
+      ['mseed_10','Puchar Polski 2026',   '2026-04-26','Hawks',  'Eagles',  now,'finished',''],
+      ['mseed_11','Puchar Polski 2026',   '2026-05-10','Vikings','Hussars', now,'finished',''],
+      ['mseed_12','Puchar Polski 2026',   '2026-05-17','Bears',  'Wolves',  now,'finished',''],
+      ['mseed_13','Sparingi Wiosna 2026', '2026-04-15','Hawks',  'Bears',   now,'finished',''],
+      ['mseed_14','Sparingi Wiosna 2026', '2026-04-22','Vikings','Hussars', now,'finished',''],
+    ];
+    matches.forEach(function(m) { matchSheet.appendRow(m); });
+
+    // ── Eventy ───────────────────────────────────────────────────────────────────
+    function rnd(min, max) {
+      return Math.round((min + Math.random() * (max - min)) * 1000) / 1000;
+    }
+    var zoneCoords = {
+      'attack-center':   function() { return [rnd(0.65,0.95), rnd(0.35,0.65)]; },
+      'attack-left':     function() { return [rnd(0.50,0.85), rnd(0.05,0.34)]; },
+      'attack-right':    function() { return [rnd(0.50,0.85), rnd(0.66,0.95)]; },
+      'midfield-center': function() { return [rnd(0.25,0.49), rnd(0.35,0.65)]; },
+      'midfield-left':   function() { return [rnd(0.20,0.45), rnd(0.05,0.34)]; },
+      'midfield-right':  function() { return [rnd(0.20,0.45), rnd(0.66,0.95)]; },
+      'own-half':        function() { return [rnd(-0.80,-0.10), rnd(0.10,0.90)]; },
+    };
+    function randomZone() {
+      var r = Math.random();
+      if (r < 0.33) return 'attack-center';
+      if (r < 0.48) return 'attack-left';
+      if (r < 0.63) return 'attack-right';
+      if (r < 0.73) return 'midfield-center';
+      if (r < 0.81) return 'midfield-left';
+      if (r < 0.89) return 'midfield-right';
+      return 'own-half';
+    }
+    function randomResult(zone) {
+      var r = Math.random();
+      if (zone === 'attack-center')       { return r < 0.22 ? 'gol' : r < 0.55 ? 'celny' : 'niecelny'; }
+      if (zone.indexOf('attack') === 0)   { return r < 0.13 ? 'gol' : r < 0.43 ? 'celny' : 'niecelny'; }
+      if (zone.indexOf('midfield') === 0) { return r < 0.05 ? 'gol' : r < 0.28 ? 'celny' : 'niecelny'; }
+      return r < 0.02 ? 'gol' : r < 0.20 ? 'celny' : 'niecelny';
+    }
+
+    var eventRows = [];
+    var eid = 1000;
+    var periods = ['1','2','3','4'];
+
+    matches.forEach(function(m) {
+      var matchId = m[0], tournament = m[1], date = m[2], teamA = m[3], teamB = m[4];
+      periods.forEach(function(period) {
+        var shotsA = 3 + Math.floor(Math.random() * 5);
+        var shotsB = 3 + Math.floor(Math.random() * 5);
+        [[teamA, shotsA],[teamB, shotsB]].forEach(function(pair) {
+          var team = pair[0], count = pair[1];
+          for (var i = 0; i < count; i++) {
+            eid++;
+            var zone   = randomZone();
+            var coords = zoneCoords[zone]();
+            var result = randomResult(zone);
+            var manUp   = Math.random() < 0.08;
+            var manDown = !manUp && Math.random() < 0.08;
+            // EVENT_COLS: id, client_event_id, match_id, tournament, team_A, team_B,
+            //             match_date, period, team_event, shot_x, shot_y, zone_name,
+            //             result, man_up, man_down, created_at
+            eventRows.push([
+              eid, 'seed_'+eid, matchId,
+              tournament, teamA, teamB, date,
+              period, team,
+              coords[0], coords[1], zone,
+              result, manUp, manDown,
+              now
+            ]);
+          }
+        });
+      });
+    });
+
+    if (eventRows.length > 0) {
+      eventSheet.getRange(
+        eventSheet.getLastRow() + 1, 1, eventRows.length, EVENT_COLS.length
+      ).setValues(eventRows);
+    }
+
+    var summary = 'seedProdData OK — turnieje: ' + tours.length +
+                  ', mecze: ' + matches.length +
+                  ', eventy: ' + eventRows.length;
+    Logger.log(summary);
+  } catch (e) {
+    Logger.log('seedProdData error: ' + e.message);
+  }
+}
