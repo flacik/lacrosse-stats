@@ -334,9 +334,30 @@ const HANDLERS = {
 
   // Period transitions
   'next-period': () => {
+    const prevPeriod = APP.match.period;
+    const prevSide   = APP.match.team_A_side;
     const newP = nextPeriod(APP.match.period);
     APP.match.period = newP;
-    APP.banner = { type: 'swap-question', newPeriod: newP };
+    APP.match.team_A_side = prevSide === 'left' ? 'right' : 'left';
+    clearTimeout(APP._undoTimer);
+    APP.banner = { type: 'period-undo', prevPeriod, prevSide, newPeriod: newP };
+    APP._undoTimer = setTimeout(() => {
+      if (APP.banner && APP.banner.type === 'period-undo') { APP.banner = null; render(); }
+    }, 8000);
+    render();
+  },
+  'undo-period': () => {
+    clearTimeout(APP._undoTimer);
+    APP._undoTimer = null;
+    APP.match.period = APP.banner.prevPeriod;
+    APP.match.team_A_side = APP.banner.prevSide;
+    APP.banner = null;
+    render();
+  },
+  'dismiss-period-undo': () => {
+    clearTimeout(APP._undoTimer);
+    APP._undoTimer = null;
+    APP.banner = null;
     render();
   },
   'period-end-prompt': () => {
@@ -349,7 +370,12 @@ const HANDLERS = {
     APP.banner = { type: 'swap-question', newPeriod: newP };
     render();
   },
-  'cancel-banner': () => { APP.banner = null; render(); },
+  'cancel-banner': () => {
+    clearTimeout(APP._undoTimer);
+    APP._undoTimer = null;
+    APP.banner = null;
+    render();
+  },
 
   // Sides
   'swap-sides': () => {

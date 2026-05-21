@@ -60,6 +60,14 @@ function renderMatchInput(root) {
           <button class="cancel" data-action="cancel-banner">anuluj</button>
         </div>
       `;
+    } else if (APP.banner.type === 'period-undo') {
+      bannerHtml = `
+        <div class="match-banner period-undo">
+          <span>${escapeHtml(periodLabel(APP.banner.prevPeriod))} → ${escapeHtml(periodLabel(APP.banner.newPeriod))}, strony zamienione</span>
+          <button data-action="undo-period">↩ Cofnij</button>
+          <button class="cancel" data-action="dismiss-period-undo">OK</button>
+        </div>
+      `;
     }
   }
 
@@ -76,57 +84,67 @@ function renderMatchInput(root) {
     : events.map(e => renderHistoryRow(e, match)).join('');
 
   root.innerHTML = `
-    <div class="app-header">
-      <button class="btn" data-action="back-home">← Wróć</button>
-      <h1>${escapeHtml(match.team_A)} vs ${escapeHtml(match.team_B)}</h1>
+    <div class="app-header app-header-v2">
+      <button class="btn btn-back-v2" data-action="back-home">← Wróć</button>
+      <div class="header-score-v2">
+        <span class="team-A-color hs-team">${escapeHtml(match.team_A)}</span>
+        <span class="team-A-color hs-num">${score.A}</span>
+        <span class="hs-sep">:</span>
+        <span class="team-B-color hs-num">${score.B}</span>
+        <span class="team-B-color hs-team">${escapeHtml(match.team_B)}</span>
+        <span class="period-pill-v2">${periodLabel(APP.match.period)}</span>
+        <span class="tournament-pill-v2">${escapeHtml(match.tournament)}</span>
+        ${match.video_url ? `<a class="btn-video-pill-v2" href="${escapeHtml(match.video_url)}" target="_blank" rel="noopener">▶ Nagranie</a>` : ''}
+      </div>
+      <span class="sides-tag-v2">A: ${A_left ? 'lewej' : 'prawej'}</span>
       <button class="btn" data-action="toggle-dark-mode" id="theme-toggle" title="Przełącz tryb ciemny">🌙</button>
     </div>
-    <div class="match-info-bar">
-      <div class="score">
-        <span class="team-A-color">${escapeHtml(match.team_A)} ${score.A}</span>
-        <span class="sep">:</span>
-        <span class="team-B-color">${score.B} ${escapeHtml(match.team_B)}</span>
-      </div>
-      <div class="period">${periodLabel(APP.match.period)}</div>
-      <div class="tournament">${escapeHtml(match.tournament)}</div>
-      <div class="sides-indicator">A po stronie: <strong>${A_left ? 'lewej' : 'prawej'}</strong></div>
-      ${match.video_url ? `<a class="btn btn-video" href="${escapeHtml(match.video_url)}" target="_blank" rel="noopener">▶ Nagranie</a>` : ''}
-    </div>
-    <div class="match-screen">
-      <div class="match-section">
-        ${bannerHtml}
-        <div id="field-wrap"></div>
-        <div class="match-controls">
-          ${controlsHtml}
-          <button class="btn" data-action="swap-sides">↔ Zamień strony</button>
-          <button class="btn btn-warning ${APP.match.own_half_mode === 'active' ? 'btn-active' : ''}" data-action="own-half-toggle">⚠ Strzał z połowy</button>
-          <span class="sep">|</span>
-          <button class="btn ${APP.match.show_zones ? 'btn-active' : ''}" data-action="toggle-zones">👁 Strefy</button>
-          <div class="right">
-            <button class="btn btn-danger" data-action="end-match">🏁 Koniec meczu</button>
+    <div class="match-screen match-screen-v2">
+      <div class="match-layout-v2">
+
+        <div class="match-field-col-v2">
+          ${bannerHtml}
+          <div id="field-wrap"></div>
+          <div class="match-controls match-controls-v2">
+            ${controlsHtml}
+            <button class="btn" data-action="swap-sides">↔ Zamień strony</button>
+            <button class="btn btn-warning ${APP.match.own_half_mode === 'active' ? 'btn-active' : ''}" data-action="own-half-toggle">⚠ Strzał z połowy</button>
+            <span class="sep">|</span>
+            <button class="btn ${APP.match.show_zones ? 'btn-active' : ''}" data-action="toggle-zones">👁 Strefy</button>
+            <div class="right">
+              <button class="btn btn-danger" data-action="end-match">🏁 Koniec meczu</button>
+            </div>
+          </div>
+          <div class="goalie-bar goalie-bar-v2">
+            <div class="goalie-field-v2">
+              <span class="goalie-label-v2 team-A-color">BRK — ${escapeHtml(match.team_A)}</span>
+              <span class="goalie-value-v2">
+                ${goalieA !== null ? '#' + goalieA : '—'}
+                <button data-action="open-goalie-modal" data-arg="A" class="goalie-edit-btn">✎</button>
+              </span>
+            </div>
+            <div class="goalie-field-v2">
+              <span class="goalie-label-v2 team-B-color">BRK — ${escapeHtml(match.team_B)}</span>
+              <span class="goalie-value-v2">
+                ${goalieB !== null ? '#' + goalieB : '—'}
+                <button data-action="open-goalie-modal" data-arg="B" class="goalie-edit-btn">✎</button>
+              </span>
+            </div>
+            <button data-action="open-goalie-retroactive" class="btn-link goalie-retroactive-v2">Edytuj po meczu</button>
           </div>
         </div>
-        <div class="goalie-bar">
-          <span class="goalie-slot team-A">
-            BRK ${escapeHtml(match.team_A)}: ${goalieA !== null ? '#' + goalieA : '—'}
-            <button data-action="open-goalie-modal" data-arg="A" class="goalie-edit-btn">✎</button>
-          </span>
-          <span class="goalie-slot team-B">
-            BRK ${escapeHtml(match.team_B)}: ${goalieB !== null ? '#' + goalieB : '—'}
-            <button data-action="open-goalie-modal" data-arg="B" class="goalie-edit-btn">✎</button>
-          </span>
-        </div>
-        <div class="goalie-retroactive-link">
-          <button data-action="open-goalie-retroactive" class="btn-link">Edytuj bramkarzy po meczu</button>
-        </div>
-        <div class="history-section">
-          <div class="history-header ${APP.match.history_expanded ? '' : 'collapsed no-border'}" data-action="toggle-history">
-            <span class="toggle-icon">▾</span>
-            <span>Historia</span>
-            <span class="count">(${events.length})</span>
+
+        <div class="match-history-col-v2">
+          <div class="history-section">
+            <div class="history-header ${APP.match.history_expanded ? '' : 'collapsed no-border'}" data-action="toggle-history">
+              <span class="toggle-icon">▾</span>
+              <span>Historia</span>
+              <span class="count">(${events.length})</span>
+            </div>
+            ${APP.match.history_expanded ? `<div class="history-list">${historyRowsHtml}</div>` : ''}
           </div>
-          ${APP.match.history_expanded ? `<div class="history-list">${historyRowsHtml}</div>` : ''}
         </div>
+
       </div>
     </div>
   `;

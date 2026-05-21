@@ -993,6 +993,385 @@ table.stats-table td.num {
 [data-theme="dark"] .goalie-bar { color: #9ca3af; border-color: #374151; }
 [data-theme="dark"] .goalie-edit-btn:hover { color: #d1d5db; }
 [data-theme="dark"] .btn-link { color: #9ca3af; }
+
+/* ═══════════════════════════════════════════════════════════════
+   UI V2 — FIELD-FIRST RESPONSIVE LAYOUT
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Nagłówek v2 ──────────────────────────────────────────────── */
+.app-header-v2 {
+  height: 38px;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: white;
+  border-bottom: 1px solid #e5e5e0;
+}
+
+.btn-back-v2 {
+  font-family: inherit;
+  font-size: 12px;
+  padding: 4px 9px;
+  border: 1px solid #d4d4d0;
+  background: white;
+  color: #1a1a1a;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.btn-back-v2:hover { background: #f0f0eb; }
+
+.header-score-v2 {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  overflow: hidden;
+}
+
+.hs-team {
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
+}
+
+.hs-num {
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.hs-sep {
+  font-size: 14px;
+  color: #999;
+  line-height: 1;
+}
+
+.period-pill-v2 {
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: 20px;
+  background: #fff7ed;
+  color: #9a3412;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.tournament-pill-v2 {
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: 20px;
+  background: #f0f0eb;
+  color: #666;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.btn-video-pill-v2 {
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: 20px;
+  background: #fefce8;
+  color: #854d0e;
+  border: 1px solid #fde68a;
+  text-decoration: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.sides-tag-v2 {
+  font-size: 11px;
+  color: #9ca3af;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ── Layout główny v2 ─────────────────────────────────────────── */
+.match-screen-v2 {
+  padding: 0;
+}
+
+.match-layout-v2 {
+  display: flex;
+  flex-direction: column;
+}
+
+.match-field-col-v2 {
+  flex: 1;
+  min-width: 0;
+}
+
+.match-history-col-v2 {
+  border-top: 1px solid #e5e5e0;
+}
+
+/* Boisko: pełna szerokość, bez marginesów i zaokrąglenia na małych ekranach */
+.match-field-col-v2 svg.field {
+  border-radius: 0;
+  background: transparent;
+  max-width: 100%;
+}
+
+/* Legenda pod boiskiem — kompaktowa, pozioma, bez górnego odstępu */
+.match-field-col-v2 .field-legend {
+  padding: 5px 10px;
+  margin-top: 0;
+  border-top: 1px solid #e5e5e0;
+  gap: 10px;
+  font-size: 11px;
+}
+
+/* ── Kontrolki v2 ─────────────────────────────────────────────── */
+.match-controls-v2 {
+  margin-top: 0;
+  border-radius: 0;
+  border-left: none;
+  border-right: none;
+  padding: 6px 10px;
+  gap: 6px;
+}
+
+/* ── Bramkarze v2 ─────────────────────────────────────────────── */
+.goalie-bar-v2 {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 10px;
+  background: #fafaf7;
+  border-top: 1px solid #e5e5e0;
+  border-bottom: 1px solid #e5e5e0;
+  flex-wrap: wrap;
+}
+
+.goalie-field-v2 {
+  flex: 1;
+  min-width: 140px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: white;
+  border: 1px solid #e5e5e0;
+  border-radius: 6px;
+  padding: 5px 9px;
+}
+
+.goalie-label-v2 {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.goalie-value-v2 {
+  font-size: 13px;
+  color: #374151;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.goalie-retroactive-v2 {
+  font-size: 11px;
+  color: #9ca3af;
+  margin-left: auto;
+  align-self: flex-end;
+}
+
+/* ── Historia v2 (panel boczny na tablet+) ────────────────────── */
+.match-history-col-v2 .history-section {
+  border: none;
+  border-radius: 0;
+  margin-top: 0;
+  height: 100%;
+}
+
+/* ── Tablet i większy: layout dwukolumnowy ───────────────────── */
+@media (min-width: 768px) {
+  .match-layout-v2 {
+    flex-direction: row;
+    align-items: stretch;
+    height: calc(100vh - 38px);
+    overflow: hidden;
+  }
+
+  .match-field-col-v2 {
+    flex: 1;
+    border-right: 1px solid #e5e5e0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* field-wrap dostaje całą wolną przestrzeń; SVG i legenda mieszczą się w środku */
+  .match-field-col-v2 #field-wrap {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .match-field-col-v2 #field-wrap svg.field {
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .match-history-col-v2 {
+    width: 260px;
+    flex-shrink: 0;
+    border-top: none;
+    overflow-y: auto;
+  }
+
+  .match-history-col-v2 .history-list {
+    max-height: none;
+  }
+
+  /* Na tablecie: panel historii nie zwijamy */
+  .match-history-col-v2 .history-header {
+    cursor: default;
+    pointer-events: none;
+  }
+}
+
+/* ── Laptop (≥1024px): szerszy panel historii ─────────────────── */
+@media (min-width: 1024px) {
+  .match-history-col-v2 {
+    width: 300px;
+  }
+}
+
+/* ── Telefon poziomo: kompaktowy nagłówek, boisko max-height ──── */
+@media (max-height: 500px) and (orientation: landscape) {
+  .app-header-v2 {
+    height: 30px;
+  }
+
+  .hs-team {
+    display: none;
+  }
+
+  .tournament-pill-v2 {
+    display: none;
+  }
+
+  .match-controls-v2 {
+    padding: 4px 8px;
+    gap: 4px;
+  }
+
+  .match-controls-v2 .btn {
+    font-size: 11px;
+    padding: 5px 8px;
+  }
+}
+
+/* ── Dark mode dla v2 ─────────────────────────────────────────── */
+[data-theme="dark"] .app-header-v2 {
+  background: #161b22;
+  border-bottom-color: #21262d;
+}
+
+[data-theme="dark"] .btn-back-v2 {
+  background: #161b22;
+  color: #e6edf3;
+  border-color: #30363d;
+}
+[data-theme="dark"] .btn-back-v2:hover { background: #1c2128; }
+
+[data-theme="dark"] .hs-sep { color: #484f58; }
+
+[data-theme="dark"] .period-pill-v2 {
+  background: #3d2000;
+  color: #e3b341;
+}
+
+[data-theme="dark"] .tournament-pill-v2 {
+  background: #1c2128;
+  color: #8b949e;
+}
+
+[data-theme="dark"] .btn-video-pill-v2 {
+  background: #2d2500;
+  color: #d29922;
+  border-color: #3d3000;
+}
+
+[data-theme="dark"] .sides-tag-v2 { color: #6e7681; }
+
+[data-theme="dark"] .match-history-col-v2 {
+  border-top-color: #21262d;
+  border-left-color: #21262d;
+}
+
+[data-theme="dark"] .match-field-col-v2 .field-legend {
+  border-top-color: #21262d;
+  color: #8b949e;
+}
+
+[data-theme="dark"] .goalie-bar-v2 {
+  background: #1c2128;
+  border-color: #21262d;
+}
+
+[data-theme="dark"] .goalie-field-v2 {
+  background: #161b22;
+  border-color: #30363d;
+}
+
+[data-theme="dark"] .goalie-value-v2 { color: #e6edf3; }
+
+[data-theme="dark"] .goalie-retroactive-v2 { color: #6e7681; }
+
+[data-theme="dark"] .match-field-col-v2 {
+  border-right-color: #21262d;
+}
+
+/* ── Banner: cofnięcie zmiany okresu ──────────────────────────── */
+.match-banner.period-undo {
+  position: relative;
+  overflow: hidden;
+  background: #f0fdf4;
+  border-color: #86efac;
+  color: #166534;
+}
+
+.match-banner.period-undo::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  width: 100%;
+  background: #16a34a;
+  animation: period-undo-countdown 8s linear forwards;
+}
+
+@keyframes period-undo-countdown {
+  from { width: 100%; }
+  to   { width: 0%; }
+}
+
+[data-theme="dark"] .match-banner.period-undo {
+  background: #052e16;
+  border-color: #166534;
+  color: #86efac;
+}
+[data-theme="dark"] .match-banner.period-undo::after {
+  background: #4ade80;
+}
 </style>
 </head>
 <body>
@@ -2816,6 +3195,14 @@ function renderMatchInput(root) {
           <button class="cancel" data-action="cancel-banner">anuluj</button>
         </div>
       `;
+    } else if (APP.banner.type === 'period-undo') {
+      bannerHtml = `
+        <div class="match-banner period-undo">
+          <span>${escapeHtml(periodLabel(APP.banner.prevPeriod))} → ${escapeHtml(periodLabel(APP.banner.newPeriod))}, strony zamienione</span>
+          <button data-action="undo-period">↩ Cofnij</button>
+          <button class="cancel" data-action="dismiss-period-undo">OK</button>
+        </div>
+      `;
     }
   }
 
@@ -2832,57 +3219,67 @@ function renderMatchInput(root) {
     : events.map(e => renderHistoryRow(e, match)).join('');
 
   root.innerHTML = `
-    <div class="app-header">
-      <button class="btn" data-action="back-home">← Wróć</button>
-      <h1>${escapeHtml(match.team_A)} vs ${escapeHtml(match.team_B)}</h1>
+    <div class="app-header app-header-v2">
+      <button class="btn btn-back-v2" data-action="back-home">← Wróć</button>
+      <div class="header-score-v2">
+        <span class="team-A-color hs-team">${escapeHtml(match.team_A)}</span>
+        <span class="team-A-color hs-num">${score.A}</span>
+        <span class="hs-sep">:</span>
+        <span class="team-B-color hs-num">${score.B}</span>
+        <span class="team-B-color hs-team">${escapeHtml(match.team_B)}</span>
+        <span class="period-pill-v2">${periodLabel(APP.match.period)}</span>
+        <span class="tournament-pill-v2">${escapeHtml(match.tournament)}</span>
+        ${match.video_url ? `<a class="btn-video-pill-v2" href="${escapeHtml(match.video_url)}" target="_blank" rel="noopener">▶ Nagranie</a>` : ''}
+      </div>
+      <span class="sides-tag-v2">A: ${A_left ? 'lewej' : 'prawej'}</span>
       <button class="btn" data-action="toggle-dark-mode" id="theme-toggle" title="Przełącz tryb ciemny">🌙</button>
     </div>
-    <div class="match-info-bar">
-      <div class="score">
-        <span class="team-A-color">${escapeHtml(match.team_A)} ${score.A}</span>
-        <span class="sep">:</span>
-        <span class="team-B-color">${score.B} ${escapeHtml(match.team_B)}</span>
-      </div>
-      <div class="period">${periodLabel(APP.match.period)}</div>
-      <div class="tournament">${escapeHtml(match.tournament)}</div>
-      <div class="sides-indicator">A po stronie: <strong>${A_left ? 'lewej' : 'prawej'}</strong></div>
-      ${match.video_url ? `<a class="btn btn-video" href="${escapeHtml(match.video_url)}" target="_blank" rel="noopener">▶ Nagranie</a>` : ''}
-    </div>
-    <div class="match-screen">
-      <div class="match-section">
-        ${bannerHtml}
-        <div id="field-wrap"></div>
-        <div class="match-controls">
-          ${controlsHtml}
-          <button class="btn" data-action="swap-sides">↔ Zamień strony</button>
-          <button class="btn btn-warning ${APP.match.own_half_mode === 'active' ? 'btn-active' : ''}" data-action="own-half-toggle">⚠ Strzał z połowy</button>
-          <span class="sep">|</span>
-          <button class="btn ${APP.match.show_zones ? 'btn-active' : ''}" data-action="toggle-zones">👁 Strefy</button>
-          <div class="right">
-            <button class="btn btn-danger" data-action="end-match">🏁 Koniec meczu</button>
+    <div class="match-screen match-screen-v2">
+      <div class="match-layout-v2">
+
+        <div class="match-field-col-v2">
+          ${bannerHtml}
+          <div id="field-wrap"></div>
+          <div class="match-controls match-controls-v2">
+            ${controlsHtml}
+            <button class="btn" data-action="swap-sides">↔ Zamień strony</button>
+            <button class="btn btn-warning ${APP.match.own_half_mode === 'active' ? 'btn-active' : ''}" data-action="own-half-toggle">⚠ Strzał z połowy</button>
+            <span class="sep">|</span>
+            <button class="btn ${APP.match.show_zones ? 'btn-active' : ''}" data-action="toggle-zones">👁 Strefy</button>
+            <div class="right">
+              <button class="btn btn-danger" data-action="end-match">🏁 Koniec meczu</button>
+            </div>
+          </div>
+          <div class="goalie-bar goalie-bar-v2">
+            <div class="goalie-field-v2">
+              <span class="goalie-label-v2 team-A-color">BRK — ${escapeHtml(match.team_A)}</span>
+              <span class="goalie-value-v2">
+                ${goalieA !== null ? '#' + goalieA : '—'}
+                <button data-action="open-goalie-modal" data-arg="A" class="goalie-edit-btn">✎</button>
+              </span>
+            </div>
+            <div class="goalie-field-v2">
+              <span class="goalie-label-v2 team-B-color">BRK — ${escapeHtml(match.team_B)}</span>
+              <span class="goalie-value-v2">
+                ${goalieB !== null ? '#' + goalieB : '—'}
+                <button data-action="open-goalie-modal" data-arg="B" class="goalie-edit-btn">✎</button>
+              </span>
+            </div>
+            <button data-action="open-goalie-retroactive" class="btn-link goalie-retroactive-v2">Edytuj po meczu</button>
           </div>
         </div>
-        <div class="goalie-bar">
-          <span class="goalie-slot team-A">
-            BRK ${escapeHtml(match.team_A)}: ${goalieA !== null ? '#' + goalieA : '—'}
-            <button data-action="open-goalie-modal" data-arg="A" class="goalie-edit-btn">✎</button>
-          </span>
-          <span class="goalie-slot team-B">
-            BRK ${escapeHtml(match.team_B)}: ${goalieB !== null ? '#' + goalieB : '—'}
-            <button data-action="open-goalie-modal" data-arg="B" class="goalie-edit-btn">✎</button>
-          </span>
-        </div>
-        <div class="goalie-retroactive-link">
-          <button data-action="open-goalie-retroactive" class="btn-link">Edytuj bramkarzy po meczu</button>
-        </div>
-        <div class="history-section">
-          <div class="history-header ${APP.match.history_expanded ? '' : 'collapsed no-border'}" data-action="toggle-history">
-            <span class="toggle-icon">▾</span>
-            <span>Historia</span>
-            <span class="count">(${events.length})</span>
+
+        <div class="match-history-col-v2">
+          <div class="history-section">
+            <div class="history-header ${APP.match.history_expanded ? '' : 'collapsed no-border'}" data-action="toggle-history">
+              <span class="toggle-icon">▾</span>
+              <span>Historia</span>
+              <span class="count">(${events.length})</span>
+            </div>
+            ${APP.match.history_expanded ? `<div class="history-list">${historyRowsHtml}</div>` : ''}
           </div>
-          ${APP.match.history_expanded ? `<div class="history-list">${historyRowsHtml}</div>` : ''}
         </div>
+
       </div>
     </div>
   `;
@@ -4959,9 +5356,30 @@ const HANDLERS = {
 
   // Period transitions
   'next-period': () => {
+    const prevPeriod = APP.match.period;
+    const prevSide   = APP.match.team_A_side;
     const newP = nextPeriod(APP.match.period);
     APP.match.period = newP;
-    APP.banner = { type: 'swap-question', newPeriod: newP };
+    APP.match.team_A_side = prevSide === 'left' ? 'right' : 'left';
+    clearTimeout(APP._undoTimer);
+    APP.banner = { type: 'period-undo', prevPeriod, prevSide, newPeriod: newP };
+    APP._undoTimer = setTimeout(() => {
+      if (APP.banner && APP.banner.type === 'period-undo') { APP.banner = null; render(); }
+    }, 8000);
+    render();
+  },
+  'undo-period': () => {
+    clearTimeout(APP._undoTimer);
+    APP._undoTimer = null;
+    APP.match.period = APP.banner.prevPeriod;
+    APP.match.team_A_side = APP.banner.prevSide;
+    APP.banner = null;
+    render();
+  },
+  'dismiss-period-undo': () => {
+    clearTimeout(APP._undoTimer);
+    APP._undoTimer = null;
+    APP.banner = null;
     render();
   },
   'period-end-prompt': () => {
@@ -4974,7 +5392,12 @@ const HANDLERS = {
     APP.banner = { type: 'swap-question', newPeriod: newP };
     render();
   },
-  'cancel-banner': () => { APP.banner = null; render(); },
+  'cancel-banner': () => {
+    clearTimeout(APP._undoTimer);
+    APP._undoTimer = null;
+    APP.banner = null;
+    render();
+  },
 
   // Sides
   'swap-sides': () => {
