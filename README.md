@@ -128,7 +128,14 @@ cd lacrosse-stats-v2/
 
 ## Status
 
-**Current: v7.0.0 — deployed 2026-05-22**
+**Current: v7.0.1 — deployed 2026-05-22**
+
+**v7.0.1 (2026-05-22)** — sortable goalie tables:
+
+- All columns in the **Per bramkarz** table are now sortable by clicking the header: Bramkarz (number), Mecze, Strzały na br., Obrony, Bramki str., Save%
+- Quarter columns in the **Save% per kwarta** table are also sortable — click Q1/Q2/Q3/Q4 to rank goalies by that quarter's save%
+- Both tables share the same sort key so goalie order is consistent between them
+- Clicking the active column header toggles ascending ↑ / descending ↓; default is Save% descending
 
 **v7.0.0 (2026-05-22)** — goalie analytics, UI polish, assist badge:
 
