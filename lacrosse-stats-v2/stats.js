@@ -50,7 +50,12 @@ function teamSlot(matchId, teamName) {
 function eventsForMatch(matchId) {
   return DATA.events
     .filter(e => String(e.match_id) === String(matchId) && e.event_type !== 'goalie_set')
-    .sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
+    .sort((a, b) => {
+      const aId = Number(a.id) || 0;
+      const bId = Number(b.id) || 0;
+      if (aId !== bId) return bId - aId;
+      return (Number(b.created_at) || 0) - (Number(a.created_at) || 0);
+    });
 }
 
 function getCurrentGoalieNumber(teamName, events) {

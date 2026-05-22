@@ -104,7 +104,21 @@ function buildFieldSvg(match) {
       'stroke-width': isLatest ? (isOwnHalf ? 4 : 3) : (isOwnHalf ? 3 : 2),
       class: 'marker' + (isLatest ? ' latest' : '')
     });
-    markersG.appendChild(dot);
+
+    if (e.assisted) {
+      const g = svgEl('g');
+      g.appendChild(dot);
+      const bx = sx + dotR - 2;
+      const by = sy - dotR + 2;
+      g.appendChild(svgEl('circle', { cx: bx, cy: by, r: 6, fill: '#f59e0b', stroke: 'white', 'stroke-width': 1 }));
+      const t = svgEl('text', { x: bx, y: by + 0.5, 'text-anchor': 'middle', 'dominant-baseline': 'middle',
+        'font-size': 7, 'font-weight': 'bold', fill: 'white' });
+      t.textContent = 'A';
+      g.appendChild(t);
+      markersG.appendChild(g);
+    } else {
+      markersG.appendChild(dot);
+    }
   });
   fieldG.appendChild(markersG);
 
