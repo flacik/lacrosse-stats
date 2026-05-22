@@ -42,6 +42,7 @@ All data is stored in Google Sheets, so the club always has a permanent record o
 - Donut chart of shot results; bar chart of accuracy per period
 - Man-up / man-down / even-strength situation cards (hidden when no relevant events)
 - Shot chart with three modes: fired shots, conceded shots, zone efficiency heatmap
+- **Goalie ranking** — cross-match save% per goalkeeper, with per-quarter breakdown; visible for all teams (no filter) or scoped to a selected team
 
 **Admin panel**
 - Create and manage tournaments
@@ -127,7 +128,16 @@ cd lacrosse-stats-v2/
 
 ## Status
 
-**Current: v6.3.0 — deployed 2026-05-20**
+**Current: v7.0.0 — deployed 2026-05-22**
+
+**v7.0.0 (2026-05-22)** — goalie analytics, UI polish, assist badge:
+
+- **Goalie ranking in analytics** — new section below stats grid showing cross-match save% per goalkeeper; grouped by goalie number per team; includes saves, goals against, shots on goal, match count, and a colour-coded save% bar; per-quarter breakdown table when multiple quarters exist; visible without team filter (all goalies) or scoped to a selected team
+- **Assist badge** — yellow "A" badge on shot markers in the field map (input mode and viewer mode) and in the shot history list; legend updated
+- **Scrollable shot history** — history panel scrolls vertically; newest events at the top (sorted by row ID descending); no horizontal scroll required
+- **Zone column removed** from history rows — edit and delete buttons now always visible without scrolling
+- **Dark mode field colors** — field SVG in dark mode uses dark green tones (`#1e2a1e` background, `#4a7a4a` lines)
+- **In-app confirm modals** — delete confirmations no longer use the browser's native `confirm()` dialog; replaced with a styled modal matching the light/dark theme
 
 **v6.3.0 (2026-05-20)** — assist flag + past matches on home screen:
 
