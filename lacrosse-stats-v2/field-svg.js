@@ -31,7 +31,7 @@ function buildFieldSvg(match) {
   svg.appendChild(sideLabels);
 
   const fieldG = svgEl('g', { transform: 'translate(0, 50)' });
-  fieldG.appendChild(svgEl('rect', { x: 0, y: 0, width: 1100, height: 600, fill: '#9bbf85' }));
+  fieldG.appendChild(svgEl('rect', { x: 0, y: 0, width: 1100, height: 600, fill: '#9bbf85', class: 'field-bg' }));
 
   // Zone overlay (toggleable)
   if (APP.match.show_zones) {
@@ -52,7 +52,7 @@ function buildFieldSvg(match) {
   }
 
   // Field markings
-  const markings = svgEl('g');
+  const markings = svgEl('g', { class: 'field-markings' });
   markings.innerHTML = `
     <line x1="550" y1="0" x2="550" y2="600" stroke="white" stroke-width="2"/>
     <line x1="540" y1="290" x2="560" y2="310" stroke="white" stroke-width="2"/>
@@ -216,7 +216,7 @@ function drawHalfFieldChart(svg, match, filtered, viewer) {
 
   const fieldG = svgEl('g', { transform: 'translate(0, 50)' });
   // Half-field 540 wide × 600 tall (one offensive half, goal at top).
-  fieldG.appendChild(svgEl('rect', { x: 0, y: 0, width: 540, height: 600, fill: '#9bbf85' }));
+  fieldG.appendChild(svgEl('rect', { x: 0, y: 0, width: 540, height: 600, fill: '#9bbf85', class: 'field-bg' }));
   // Center line at the bottom (where attack starts).
   fieldG.appendChild(svgEl('line', { x1: 0, y1: 600, x2: 540, y2: 600, stroke: 'white', 'stroke-width': 3 }));
   // Restraining line (attacker_progress 0.4368 → cy = (1 − 0.4368) × 600 ≈ 337.92).
@@ -247,7 +247,7 @@ function drawHalfFieldChart(svg, match, filtered, viewer) {
 }
 
 function drawFieldMarkings(g, w, h) {
-  g.appendChild(svgEl('rect',   { x: 0, y: 0, width: w, height: h, fill: '#9bbf85' }));
+  g.appendChild(svgEl('rect',   { x: 0, y: 0, width: w, height: h, fill: '#9bbf85', class: 'field-bg' }));
   g.appendChild(svgEl('line',   { x1: w / 2, y1: 0, x2: w / 2, y2: h, stroke: 'white', 'stroke-width': 2 }));
   g.appendChild(svgEl('line',   { x1: w / 2 - 10, y1: h / 2 - 10, x2: w / 2 + 10, y2: h / 2 + 10, stroke: 'white', 'stroke-width': 2 }));
   g.appendChild(svgEl('line',   { x1: w / 2 - 10, y1: h / 2 + 10, x2: w / 2 + 10, y2: h / 2 - 10, stroke: 'white', 'stroke-width': 2 }));

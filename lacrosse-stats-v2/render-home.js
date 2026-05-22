@@ -84,6 +84,20 @@ function renderHome(root) {
     `;
   }
 
+  const infoBannerHtml = (APP.banner && APP.banner.type === 'info')
+    ? `<div class="home-info-banner">${escapeHtml(APP.banner.msg)}</div>`
+    : '';
+
+  const offlineBannerHtml = APP.offlineBanner
+    ? `<div class="offline-recovery-banner">
+        ⚠ ${APP.offlineBanner} event${APP.offlineBanner === 1 ? '' : 'ów'} czeka na synchronizację (brak internetu przy ostatnim użyciu).
+        <div class="offline-recovery-actions">
+          <button class="btn btn-sm" data-action="export-offline-backup" title="Pobierz kopię zapasową jako plik JSON">Pobierz kopię</button>
+          <button class="btn btn-sm" data-action="import-offline-backup" title="Importuj kopię zapasową z pliku JSON">Importuj z pliku</button>
+        </div>
+      </div>`
+    : '';
+
   let html = `
     <div class="app-header">
       <h1>Lacrosse Stats</h1>
@@ -93,6 +107,8 @@ function renderHome(root) {
       <button class="btn" data-action="open-standings">🏆 Tabela</button>
       <button class="btn" data-action="toggle-dark-mode" id="theme-toggle" title="Przełącz tryb ciemny">🌙</button>
     </div>
+    ${offlineBannerHtml}
+    ${infoBannerHtml}
     <div class="home-content">
       <h2>Mecze dzisiaj</h2>
   `;

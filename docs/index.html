@@ -85,6 +85,19 @@ body {
   font-size: 12px; color: #666;
 }
 
+.offline-recovery-banner {
+  max-width: 720px; margin: 0 auto 0; padding: 10px 16px;
+  background: #fffbeb; border: 1px solid #fde68a; border-bottom: none;
+  border-radius: 10px 10px 0 0; font-size: 13px; color: #92400e;
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+}
+.offline-recovery-actions { display: flex; gap: 6px; margin-left: auto; }
+.home-info-banner {
+  max-width: 720px; margin: 0 auto 8px; padding: 8px 16px;
+  background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px;
+  font-size: 13px; color: #166534;
+}
+.btn-sm { padding: 3px 10px; font-size: 12px; }
 .home-content { max-width: 720px; margin: 0 auto; padding: 24px 20px; }
 .home-content h2 {
   font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em;
@@ -169,6 +182,7 @@ svg.field.field-half {
 }
 .match-banner.swap-question { background: #eff6ff; border-color: #bfdbfe; color: #1e40af; }
 .match-banner.period-end { background: #f5f3ff; border-color: #ddd6fe; color: #5b21b6; }
+.match-banner.delete-undo { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
 .match-banner button {
   font-family: inherit; font-size: 12px; padding: 4px 10px;
   border: 1px solid currentColor; background: white; color: inherit;
@@ -648,6 +662,8 @@ table.stats-table td.num {
 [data-theme="dark"] .match-info-bar .sides-indicator { color: #8b949e; }
 
 /* Home */
+[data-theme="dark"] .offline-recovery-banner { background: #2d2200; border-color: #4d3800; color: #d29922; }
+[data-theme="dark"] .home-info-banner { background: #0d2b1a; border-color: #1e5733; color: #3fb950; }
 [data-theme="dark"] .home-content h2 { color: #8b949e; }
 [data-theme="dark"] .match-card { background: #161b22; border-color: #30363d; }
 [data-theme="dark"] .match-tournament { color: #8b949e; }
@@ -666,6 +682,7 @@ table.stats-table td.num {
 
 /* Banners */
 [data-theme="dark"] .match-banner { background: #2d2500; border-color: #3d3000; color: #d29922; }
+[data-theme="dark"] .match-banner.delete-undo { background: #3d0e0e; border-color: #7f1d1d; color: #f87171; }
 [data-theme="dark"] .match-banner.swap-question { background: #0d2149; border-color: #1f6feb; color: #79c0ff; }
 [data-theme="dark"] .match-banner.period-end { background: #1a0a3d; border-color: #6e40c9; color: #bc8cff; }
 [data-theme="dark"] .match-banner button { background: #161b22; }
@@ -690,7 +707,7 @@ table.stats-table td.num {
 [data-theme="dark"] .history-row .flag { background: #1c2128; color: #8b949e; }
 [data-theme="dark"] .history-row .flag.man-up { background: #0f2d1c; color: #3fb950; }
 [data-theme="dark"] .history-row .flag.man-down { background: #3d0e0e; color: #f85149; }
-[data-theme="dark"] .history-row .flag.assisted { background: #451a03; color: #fcd34d; }
+[data-theme="dark"] .history-row .flag.assisted { background: #2d1f00; color: #fcd34d; }
 [data-theme="dark"] .history-row .icon-btn { color: #6e7681; }
 [data-theme="dark"] .history-row .icon-btn:hover { background: #1c2128; color: #e6edf3; }
 [data-theme="dark"] .history-row .icon-btn.delete:hover { color: #f85149; background: #1f0e0e; }
@@ -1117,6 +1134,9 @@ table.stats-table td.num {
 
 .match-history-col-v2 {
   border-top: 1px solid #e5e5e0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 /* Boisko: pełna szerokość, bez marginesów i zaokrąglenia na małych ekranach */
@@ -1196,6 +1216,7 @@ table.stats-table td.num {
   border: none;
   border-radius: 0;
   margin-top: 0;
+  height: 100%;
 }
 
 /* ── Tablet i większy: layout dwukolumnowy ───────────────────── */
@@ -1235,25 +1256,11 @@ table.stats-table td.num {
     width: 260px;
     flex-shrink: 0;
     border-top: none;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-  }
-
-  .match-history-col-v2 .history-section {
-    flex: 1;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
-    height: auto;
-    overflow: hidden;
+    overflow-y: auto;
   }
 
   .match-history-col-v2 .history-list {
-    flex: 1;
-    min-height: 0;
     max-height: none;
-    overflow-y: auto;
   }
 
   /* Na tablecie: panel historii nie zwijamy */
@@ -1612,6 +1619,35 @@ function removeFromOfflineBuffer(clientEventId) {
   saveOfflineBuffer(loadOfflineBuffer().filter(function(b) { return b.client_event_id !== clientEventId; }));
 }
 
+function exportOfflineBufferToFile() {
+  var buffer = loadOfflineBuffer();
+  if (!buffer.length) return;
+  var json = JSON.stringify(buffer, null, 2);
+  var blob = new Blob([json], { type: 'application/json' });
+  var url  = URL.createObjectURL(blob);
+  var a    = document.createElement('a');
+  a.href     = url;
+  a.download = 'lacrosse-backup-' + todayISO() + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importOfflineBufferFromFile(file, onDone) {
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      var events = JSON.parse(e.target.result);
+      if (!Array.isArray(events)) return;
+      var count = 0;
+      events.forEach(function(ev) {
+        if (ev && ev.client_event_id) { addToOfflineBuffer(ev); count++; }
+      });
+      if (onDone) onDone(count);
+    } catch (_) {}
+  };
+  reader.readAsText(file);
+}
+
 // ── SAMPLE_DATA — fallback dla trybu dev ──────────────────────────────────────
 
 // Mulberry32 — deterministyczny PRNG z seedem
@@ -1920,12 +1956,7 @@ function teamSlot(matchId, teamName) {
 function eventsForMatch(matchId) {
   return DATA.events
     .filter(e => String(e.match_id) === String(matchId) && e.event_type !== 'goalie_set')
-    .sort((a, b) => {
-      const aId = Number(a.id) || 0;
-      const bId = Number(b.id) || 0;
-      if (aId !== bId) return bId - aId;
-      return (Number(b.created_at) || 0) - (Number(a.created_at) || 0);
-    });
+    .sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
 }
 
 function getCurrentGoalieNumber(teamName, events) {
@@ -2091,10 +2122,16 @@ let APP = {
     period:     '',
   },
   analyticsHeatmapMode: 'fired',  // 'fired' | 'conceded'
-  analyticsGoalieSort:  { col: 'savePct', dir: 'desc' },
 
   // CSV bulk import (panel admin)
   csvImport: null,  // null | { rows: [], importing: bool }
+
+  // Offline buffer recovery
+  offlineBanner: null,  // number | null — liczba eventów w offline bufferze przy starcie
+
+  // Undo queue dla usuwania eventów (delete-event handler)
+  _deleteQueue: [],     // Event[] — usunięte z UI, czekają na GAS
+  _deleteTimer: null,   // setTimeout ID — commit po 5s braku aktywności
 
   // Standings (tabela ligowa)
   standingsLoading:    false,
@@ -2102,6 +2139,9 @@ let APP = {
   standingsData:       null,   // { events: [], matches: [], tournaments: [] }
   standingsTournament: '',     // nazwa wybranego turnieju; '' = pierwszy dostępny
   standingsSort:       { col: 'goals', dir: 'desc' },
+
+  // Analytics — sortowanie tabeli bramkarzy (v7.0.1)
+  analyticsGoalieSort: { col: 'savePct', dir: 'desc' },
 };
 
 // ── Routing ────────────────────────────────────────────────────────────────────
@@ -2111,6 +2151,10 @@ function go(screen, opts) {
   if (APP.refreshInterval) {
     clearInterval(APP.refreshInterval);
     APP.refreshInterval = null;
+  }
+  // Flush pending event deletions before leaving current screen
+  if (APP._deleteQueue && APP._deleteQueue.length > 0) {
+    _commitDeleteQueue();
   }
   APP.screen      = screen;
   APP.matchId     = opts.matchId || null;
@@ -2286,6 +2330,21 @@ async function loadStandingsData() {
   render();
 }
 
+// ── Offline buffer recovery ────────────────────────────────────────────────────
+
+// Scal eventy z offline buffera dla danego meczu z powrotem do DATA.events.
+// Wywoływana po każdym loadMatchEvents — eventy przetrwały restart przeglądarki,
+// ale GAS ich nie ma (nigdy nie zostały zapisane), więc trzeba je scalić ręcznie.
+function _mergeOfflineBufferForMatch(matchId) {
+  const buffered = loadOfflineBuffer().filter(b => String(b.match_id) === String(matchId));
+  buffered.forEach(function(ev) {
+    if (!DATA.events.some(e => e.client_event_id === ev.client_event_id)) {
+      DATA.events.push(Object.assign({}, ev, { _syncing: false, _syncError: 'Niezsynchronizowany' }));
+      _scheduleRetry(ev.client_event_id, ev, 1);
+    }
+  });
+}
+
 // ── Ładowanie eventów — tryb wpisu i podglądu ──────────────────────────────────
 
 async function loadMatchEvents(matchId) {
@@ -2297,6 +2356,9 @@ async function loadMatchEvents(matchId) {
     // Zachowaj eventy innych meczów (dla wyników na home), zastąp bieżącego meczu
     DATA.events = DATA.events.filter(e => String(e.match_id) !== String(matchId));
     DATA.events = DATA.events.concat(events || []);
+
+    // Przywróć niezsynchronizowane eventy z offline buffera (przetrwały restart)
+    _mergeOfflineBufferForMatch(matchId);
 
     // Zmień status 'scheduled' → 'live' przy pierwszym otwarciu
     const match = DATA.scheduledMatches.find(m => String(m.id) === String(matchId));
@@ -2312,6 +2374,9 @@ async function loadMatchEvents(matchId) {
       );
       DATA.events = DATA.events.filter(ev => String(ev.match_id) !== String(matchId));
       DATA.events = DATA.events.concat(sampleForMatch);
+
+      // Przywróć niezsynchronizowane eventy z offline buffera
+      _mergeOfflineBufferForMatch(matchId);
 
       // Zmień status w SAMPLE_DATA (tylko lokalnie)
       const match = DATA.scheduledMatches.find(m => String(m.id) === String(matchId));
@@ -2545,12 +2610,32 @@ async function recordEvent(eventData) {
   render();  // re-render po GAS response (aktualizacja stanu sync)
 }
 
-/**
- * Usuwa event po id (UUID tymczasowy lub numeryczny GAS).
- * Optimistic: natychmiast usuwa z DATA.events.
- * Async: wywołuje gasDeleteEvent gdy event był już potwierdzony przez GAS.
- * NIE wywołuje render() — robi to handler.
- */
+// Natychmiast commituje wszystkie zdarzenia w kolejce usunięć do GAS.
+// Wywoływana przy timeout, "OK" i nawigacji do innego ekranu.
+function _commitDeleteQueue() {
+  clearTimeout(APP._deleteTimer);
+  APP._deleteTimer = null;
+  const queue = APP._deleteQueue || [];
+  APP._deleteQueue = [];
+  APP.banner = null;
+
+  queue.forEach(function(ev) {
+    removeFromOfflineBuffer(ev.client_event_id);
+
+    const hasGasId = !ev._syncing && !ev._syncError &&
+                     String(ev.id) !== ev.client_event_id &&
+                     !isNaN(Number(ev.id));
+    if (!hasGasId) return;
+
+    gasDeleteEvent(ev.id).catch(function(e) {
+      if (e.code !== 'DEV_MODE') {
+        APP.banner = { type: 'error', msg: 'Błąd usunięcia eventu: ' + (e.message || e) };
+        render();
+      }
+    });
+  });
+}
+
 function deleteTournamentConfirmed(id) {
   DATA.tournaments = DATA.tournaments.filter(x => x.id !== id);
   render();
@@ -2574,6 +2659,12 @@ function deleteMatchConfirmed(id) {
   });
 }
 
+/**
+ * Usuwa event po id (UUID tymczasowy lub numeryczny GAS).
+ * Optimistic: natychmiast usuwa z DATA.events.
+ * Async: wywołuje gasDeleteEvent gdy event był już potwierdzony przez GAS.
+ * NIE wywołuje render() — robi to handler.
+ */
 async function deleteEvent(id) {
   const ev = DATA.events.find(e => String(e.id) === String(id));
   if (!ev) return;
@@ -2757,23 +2848,7 @@ function buildFieldSvg(match) {
       'stroke-width': isLatest ? (isOwnHalf ? 4 : 3) : (isOwnHalf ? 3 : 2),
       class: 'marker' + (isLatest ? ' latest' : '')
     });
-    if (e.assisted) {
-      const g = svgEl('g');
-      g.appendChild(dot);
-      const bx = sx + dotR - 2;
-      const by = sy - dotR + 2;
-      g.appendChild(svgEl('circle', { cx: bx, cy: by, r: 6, fill: '#f59e0b', stroke: 'white', 'stroke-width': 1 }));
-      const t = svgEl('text', {
-        x: bx, y: by + 0.5,
-        'text-anchor': 'middle', 'dominant-baseline': 'middle',
-        'font-size': 7, 'font-weight': 'bold', fill: 'white'
-      });
-      t.textContent = 'A';
-      g.appendChild(t);
-      markersG.appendChild(g);
-    } else {
-      markersG.appendChild(dot);
-    }
+    markersG.appendChild(dot);
   });
   fieldG.appendChild(markersG);
 
@@ -2886,22 +2961,20 @@ function drawHalfFieldChart(svg, match, filtered, viewer) {
   const fieldG = svgEl('g', { transform: 'translate(0, 50)' });
   // Half-field 540 wide × 600 tall (one offensive half, goal at top).
   fieldG.appendChild(svgEl('rect', { x: 0, y: 0, width: 540, height: 600, fill: '#9bbf85', class: 'field-bg' }));
-  const halfMarkings = svgEl('g', { class: 'field-markings' });
   // Center line at the bottom (where attack starts).
-  halfMarkings.appendChild(svgEl('line', { x1: 0, y1: 600, x2: 540, y2: 600, stroke: 'white', 'stroke-width': 3 }));
+  fieldG.appendChild(svgEl('line', { x1: 0, y1: 600, x2: 540, y2: 600, stroke: 'white', 'stroke-width': 3 }));
   // Restraining line (attacker_progress 0.4368 → cy = (1 − 0.4368) × 600 ≈ 337.92).
-  halfMarkings.appendChild(svgEl('line', { x1: 0, y1: 337.92, x2: 540, y2: 337.92, stroke: 'white', 'stroke-width': 1.5, 'stroke-dasharray': '6,4', opacity: 0.85 }));
+  fieldG.appendChild(svgEl('line', { x1: 0, y1: 337.92, x2: 540, y2: 337.92, stroke: 'white', 'stroke-width': 1.5, 'stroke-dasharray': '6,4', opacity: 0.85 }));
   // Goal line (attacker_progress 40/55 ≈ 0.7273 → cy ≈ 163.64).
-  halfMarkings.appendChild(svgEl('line', { x1: 0, y1: 163.64, x2: 540, y2: 163.64, stroke: 'white', 'stroke-width': 1.5, opacity: 0.7 }));
+  fieldG.appendChild(svgEl('line', { x1: 0, y1: 163.64, x2: 540, y2: 163.64, stroke: 'white', 'stroke-width': 1.5, opacity: 0.7 }));
   // End line at the top.
-  halfMarkings.appendChild(svgEl('line', { x1: 0, y1: 0, x2: 540, y2: 0, stroke: 'white', 'stroke-width': 3 }));
+  fieldG.appendChild(svgEl('line', { x1: 0, y1: 0, x2: 540, y2: 0, stroke: 'white', 'stroke-width': 3 }));
   // Side lines (left and right).
-  halfMarkings.appendChild(svgEl('line', { x1: 0,   y1: 0, x2: 0,   y2: 600, stroke: 'white', 'stroke-width': 3 }));
-  halfMarkings.appendChild(svgEl('line', { x1: 540, y1: 0, x2: 540, y2: 600, stroke: 'white', 'stroke-width': 3 }));
+  fieldG.appendChild(svgEl('line', { x1: 0,   y1: 0, x2: 0,   y2: 600, stroke: 'white', 'stroke-width': 3 }));
+  fieldG.appendChild(svgEl('line', { x1: 540, y1: 0, x2: 540, y2: 600, stroke: 'white', 'stroke-width': 3 }));
   // Crease + goal mouth at the goal line.
-  halfMarkings.appendChild(svgEl('circle', { cx: 270, cy: 163.64, r: 27, fill: '#9bbf85', stroke: 'white', 'stroke-width': 2 }));
-  halfMarkings.appendChild(svgEl('line',   { x1: 258, y1: 163.64, x2: 282, y2: 163.64, stroke: 'white', 'stroke-width': 5 }));
-  fieldG.appendChild(halfMarkings);
+  fieldG.appendChild(svgEl('circle', { cx: 270, cy: 163.64, r: 27, fill: '#9bbf85', stroke: 'white', 'stroke-width': 2 }));
+  fieldG.appendChild(svgEl('line',   { x1: 258, y1: 163.64, x2: 282, y2: 163.64, stroke: 'white', 'stroke-width': 5 }));
 
   // Plot only shots with shot_x ≥ 0 (skip own-half).
   // Rotation mapping: attacker shot_x (0→1, center→end) → cy = (1 − shot_x) × 600 (bottom→top).
@@ -2911,28 +2984,26 @@ function drawHalfFieldChart(svg, match, filtered, viewer) {
     const cx = e.shot_y * 540;
     const cy = (1 - e.shot_x) * 600;
     if (viewer.display_mode === 'heatmap') drawHeatBlob(fieldG, cx, cy, teamColor);
-    else                                    drawShotMarker(fieldG, cx, cy, teamColor, e.result, false, e.man_up, e.man_down, e.assisted);
+    else                                    drawShotMarker(fieldG, cx, cy, teamColor, e.result, false, e.man_up, e.man_down);
   });
 
   svg.appendChild(fieldG);
 }
 
 function drawFieldMarkings(g, w, h) {
-  g.appendChild(svgEl('rect', { x: 0, y: 0, width: w, height: h, fill: '#9bbf85', class: 'field-bg' }));
-  const m = svgEl('g', { class: 'field-markings' });
-  m.appendChild(svgEl('line',   { x1: w / 2, y1: 0, x2: w / 2, y2: h, stroke: 'white', 'stroke-width': 2 }));
-  m.appendChild(svgEl('line',   { x1: w / 2 - 10, y1: h / 2 - 10, x2: w / 2 + 10, y2: h / 2 + 10, stroke: 'white', 'stroke-width': 2 }));
-  m.appendChild(svgEl('line',   { x1: w / 2 - 10, y1: h / 2 + 10, x2: w / 2 + 10, y2: h / 2 - 10, stroke: 'white', 'stroke-width': 2 }));
-  m.appendChild(svgEl('line',   { x1: w * 150 / 1100, y1: 0, x2: w * 150 / 1100, y2: h, stroke: 'white', 'stroke-width': 1.5, opacity: 0.7 }));
-  m.appendChild(svgEl('line',   { x1: w * 950 / 1100, y1: 0, x2: w * 950 / 1100, y2: h, stroke: 'white', 'stroke-width': 1.5, opacity: 0.7 }));
-  m.appendChild(svgEl('line',   { x1: w * 350 / 1100, y1: 0, x2: w * 350 / 1100, y2: h, stroke: 'white', 'stroke-width': 1.5, 'stroke-dasharray': '6,4', opacity: 0.85 }));
-  m.appendChild(svgEl('line',   { x1: w * 750 / 1100, y1: 0, x2: w * 750 / 1100, y2: h, stroke: 'white', 'stroke-width': 1.5, 'stroke-dasharray': '6,4', opacity: 0.85 }));
-  m.appendChild(svgEl('rect',   { x: 0, y: 0, width: w, height: h, fill: 'none', stroke: 'white', 'stroke-width': 3 }));
-  m.appendChild(svgEl('circle', { cx: w * 150 / 1100, cy: h / 2, r: 30, fill: '#9bbf85', stroke: 'white', 'stroke-width': 2 }));
-  m.appendChild(svgEl('circle', { cx: w * 950 / 1100, cy: h / 2, r: 30, fill: '#9bbf85', stroke: 'white', 'stroke-width': 2 }));
-  m.appendChild(svgEl('line',   { x1: w * 150 / 1100, y1: h / 2 - 12, x2: w * 150 / 1100, y2: h / 2 + 12, stroke: 'white', 'stroke-width': 5 }));
-  m.appendChild(svgEl('line',   { x1: w * 950 / 1100, y1: h / 2 - 12, x2: w * 950 / 1100, y2: h / 2 + 12, stroke: 'white', 'stroke-width': 5 }));
-  g.appendChild(m);
+  g.appendChild(svgEl('rect',   { x: 0, y: 0, width: w, height: h, fill: '#9bbf85', class: 'field-bg' }));
+  g.appendChild(svgEl('line',   { x1: w / 2, y1: 0, x2: w / 2, y2: h, stroke: 'white', 'stroke-width': 2 }));
+  g.appendChild(svgEl('line',   { x1: w / 2 - 10, y1: h / 2 - 10, x2: w / 2 + 10, y2: h / 2 + 10, stroke: 'white', 'stroke-width': 2 }));
+  g.appendChild(svgEl('line',   { x1: w / 2 - 10, y1: h / 2 + 10, x2: w / 2 + 10, y2: h / 2 - 10, stroke: 'white', 'stroke-width': 2 }));
+  g.appendChild(svgEl('line',   { x1: w * 150 / 1100, y1: 0, x2: w * 150 / 1100, y2: h, stroke: 'white', 'stroke-width': 1.5, opacity: 0.7 }));
+  g.appendChild(svgEl('line',   { x1: w * 950 / 1100, y1: 0, x2: w * 950 / 1100, y2: h, stroke: 'white', 'stroke-width': 1.5, opacity: 0.7 }));
+  g.appendChild(svgEl('line',   { x1: w * 350 / 1100, y1: 0, x2: w * 350 / 1100, y2: h, stroke: 'white', 'stroke-width': 1.5, 'stroke-dasharray': '6,4', opacity: 0.85 }));
+  g.appendChild(svgEl('line',   { x1: w * 750 / 1100, y1: 0, x2: w * 750 / 1100, y2: h, stroke: 'white', 'stroke-width': 1.5, 'stroke-dasharray': '6,4', opacity: 0.85 }));
+  g.appendChild(svgEl('rect',   { x: 0, y: 0, width: w, height: h, fill: 'none', stroke: 'white', 'stroke-width': 3 }));
+  g.appendChild(svgEl('circle', { cx: w * 150 / 1100, cy: h / 2, r: 30, fill: '#9bbf85', stroke: 'white', 'stroke-width': 2 }));
+  g.appendChild(svgEl('circle', { cx: w * 950 / 1100, cy: h / 2, r: 30, fill: '#9bbf85', stroke: 'white', 'stroke-width': 2 }));
+  g.appendChild(svgEl('line',   { x1: w * 150 / 1100, y1: h / 2 - 12, x2: w * 150 / 1100, y2: h / 2 + 12, stroke: 'white', 'stroke-width': 5 }));
+  g.appendChild(svgEl('line',   { x1: w * 950 / 1100, y1: h / 2 - 12, x2: w * 950 / 1100, y2: h / 2 + 12, stroke: 'white', 'stroke-width': 5 }));
 }
 
 function drawShotsFullField(g, events, match, displayMode) {
@@ -2944,11 +3015,11 @@ function drawShotsFullField(g, events, match, displayMode) {
     const cx = physical_x * 1100;
     const cy = physical_y * 600;
     if (displayMode === 'heatmap') drawHeatBlob(g, cx, cy, color);
-    else                            drawShotMarker(g, cx, cy, color, e.result, e.zone_name === 'own-half', e.man_up, e.man_down, e.assisted);
+    else                            drawShotMarker(g, cx, cy, color, e.result, e.zone_name === 'own-half', e.man_up, e.man_down);
   });
 }
 
-function drawShotMarker(g, cx, cy, color, result, isOwnHalf, manUp, manDown, hasAssist) {
+function drawShotMarker(g, cx, cy, color, result, isOwnHalf, manUp, manDown) {
   const isGoal   = result === 'gol';
   const isMissed = result === 'niecelny';
   const strokeColor = isOwnHalf ? '#ca8a04' : color;
@@ -2976,17 +3047,6 @@ function drawShotMarker(g, cx, cy, color, result, isOwnHalf, manUp, manDown, has
       stroke: isOwnHalf ? '#ca8a04' : (isGoal ? 'white' : color),
       'stroke-width': 2
     }));
-  }
-
-  if (hasAssist) {
-    g.appendChild(svgEl('circle', { cx: cx + 5, cy: cy - 5, r: 5, fill: '#f59e0b', stroke: 'white', 'stroke-width': 1 }));
-    const t = svgEl('text', {
-      x: cx + 5, y: cy - 4.5,
-      'text-anchor': 'middle', 'dominant-baseline': 'middle',
-      'font-size': 6, 'font-weight': 'bold', fill: 'white'
-    });
-    t.textContent = 'A';
-    g.appendChild(t);
   }
 }
 
@@ -3076,14 +3136,6 @@ function buildFieldLegend(match, opts) {
       Man-down
     </span>
     ` : ''}
-    <span class="leg-item">
-      <svg width="22" height="14" viewBox="0 0 22 14">
-        <circle cx="7" cy="7" r="6" fill="#1d4ed8"/>
-        <circle cx="17" cy="3" r="4" fill="#f59e0b"/>
-        <text x="17" y="3.5" text-anchor="middle" dominant-baseline="middle" font-size="5" font-weight="bold" fill="white">A</text>
-      </svg>
-      Asysta
-    </span>
   `;
   return div;
 }
@@ -3183,6 +3235,20 @@ function renderHome(root) {
     `;
   }
 
+  const infoBannerHtml = (APP.banner && APP.banner.type === 'info')
+    ? `<div class="home-info-banner">${escapeHtml(APP.banner.msg)}</div>`
+    : '';
+
+  const offlineBannerHtml = APP.offlineBanner
+    ? `<div class="offline-recovery-banner">
+        ⚠ ${APP.offlineBanner} event${APP.offlineBanner === 1 ? '' : 'ów'} czeka na synchronizację (brak internetu przy ostatnim użyciu).
+        <div class="offline-recovery-actions">
+          <button class="btn btn-sm" data-action="export-offline-backup" title="Pobierz kopię zapasową jako plik JSON">Pobierz kopię</button>
+          <button class="btn btn-sm" data-action="import-offline-backup" title="Importuj kopię zapasową z pliku JSON">Importuj z pliku</button>
+        </div>
+      </div>`
+    : '';
+
   let html = `
     <div class="app-header">
       <h1>Lacrosse Stats</h1>
@@ -3192,6 +3258,8 @@ function renderHome(root) {
       <button class="btn" data-action="open-standings">🏆 Tabela</button>
       <button class="btn" data-action="toggle-dark-mode" id="theme-toggle" title="Przełącz tryb ciemny">🌙</button>
     </div>
+    ${offlineBannerHtml}
+    ${infoBannerHtml}
     <div class="home-content">
       <h2>Mecze dzisiaj</h2>
   `;
@@ -3288,6 +3356,15 @@ function renderMatchInput(root) {
           <button class="cancel" data-action="dismiss-period-undo">OK</button>
         </div>
       `;
+    } else if (APP.banner.type === 'delete-undo') {
+      const n = APP.banner.count;
+      bannerHtml = `
+        <div class="match-banner delete-undo">
+          <span>🗑 Usunięto ${n} event${n === 1 ? '' : 'ów'}</span>
+          <button data-action="undo-delete">↩ Cofnij</button>
+          <button class="cancel" data-action="commit-delete">OK</button>
+        </div>
+      `;
     }
   }
 
@@ -3378,9 +3455,9 @@ function renderMatchInput(root) {
 function renderHistoryRow(e, match) {
   const slot  = teamSlot(match.id, e.team_event);
   const flags = [];
-  if (e.man_up)                          flags.push('<span class="flag man-up">man-up</span>');
-  if (e.man_down)                        flags.push('<span class="flag man-down">man-down</span>');
-  if (e.assisted) flags.push('<span class="flag assisted">asysta</span>');
+  if (e.man_up)    flags.push('<span class="flag man-up">man-up</span>');
+  if (e.man_down)  flags.push('<span class="flag man-down">man-down</span>');
+  if (e.assisted)  flags.push('<span class="flag assisted">A</span>');
 
   // Wskaźnik synchronizacji z GAS
   let syncBadge = '';
@@ -3847,7 +3924,6 @@ function _renderAnalyticsFilters(f, tournaments, allTeams, allPeriods) {
 
 function _analyticsApplyFilters(events, f) {
   return events.filter(e => {
-    if (e.event_type === 'goalie_set') return false;
     if (f.tournament && e.tournament !== f.tournament) return false;
     if (f.team      && e.team_event !== f.team)        return false;
     if (f.period    && String(e.period) !== f.period)  return false;
@@ -4528,19 +4604,17 @@ function _buildZoneEfficiencySvg(events) {
   svg.innerHTML = `
     <text x="270" y="28" text-anchor="middle" font-size="16" font-weight="700" fill="#6b7280">Skuteczność per strefa</text>
     <g transform="translate(0, 50)">
-      <rect x="0" y="0" width="540" height="600" fill="#9bbf85" class="field-bg"/>
-      <g class="field-markings">
-        <line x1="0" y1="600" x2="540" y2="600" stroke="white" stroke-width="3"/>
-        <line x1="0" y1="337.92" x2="540" y2="337.92" stroke="white" stroke-width="1.5" stroke-dasharray="6,4" opacity="0.85"/>
-        <line x1="0" y1="163.64" x2="540" y2="163.64" stroke="white" stroke-width="1.5" opacity="0.7"/>
-        <line x1="0" y1="0" x2="540" y2="0" stroke="white" stroke-width="3"/>
-        <line x1="0" y1="0" x2="0" y2="600" stroke="white" stroke-width="3"/>
-        <line x1="540" y1="0" x2="540" y2="600" stroke="white" stroke-width="3"/>
-        <line x1="180" y1="0" x2="180" y2="600" stroke="white" stroke-width="1" opacity="0.5"/>
-        <line x1="360" y1="0" x2="360" y2="600" stroke="white" stroke-width="1" opacity="0.5"/>
-        <circle cx="270" cy="163.64" r="27" fill="#9bbf85" stroke="white" stroke-width="2"/>
-        <line x1="258" y1="163.64" x2="282" y2="163.64" stroke="white" stroke-width="5"/>
-      </g>
+      <rect x="0" y="0" width="540" height="600" fill="#9bbf85"/>
+      <line x1="0" y1="600" x2="540" y2="600" stroke="white" stroke-width="3"/>
+      <line x1="0" y1="337.92" x2="540" y2="337.92" stroke="white" stroke-width="1.5" stroke-dasharray="6,4" opacity="0.85"/>
+      <line x1="0" y1="163.64" x2="540" y2="163.64" stroke="white" stroke-width="1.5" opacity="0.7"/>
+      <line x1="0" y1="0" x2="540" y2="0" stroke="white" stroke-width="3"/>
+      <line x1="0" y1="0" x2="0" y2="600" stroke="white" stroke-width="3"/>
+      <line x1="540" y1="0" x2="540" y2="600" stroke="white" stroke-width="3"/>
+      <line x1="180" y1="0" x2="180" y2="600" stroke="white" stroke-width="1" opacity="0.5"/>
+      <line x1="360" y1="0" x2="360" y2="600" stroke="white" stroke-width="1" opacity="0.5"/>
+      <circle cx="270" cy="163.64" r="27" fill="#9bbf85" stroke="white" stroke-width="2"/>
+      <line x1="258" y1="163.64" x2="282" y2="163.64" stroke="white" stroke-width="5"/>
       ${zoneOverlays}
     </g>
     <g transform="translate(4, 618)">
@@ -5361,6 +5435,24 @@ const HANDLERS = {
   'open-admin':     () => goAdmin(),
   'open-analytics': () => goAnalytics(),
   'home-retry':     () => loadHomeData(),
+
+  // Offline backup — export/import
+  'export-offline-backup': () => exportOfflineBufferToFile(),
+  'import-offline-backup': () => {
+    const input = document.createElement('input');
+    input.type   = 'file';
+    input.accept = '.json';
+    input.onchange = function(e) {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      importOfflineBufferFromFile(file, function(count) {
+        APP.offlineBanner = loadOfflineBuffer().length || null;
+        APP.banner = { type: 'info', msg: 'Zaimportowano ' + count + ' eventów z kopii zapasowej' };
+        render();
+      });
+    };
+    input.click();
+  },
   'viewer-retry':   () => startViewerRefresh(),
   'admin-retry':    () => loadAdminData(),
 
@@ -5785,15 +5877,35 @@ const HANDLERS = {
     render();
   },
   'delete-event': (id) => {
-    APP.modal = { type: 'confirm', title: 'Usuń event', message: 'Usunąć ten event?', _action: 'delete-event', _arg: id };
+    const ev = DATA.events.find(e => String(e.id) === String(id));
+    if (!ev) return;
+
+    // Optimistic remove z UI
+    DATA.events = DATA.events.filter(e => String(e.id) !== String(id));
+
+    // Dodaj do kolejki cofnięcia i zresetuj timer (5s)
+    APP._deleteQueue = (APP._deleteQueue || []).concat([ev]);
+    clearTimeout(APP._deleteTimer);
+    const count = APP._deleteQueue.length;
+    APP.banner = { type: 'delete-undo', count };
+    APP._deleteTimer = setTimeout(function() {
+      _commitDeleteQueue();
+      render();
+    }, 5000);
+
     render();
   },
-  'confirm-dialog-ok': () => {
-    const m = APP.modal;
-    APP.modal = null;
-    if (m._action === 'delete-event')      { deleteEvent(m._arg); render(); return; }
-    if (m._action === 'delete-tournament') { deleteTournamentConfirmed(m._arg); return; }
-    if (m._action === 'delete-match')      { deleteMatchConfirmed(m._arg); return; }
+  'undo-delete': () => {
+    clearTimeout(APP._deleteTimer);
+    APP._deleteTimer = null;
+    const queue = APP._deleteQueue || [];
+    APP._deleteQueue = [];
+    APP.banner = null;
+    queue.forEach(function(ev) { DATA.events.push(ev); });
+    render();
+  },
+  'commit-delete': () => {
+    _commitDeleteQueue();
     render();
   },
 
@@ -5810,6 +5922,13 @@ const HANDLERS = {
 
   // Modal actions
   'cancel-modal': () => closeModal(),
+  'confirm-dialog-ok': () => {
+    const m = APP.modal;
+    APP.modal = null;
+    if (m._action === 'delete-tournament') { deleteTournamentConfirmed(m._arg); return; }
+    if (m._action === 'delete-match')      { deleteMatchConfirmed(m._arg); return; }
+    render();
+  },
 
   // Ad-hoc match creation
   'create-ad-hoc': () => {
@@ -6081,6 +6200,10 @@ function _syncThemeToggle() {
 }
 
 // Init — must be last after all modules loaded.
+(function() {
+  var buf = loadOfflineBuffer();
+  if (buf.length > 0) APP.offlineBanner = buf.length;
+})();
 go('home');
 </script>
 </body>

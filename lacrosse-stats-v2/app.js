@@ -45,4 +45,8 @@ function _syncThemeToggle() {
 }
 
 // Init — must be last after all modules loaded.
+(function() {
+  var buf = loadOfflineBuffer();
+  if (buf.length > 0) APP.offlineBanner = buf.length;
+})();
 go('home');

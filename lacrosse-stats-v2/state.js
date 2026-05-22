@@ -47,12 +47,22 @@ let APP = {
   // CSV bulk import (panel admin)
   csvImport: null,  // null | { rows: [], importing: bool }
 
+  // Offline buffer recovery
+  offlineBanner: null,  // number | null — liczba eventów w offline bufferze przy starcie
+
+  // Undo queue dla usuwania eventów (delete-event handler)
+  _deleteQueue: [],     // Event[] — usunięte z UI, czekają na GAS
+  _deleteTimer: null,   // setTimeout ID — commit po 5s braku aktywności
+
   // Standings (tabela ligowa)
   standingsLoading:    false,
   standingsError:      null,
   standingsData:       null,   // { events: [], matches: [], tournaments: [] }
   standingsTournament: '',     // nazwa wybranego turnieju; '' = pierwszy dostępny
   standingsSort:       { col: 'goals', dir: 'desc' },
+
+  // Analytics — sortowanie tabeli bramkarzy (v7.0.1)
+  analyticsGoalieSort: { col: 'savePct', dir: 'desc' },
 };
 
 // ── Routing ────────────────────────────────────────────────────────────────────
@@ -62,6 +72,10 @@ function go(screen, opts) {
   if (APP.refreshInterval) {
     clearInterval(APP.refreshInterval);
     APP.refreshInterval = null;
+  }
+  // Flush pending event deletions before leaving current screen
+  if (APP._deleteQueue && APP._deleteQueue.length > 0) {
+    _commitDeleteQueue();
   }
   APP.screen      = screen;
   APP.matchId     = opts.matchId || null;
@@ -237,6 +251,21 @@ async function loadStandingsData() {
   render();
 }
 
+// ── Offline buffer recovery ────────────────────────────────────────────────────
+
+// Scal eventy z offline buffera dla danego meczu z powrotem do DATA.events.
+// Wywoływana po każdym loadMatchEvents — eventy przetrwały restart przeglądarki,
+// ale GAS ich nie ma (nigdy nie zostały zapisane), więc trzeba je scalić ręcznie.
+function _mergeOfflineBufferForMatch(matchId) {
+  const buffered = loadOfflineBuffer().filter(b => String(b.match_id) === String(matchId));
+  buffered.forEach(function(ev) {
+    if (!DATA.events.some(e => e.client_event_id === ev.client_event_id)) {
+      DATA.events.push(Object.assign({}, ev, { _syncing: false, _syncError: 'Niezsynchronizowany' }));
+      _scheduleRetry(ev.client_event_id, ev, 1);
+    }
+  });
+}
+
 // ── Ładowanie eventów — tryb wpisu i podglądu ──────────────────────────────────
 
 async function loadMatchEvents(matchId) {
@@ -248,6 +277,9 @@ async function loadMatchEvents(matchId) {
     // Zachowaj eventy innych meczów (dla wyników na home), zastąp bieżącego meczu
     DATA.events = DATA.events.filter(e => String(e.match_id) !== String(matchId));
     DATA.events = DATA.events.concat(events || []);
+
+    // Przywróć niezsynchronizowane eventy z offline buffera (przetrwały restart)
+    _mergeOfflineBufferForMatch(matchId);
 
     // Zmień status 'scheduled' → 'live' przy pierwszym otwarciu
     const match = DATA.scheduledMatches.find(m => String(m.id) === String(matchId));
@@ -263,6 +295,9 @@ async function loadMatchEvents(matchId) {
       );
       DATA.events = DATA.events.filter(ev => String(ev.match_id) !== String(matchId));
       DATA.events = DATA.events.concat(sampleForMatch);
+
+      // Przywróć niezsynchronizowane eventy z offline buffera
+      _mergeOfflineBufferForMatch(matchId);
 
       // Zmień status w SAMPLE_DATA (tylko lokalnie)
       const match = DATA.scheduledMatches.find(m => String(m.id) === String(matchId));
@@ -494,6 +529,55 @@ async function recordEvent(eventData) {
     }
   }
   render();  // re-render po GAS response (aktualizacja stanu sync)
+}
+
+// Natychmiast commituje wszystkie zdarzenia w kolejce usunięć do GAS.
+// Wywoływana przy timeout, "OK" i nawigacji do innego ekranu.
+function _commitDeleteQueue() {
+  clearTimeout(APP._deleteTimer);
+  APP._deleteTimer = null;
+  const queue = APP._deleteQueue || [];
+  APP._deleteQueue = [];
+  APP.banner = null;
+
+  queue.forEach(function(ev) {
+    removeFromOfflineBuffer(ev.client_event_id);
+
+    const hasGasId = !ev._syncing && !ev._syncError &&
+                     String(ev.id) !== ev.client_event_id &&
+                     !isNaN(Number(ev.id));
+    if (!hasGasId) return;
+
+    gasDeleteEvent(ev.id).catch(function(e) {
+      if (e.code !== 'DEV_MODE') {
+        APP.banner = { type: 'error', msg: 'Błąd usunięcia eventu: ' + (e.message || e) };
+        render();
+      }
+    });
+  });
+}
+
+function deleteTournamentConfirmed(id) {
+  DATA.tournaments = DATA.tournaments.filter(x => x.id !== id);
+  render();
+  gasDeleteTournament(id).catch(function(e) {
+    if (e.code !== 'DEV_MODE') {
+      APP.banner = { type: 'error', msg: 'Błąd usunięcia turnieju: ' + (e.message || e) };
+      render();
+    }
+  });
+}
+
+function deleteMatchConfirmed(id) {
+  DATA.scheduledMatches = DATA.scheduledMatches.filter(x => x.id !== id);
+  DATA.events           = DATA.events.filter(e => e.match_id !== id);
+  render();
+  gasDeleteMatch(id).catch(function(e) {
+    if (e.code !== 'DEV_MODE') {
+      APP.banner = { type: 'error', msg: 'Błąd usunięcia meczu: ' + (e.message || e) };
+      render();
+    }
+  });
 }
 
 /**

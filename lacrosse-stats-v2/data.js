@@ -31,6 +31,35 @@ function removeFromOfflineBuffer(clientEventId) {
   saveOfflineBuffer(loadOfflineBuffer().filter(function(b) { return b.client_event_id !== clientEventId; }));
 }
 
+function exportOfflineBufferToFile() {
+  var buffer = loadOfflineBuffer();
+  if (!buffer.length) return;
+  var json = JSON.stringify(buffer, null, 2);
+  var blob = new Blob([json], { type: 'application/json' });
+  var url  = URL.createObjectURL(blob);
+  var a    = document.createElement('a');
+  a.href     = url;
+  a.download = 'lacrosse-backup-' + todayISO() + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importOfflineBufferFromFile(file, onDone) {
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      var events = JSON.parse(e.target.result);
+      if (!Array.isArray(events)) return;
+      var count = 0;
+      events.forEach(function(ev) {
+        if (ev && ev.client_event_id) { addToOfflineBuffer(ev); count++; }
+      });
+      if (onDone) onDone(count);
+    } catch (_) {}
+  };
+  reader.readAsText(file);
+}
+
 // ── SAMPLE_DATA — fallback dla trybu dev ──────────────────────────────────────
 
 // Mulberry32 — deterministyczny PRNG z seedem
