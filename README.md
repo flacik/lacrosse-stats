@@ -24,10 +24,12 @@ All data is stored in Google Sheets, so the club always has a permanent record o
 - Preference persisted in `localStorage` — survives page reload and navigation between screens
 
 **Shot recording (input mode)**
-- Tap the SVG field map to place a shot; a modal confirms result (goal / missed / saved / post) and other details (man-up, man-down, period)
-- Full shot history with inline edit and delete
+- Tap the SVG field map to place a shot; a modal confirms result (goal / missed / saved / post) and other details (man-up, man-down, period, assist)
+- Full shot history with inline edit and delete; newest events at the top
 - Sync badge on each event shows whether it's been saved to the backend (✓ synced / ⚠ error / retrying)
 - Offline buffer — if the network drops, shots are queued locally and auto-retried with exponential backoff (1 s → 3 s → 9 s)
+- **Offline recovery** — pending events survive page refresh/close and are restored from `localStorage` on next load
+- **Undo delete** — 5-second undo toast after deleting a shot; event re-syncs if undo is not used
 
 **Live viewer mode (coach)**
 - Score, team stats, goalie stats, and per-period breakdown
@@ -38,7 +40,7 @@ All data is stored in Google Sheets, so the club always has a permanent record o
 
 **Analytics screen**
 - Tournament / team / date / period filters; team dropdown scoped to selected tournament
-- Stats grid: shots, goals, accuracy %, man-up/down, zone breakdown, per-period breakdown
+- Stats grid: **match count**, shots, goals, accuracy %, man-up/down, zone breakdown, per-period breakdown; all values update with active filters
 - Donut chart of shot results; bar chart of accuracy per period
 - Man-up / man-down / even-strength situation cards (hidden when no relevant events)
 - Shot chart with three modes: fired shots, conceded shots, zone efficiency heatmap
@@ -128,7 +130,20 @@ cd lacrosse-stats-v2/
 
 ## Status
 
-**Current: v7.0.1 — deployed 2026-05-22**
+**Current: v8.0.2 — deployed 2026-05-24**
+
+**v8.0.2 (2026-05-24)** — analytics match count tile, assist in legend and viewer badge:
+
+- **Meczy tile in analytics** — new stat box to the left of Strzałów showing the number of distinct matches included in the current filter selection; updates live with tournament / team / date / period filters
+- **Assist badge in viewer mode** — yellow "A" badge on shot markers in the coach viewer shot chart (was already present in input mode)
+- **Assist in shot map legend** — legend in both input and viewer modes includes the "A" (assist) marker
+
+**v8.0.0 (2026-05-24)** — offline recovery, undo delete:
+
+- **Offline event recovery** — if the app is closed or refreshed while events are pending in the offline buffer, they are restored from `localStorage` on next load and retried automatically; no shots are silently lost
+- **Undo delete** — after deleting a shot, a toast notification appears with an "Cofnij" (undo) button; the event is restored locally and re-synced to the backend within 5 seconds
+- **Shot ID sorting** — events in the viewer match list are sorted by numeric row ID, ensuring correct chronological order regardless of insertion timing
+- Source sync with v7.0.0 / v7.0.1 (goalie analytics, assist badge, UI polish carried into the new branch baseline)
 
 **v7.0.1 (2026-05-22)** — sortable goalie tables:
 
