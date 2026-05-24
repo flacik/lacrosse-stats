@@ -36,7 +36,7 @@ All data is stored in Google Sheets, so the club always has a permanent record o
 - Shot chart: full-field overview + half-field zoom with heatmap overlay
 - All coordinates stored in attacker-relative space (shot_x/shot_y ∈ [-1,1] / [0,1]) and converted to display coordinates on the fly
 - Refreshes every 5 seconds; header shows exact time of last update
-- "▶ Nagranie" button in the match bar when a recording URL is set
+- "▶ Recording" button in the match bar when a recording URL is set
 
 **Analytics screen**
 - Tournament / team / date / period filters; team dropdown scoped to selected tournament
@@ -144,26 +144,26 @@ cd lacrosse-stats-v2/
 
 **v1.9.1 (2026-05-24)** — analytics match count tile, assist in legend and viewer badge:
 
-- **Meczy tile in analytics** — new stat box to the left of Strzałów showing the number of distinct matches included in the current filter selection; updates live with tournament / team / date / period filters
+- **Match count tile in analytics** — new stat box to the left of the Shots counter showing the number of distinct matches included in the current filter selection; updates live with tournament / team / date / period filters
 - **Assist badge in viewer mode** — yellow "A" badge on shot markers in the coach viewer shot chart (was already present in input mode)
 - **Assist in shot map legend** — legend in both input and viewer modes includes the "A" (assist) marker
 
 **v1.9.0 (2026-05-24)** — offline recovery, undo delete:
 
 - **Offline event recovery** — if the app is closed or refreshed while events are pending in the offline buffer, they are restored from `localStorage` on next load and retried automatically; no shots are silently lost
-- **Undo delete** — after deleting a shot, a toast notification appears with an "Cofnij" (undo) button; the event is restored locally and re-synced to the backend within 5 seconds
+- **Undo delete** — after deleting a shot, a toast notification appears with an "Undo" button; the event is restored locally and re-synced to the backend within 5 seconds
 - **Shot ID sorting** — events in the viewer match list are sorted by numeric row ID, ensuring correct chronological order regardless of insertion timing
 
 **v1.8.1 (2026-05-22)** — sortable goalie tables:
 
-- All columns in the **Per bramkarz** table are now sortable by clicking the header: Bramkarz (number), Mecze, Strzały na br., Obrony, Bramki str., Save%
-- Quarter columns in the **Save% per kwarta** table are also sortable — click Q1/Q2/Q3/Q4 to rank goalies by that quarter's save%
+- All columns in the **Per Goalkeeper** table are now sortable by clicking the header: Goalkeeper (no.), Matches, Shots on goal, Saves, Goals conceded, Save%
+- Quarter columns in the **Save% per Quarter** table are also sortable — click Q1/Q2/Q3/Q4 to rank goalies by that quarter's save%
 - Both tables share the same sort key so goalie order is consistent between them
 - Clicking the active column header toggles ascending ↑ / descending ↓; default is Save% descending
 
 **v1.8.0 (2026-05-22)** — goalie analytics, UI polish, assist badge:
 
-- **Goalie ranking in analytics** — new section below stats grid showing cross-match save% per goalkeeper; grouped by goalie number per team; includes saves, goals against, shots on goal, match count, and a colour-coded save% bar; per-quarter breakdown table when multiple quarters exist; visible without team filter (all goalies) or scoped to a selected team
+- **Goalie ranking in analytics** — new section below the stats grid showing cross-match save% per goalkeeper; grouped by goalie number per team; includes saves, goals against, shots on goal, match count, and a colour-coded save% bar; per-quarter breakdown table when multiple quarters exist; visible without team filter (all goalies) or scoped to a selected team
 - **Assist badge** — yellow "A" badge on shot markers in the field map (input mode and viewer mode) and in the shot history list; legend updated
 - **Scrollable shot history** — history panel scrolls vertically; newest events at the top (sorted by row ID descending); no horizontal scroll required
 - **Zone column removed** from history rows — edit and delete buttons now always visible without scrolling
@@ -172,20 +172,20 @@ cd lacrosse-stats-v2/
 
 **v1.7.0 (2026-05-20)** — assist flag + past matches on home screen:
 
-- New **Asysta** checkbox in the shot modal (alongside man-up/man-down) — marks whether a goal was assisted; shown as a blue badge in shot history
-- Home screen now shows a **Mecze z przeszłości** section below today's matches — past matches load and can be opened for stat entry
+- New **Assist** checkbox in the shot modal (alongside man-up/man-down) — marks whether a goal was assisted; shown as a blue badge in shot history
+- Home screen now shows a **Past Matches** section below today's matches — past matches load and can be opened for stat entry
 - GitHub Pages demo at https://flacik.github.io/lacrosse-stats/ — runs with sample data, no login needed
 
 **v1.6.0 (2026-05-20)** — standings: tournament leaderboard:
 
-- New **🏆 Tabela** button on the home screen opens a per-tournament standings table
-- Columns: Drużyna / Mecze / Gole+ / Gole− / Celne / Niecelne / % skuteczności / % celności / Man-up gole
-- **% skuteczności** = goals / total shots; **% celności** = (goals + on-target saves) / total shots
+- New **🏆 Standings** button on the home screen opens a per-tournament standings table
+- Columns: Team / Matches / Goals+ / Goals− / On target / Off target / Efficiency % / Accuracy % / Man-up goals
+- **Efficiency %** = goals / total shots; **Accuracy %** = (goals + on-target saves) / total shots
 - Tournament dropdown — switch between all tournaments without leaving the screen
-- Click any column header to sort ascending / descending (default: Gole+ descending)
-- First-place row highlighted in green; Gole+ in green, Gole− in red
+- Click any column header to sort ascending / descending (default: Goals+ descending)
+- First-place row highlighted in green; Goals+ in green, Goals− in red
 - `seedProdData()` helper in Code.gs — seeds PROD spreadsheet with 3 tournaments, 14 matches, ~480 events in one click from the GAS editor
-- `mecze-template.xlsx` — Excel template for CSV bulk import (columns: turniej, data, druzyna_a, druzyna_b, link)
+- `mecze-template.xlsx` — Excel template for CSV bulk import (columns: tournament, date, team_a, team_b, link)
 
 **v1.5.0 (2026-05-19)** — dark mode:
 
@@ -196,10 +196,10 @@ cd lacrosse-stats-v2/
 **v1.4.0 (2026-05-19)** — CSV bulk import + video URLs:
 
 - Admin panel: new **Import CSV** card — upload file, preview table, one-click import (up to 200 matches)
-- CSV format: `turniej,data,druzyna_a,druzyna_b,link`; separator auto-detected (`,` or `;`), header row auto-detected
+- CSV format: `tournament,date,team_a,team_b,link`; separator auto-detected (`,` or `;`), header row auto-detected
 - GAS: `bulkCreateMatches()` batch-writes all rows in one `setValues` call
-- New `video_url` field on every match — editable in the match modal, shown as "▶ nagranie" in the admin list
-- Input screen: "▶ Nagranie" button in the match-info bar when a recording link is set
+- New `video_url` field on every match — editable in the match modal, shown as "▶ recording" in the admin list
+- Input screen: "▶ Recording" button in the match-info bar when a recording link is set
 - `setupSheets()` now detects and adds missing columns (migration-safe, no manual sheet editing needed)
 - `sanitizeUrl()` helper: only allows `http(s)`, strips control chars, max 500 chars
 
@@ -212,7 +212,7 @@ cd lacrosse-stats-v2/
 
 **v1.2.0 (2026-05-19)** — historical analytics screen:
 
-- New **Analityka** screen (4th screen) with tournament / team / date / period filters
+- New **Analytics** screen (4th screen) with tournament / team / date / period filters
 - Team dropdown scoped to selected tournament; resets on tournament change
 - Stats grid: shots, goals, accuracy %, man-up/down, zone breakdown, per-period breakdown
 - Shot chart heatmap — fired vs. conceded toggle, reuses the half-field SVG renderer
