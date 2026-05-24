@@ -15,6 +15,7 @@ function renderModal() {
   else if (APP.modal.type === 'match-form')          bg.innerHTML = renderMatchModal(APP.modal.match);
   else if (APP.modal.type === 'goalie-form')         bg.innerHTML = renderGoalieFormModal();
   else if (APP.modal.type === 'goalie-retroactive')  bg.innerHTML = renderGoalieRetroactiveModal();
+  else if (APP.modal.type === 'confirm')             bg.innerHTML = renderConfirmModal();
 
   document.body.appendChild(bg);
 }
@@ -116,6 +117,20 @@ function renderConfirmEnd() {
       <div class="modal-actions">
         <button class="btn" data-action="cancel-modal">Anuluj</button>
         <button class="btn btn-danger" data-action="confirm-end-match">🏁 Zakończ mecz</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderConfirmModal() {
+  const m = APP.modal;
+  return `
+    <div class="modal" data-stop-propagation="true" style="max-width:360px">
+      <h2>${escapeHtml(m.title || 'Potwierdzenie')}</h2>
+      ${m.message ? `<div class="modal-subtitle" style="font-size:14px;color:inherit;opacity:0.8">${escapeHtml(m.message)}</div>` : ''}
+      <div class="modal-actions">
+        <button class="btn" data-action="cancel-modal">Anuluj</button>
+        <button class="btn btn-danger" data-action="confirm-dialog-ok">Usuń</button>
       </div>
     </div>
   `;

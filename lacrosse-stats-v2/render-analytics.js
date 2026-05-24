@@ -137,9 +137,240 @@ function _renderAnalyticsBody(filtered, matches, f) {
   return `
     <div class="analytics-body">
       ${_renderAnalyticsStats(filtered, f)}
+      ${_renderAnalyticsGoalies(filtered, APP.analyticsData.events, APP.analyticsData.matches, f)}
       ${_renderAnalyticsHeatmap(filtered, APP.analyticsData.events, f)}
       ${_renderAnalyticsMatchHistory(filtered, APP.analyticsData.events, APP.analyticsData.matches, f)}
     </div>`;
+}
+
+// ── Bramkarze w analityce historycznej ───────────────────────────────────────
+
+function _computeGoalieAnalytics(filteredShots, allEvents, allMatches, f, sort) {
+  const matchIds = new Set(filteredShots.map(e => String(e.match_id)));
+
+  // matchMap: matchId -> { team_A, team_B } — do identyfikacji broniącej drużyny
+  const matchMap = {};
+  allMatches.forEach(m => { matchMap[String(m.id)] = m; });
+
+  // Wszystkie strzały na bramkę w objętych meczach (oba kierunki)
+  let shotsOnGoal = allEvents.filter(e =>
+    e.event_type !== 'goalie_set' &&
+    matchIds.has(String(e.match_id)) &&
+    (e.result === 'gol' || e.result === 'celny')
+  );
+  if (f.period)   shotsOnGoal = shotsOnGoal.filter(e => String(e.period) === f.period);
+  if (f.dateFrom) shotsOnGoal = shotsOnGoal.filter(e => e.match_date >= f.dateFrom);
+  if (f.dateTo)   shotsOnGoal = shotsOnGoal.filter(e => e.match_date <= f.dateTo);
+
+  const goalieSets = allEvents.filter(e =>
+    e.event_type === 'goalie_set' &&
+    matchIds.has(String(e.match_id))
+  );
+
+  function getDefendingTeam(shot) {
+    const m = matchMap[String(shot.match_id)];
+    if (!m) return null;
+    if (shot.team_event === m.team_A) return m.team_B;
+    if (shot.team_event === m.team_B) return m.team_A;
+    return null;
+  }
+
+  function getActiveGoalie(teamName, matchId, period) {
+    const sets = goalieSets
+      .filter(e => e.team_event === teamName && String(e.match_id) === matchId)
+      .sort((a, b) => getPeriodOrder(a.period) - getPeriodOrder(b.period));
+    let number = null;
+    for (const s of sets) {
+      if (getPeriodOrder(s.period) <= getPeriodOrder(period)) number = s.goalie_number;
+    }
+    return number;
+  }
+
+  const byKey = {};       // key: `${team}::${num}`
+  const matchesPerKey = {};
+
+  for (const shot of shotsOnGoal) {
+    const defTeam = getDefendingTeam(shot);
+    if (!defTeam) continue;
+    if (f.team && defTeam !== f.team) continue;
+
+    const num = getActiveGoalie(defTeam, String(shot.match_id), shot.period) || '__none__';
+    const key = `${defTeam}::${num}`;
+
+    if (!byKey[key]) {
+      byKey[key] = { team: defTeam, number: num, saves: 0, goalsAgainst: 0, shotsOnGoal: 0, byPeriod: {} };
+      matchesPerKey[key] = new Set();
+    }
+    const g = byKey[key];
+    if (shot.result === 'celny') g.saves++;
+    if (shot.result === 'gol')   g.goalsAgainst++;
+    g.shotsOnGoal++;
+    matchesPerKey[key].add(String(shot.match_id));
+
+    const p = String(shot.period);
+    if (!g.byPeriod[p]) g.byPeriod[p] = { saves: 0, goalsAgainst: 0, shotsOnGoal: 0 };
+    if (shot.result === 'celny') g.byPeriod[p].saves++;
+    if (shot.result === 'gol')   g.byPeriod[p].goalsAgainst++;
+    g.byPeriod[p].shotsOnGoal++;
+  }
+
+  const list = Object.entries(byKey).map(([key, g]) => ({
+    team:         g.team,
+    number:       g.number === '__none__' ? null : g.number,
+    saves:        g.saves,
+    goalsAgainst: g.goalsAgainst,
+    shotsOnGoal:  g.shotsOnGoal,
+    savePct:      g.shotsOnGoal > 0 ? Math.round(g.saves / g.shotsOnGoal * 100) : null,
+    matchCount:   matchesPerKey[key].size,
+    byPeriod:     g.byPeriod,
+  })).sort((a, b) => {
+    const s = sort || { col: 'savePct', dir: 'desc' };
+    let aVal, bVal;
+    if (s.col.startsWith('p:')) {
+      const p = s.col.slice(2);
+      const ap = a.byPeriod[p], bp = b.byPeriod[p];
+      aVal = ap && ap.shotsOnGoal > 0 ? ap.saves / ap.shotsOnGoal : -1;
+      bVal = bp && bp.shotsOnGoal > 0 ? bp.saves / bp.shotsOnGoal : -1;
+    } else if (s.col === 'number') {
+      aVal = a.number !== null ? (isNaN(Number(a.number)) ? a.number : Number(a.number)) : (s.dir === 'asc' ? Infinity : -Infinity);
+      bVal = b.number !== null ? (isNaN(Number(b.number)) ? b.number : Number(b.number)) : (s.dir === 'asc' ? Infinity : -Infinity);
+      if (typeof aVal === 'string' || typeof bVal === 'string') {
+        const sa = String(aVal), sb = String(bVal);
+        return s.dir === 'asc' ? sa.localeCompare(sb) : sb.localeCompare(sa);
+      }
+    } else {
+      aVal = a[s.col] !== null ? a[s.col] : -1;
+      bVal = b[s.col] !== null ? b[s.col] : -1;
+    }
+    if (aVal === bVal) return 0;
+    return s.dir === 'desc' ? bVal - aVal : aVal - bVal;
+  });
+
+  const totalSaves       = list.reduce((s, g) => s + g.saves, 0);
+  const totalGoals       = list.reduce((s, g) => s + g.goalsAgainst, 0);
+  const totalShotsOnGoal = list.reduce((s, g) => s + g.shotsOnGoal, 0);
+  const avgSavePct       = totalShotsOnGoal > 0
+    ? Math.round(totalSaves / totalShotsOnGoal * 100)
+    : null;
+
+  return { list, totalSaves, totalGoals, totalShotsOnGoal, avgSavePct, matchCount: matchIds.size };
+}
+
+function _renderAnalyticsGoalies(filtered, allEvents, allMatches, f) {
+  if (filtered.length === 0) return '';
+
+  const sort = APP.analyticsGoalieSort;
+  const data = _computeGoalieAnalytics(filtered, allEvents, allMatches, f, sort);
+  if (data.totalShotsOnGoal === 0) return '';
+
+  const teamLabel = f.team ? escapeHtml(f.team) : null;
+
+  function sortTh(label, col, style) {
+    const active = sort.col === col;
+    const arrow  = active ? (sort.dir === 'desc' ? ' ↓' : ' ↑') : '';
+    const base   = 'cursor:pointer;user-select:none;white-space:nowrap;';
+    const hlCss  = active ? 'text-decoration:underline;' : '';
+    const extra  = style ? style + ';' : '';
+    return `<th style="${base}${hlCss}${extra}" data-action="analytics-goalie-sort" data-arg="${col}">${label}${arrow}</th>`;
+  }
+
+  function savePctAttr(pct) {
+    if (pct === null) return '';
+    if (pct >= 70) return 'style="color:#15803d;font-weight:700"';
+    if (pct >= 55) return 'style="color:#1d4ed8;font-weight:700"';
+    return 'style="color:#b91c1c;font-weight:700"';
+  }
+
+  function savePctBar(pct) {
+    if (pct === null) return '';
+    const color = pct >= 70 ? '#16a34a' : pct >= 55 ? '#3b82f6' : '#dc2626';
+    const w = Math.round(pct * 0.6);
+    return `<span style="display:inline-block;width:60px;height:5px;background:#e5e7eb;border-radius:3px;vertical-align:middle;margin-left:6px;"><span style="display:block;width:${w}px;height:5px;border-radius:3px;background:${color};"></span></span>`;
+  }
+
+  const rankStyles = [
+    'background:#fde68a;color:#92400e',
+    'background:#d1d5db;color:#374151',
+    'background:#fed7aa;color:#9a3412',
+  ];
+
+  const mainRows = data.list.map((g, i) => {
+    const rankStyle  = i < 3 ? rankStyles[i] : 'background:#e5e7eb;color:#4b5563';
+    const numLabel   = g.number !== null ? `#${escapeHtml(g.number)}` : '—';
+    const pctLabel   = g.savePct !== null ? `${g.savePct}%` : '—';
+    const subLabel   = escapeHtml(g.team);
+    return `
+      <tr>
+        <td><span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;font-size:11px;font-weight:600;${rankStyle}">${i + 1}</span></td>
+        <td style="line-height:1.3">
+          <span style="font-weight:600;font-size:14px">${numLabel}</span>
+          <span style="font-size:11px;color:#6b7280;display:block;margin-top:1px">${subLabel}</span>
+        </td>
+        <td class="num">${g.matchCount}</td>
+        <td class="num">${g.shotsOnGoal}</td>
+        <td class="num">${g.saves}</td>
+        <td class="num">${g.goalsAgainst}</td>
+        <td class="num"><span ${savePctAttr(g.savePct)}>${pctLabel}</span>${savePctBar(g.savePct)}</td>
+      </tr>`;
+  }).join('');
+
+  let periodTable = '';
+  if (!f.period && data.list.length >= 1 && data.list.length <= 5) {
+    const periodSet = new Set();
+    data.list.forEach(g => Object.keys(g.byPeriod).forEach(p => periodSet.add(p)));
+    const periods = [...periodSet].sort((a, b) => getPeriodOrder(a) - getPeriodOrder(b));
+    if (periods.length > 1) {
+      const periodHeaders = periods.map(p => sortTh(escapeHtml(periodLabel(p)), 'p:' + p)).join('');
+      const periodRows = data.list.map(g => {
+        const numLabel = g.number !== null ? `#${escapeHtml(g.number)}` : '—';
+        const cells = periods.map(p => {
+          const pd = g.byPeriod[p];
+          if (!pd || pd.shotsOnGoal === 0) return `<td class="num" style="color:#9ca3af">—</td>`;
+          const pct = Math.round(pd.saves / pd.shotsOnGoal * 100);
+          return `<td class="num" ${savePctAttr(pct)}>${pct}%</td>`;
+        }).join('');
+        return `<tr><td style="line-height:1.3"><span style="font-weight:600">${numLabel}</span><span style="font-size:11px;color:#6b7280;display:block;margin-top:1px">${escapeHtml(g.team)}</span></td>${cells}</tr>`;
+      }).join('');
+      periodTable = `
+        <h3>Save% per kwarta</h3>
+        <table class="stats-table">
+          <thead><tr>${sortTh('Bramkarz', 'number')}${periodHeaders}</tr></thead>
+          <tbody>${periodRows}</tbody>
+        </table>`;
+    }
+  }
+
+  const avgLabel   = data.avgSavePct !== null ? `${data.avgSavePct}%` : '—';
+  const matchBadge = `<span style="display:inline-block;font-size:11px;font-weight:600;background:#dbeafe;color:#1e40af;padding:2px 8px;border-radius:4px;margin-left:8px;vertical-align:middle">${data.matchCount} meczów</span>`;
+  const heading    = teamLabel ? `Bramkarze: ${teamLabel}` : 'Bramkarze';
+
+  return `
+    <section class="analytics-section">
+      <h2>${heading}${matchBadge}</h2>
+      <div class="stats-grid">
+        <div class="stat-box"><div class="stat-val">${data.list.length}</div><div class="stat-lbl">Bramkarzy</div></div>
+        <div class="stat-box"><div class="stat-val">${data.totalShotsOnGoal}</div><div class="stat-lbl">Strzałów na bramkę</div></div>
+        <div class="stat-box"><div class="stat-val">${data.totalSaves}</div><div class="stat-lbl">Obrony</div></div>
+        <div class="stat-box"><div class="stat-val">${data.totalGoals}</div><div class="stat-lbl">Bramek straconych</div></div>
+        <div class="stat-box"><div class="stat-val">${avgLabel}</div><div class="stat-lbl">Avg save%</div></div>
+      </div>
+      <h3>Per bramkarz</h3>
+      <table class="stats-table">
+        <thead>
+          <tr>
+            <th style="width:28px">#</th>
+            ${sortTh('Bramkarz', 'number')}
+            ${sortTh('Mecze', 'matchCount')}
+            ${sortTh('Strzały na br.', 'shotsOnGoal')}
+            ${sortTh('Obrony', 'saves')}
+            ${sortTh('Bramki str.', 'goalsAgainst')}
+            ${sortTh('Save%', 'savePct')}
+          </tr>
+        </thead>
+        <tbody>${mainRows}</tbody>
+      </table>
+      ${periodTable}
+    </section>`;
 }
 
 // ── V5-03: Porównanie ofensywa vs defensywa ───────────────────────────────────
@@ -370,6 +601,7 @@ function _renderAnalyticsStats(filtered, f) {
   if (filtered.length === 0) return '';
   const s = computeAnalyticsStats(filtered);
   const teamLabel = f.team || 'Wszystkie drużyny';
+  const matchCount = new Set(filtered.map(e => String(e.match_id))).size;
 
   const zoneOrder = ['attack-center','attack-left','attack-right',
                      'midfield-center','midfield-left','midfield-right','own-half'];
@@ -405,6 +637,7 @@ function _renderAnalyticsStats(filtered, f) {
     <section class="analytics-section">
       <h2>Statystyki: ${escapeHtml(teamLabel)}</h2>
       <div class="stats-grid">
+        <div class="stat-box"><div class="stat-val">${matchCount}</div><div class="stat-lbl">Meczy</div></div>
         <div class="stat-box"><div class="stat-val">${s.total}</div><div class="stat-lbl">Strzałów</div></div>
         <div class="stat-box"><div class="stat-val">${s.goals}</div><div class="stat-lbl">Bramek</div></div>
         <div class="stat-box"><div class="stat-val">${s.onTarget}</div><div class="stat-lbl">Celnych</div></div>

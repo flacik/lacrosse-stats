@@ -6,6 +6,24 @@ const HANDLERS = {
   'open-admin':     () => goAdmin(),
   'open-analytics': () => goAnalytics(),
   'home-retry':     () => loadHomeData(),
+
+  // Offline backup — export/import
+  'export-offline-backup': () => exportOfflineBufferToFile(),
+  'import-offline-backup': () => {
+    const input = document.createElement('input');
+    input.type   = 'file';
+    input.accept = '.json';
+    input.onchange = function(e) {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      importOfflineBufferFromFile(file, function(count) {
+        APP.offlineBanner = loadOfflineBuffer().length || null;
+        APP.banner = { type: 'info', msg: 'Zaimportowano ' + count + ' eventów z kopii zapasowej' };
+        render();
+      });
+    };
+    input.click();
+  },
   'viewer-retry':   () => startViewerRefresh(),
   'admin-retry':    () => loadAdminData(),
 
@@ -22,6 +40,12 @@ const HANDLERS = {
   'go-home-from-analytics': () => goHome(),
   'analytics-heatmap-toggle': (mode) => {
     APP.analyticsHeatmapMode = mode;
+    render();
+  },
+  'analytics-goalie-sort': (col) => {
+    const s = APP.analyticsGoalieSort;
+    s.dir = s.col === col ? (s.dir === 'desc' ? 'asc' : 'desc') : 'desc';
+    s.col = col;
     render();
   },
   'open-viewer-from-analytics': (matchId) => {
@@ -133,19 +157,10 @@ const HANDLERS = {
     if (!t) return;
     const matchCount = DATA.scheduledMatches.filter(m => m.tournament === t.name).length;
     const msg = matchCount > 0
-      ? `Usunąć turniej „${t.name}"? ${matchCount} przypisanych meczów zostanie BEZ turnieju (string nie wyczyści się automatycznie).`
+      ? `Usunąć „${t.name}"? ${matchCount} meczów straci przypisany turniej.`
       : `Usunąć turniej „${t.name}"?`;
-    if (!confirm(msg)) return;
-    // Optimistic remove
-    DATA.tournaments = DATA.tournaments.filter(x => x.id !== id);
+    APP.modal = { type: 'confirm', title: 'Usuń turniej', message: msg, _action: 'delete-tournament', _arg: id };
     render();
-    // Async GAS
-    gasDeleteTournament(id).catch(function(e) {
-      if (e.code !== 'DEV_MODE') {
-        APP.banner = { type: 'error', msg: 'Błąd usunięcia turnieju: ' + (e.message || e) };
-        render();
-      }
-    });
   },
   'submit-tournament': (id) => {
     const input = document.getElementById('tournament-name');
@@ -197,20 +212,10 @@ const HANDLERS = {
     if (!m) return;
     const eventCount = DATA.events.filter(e => e.match_id === id).length;
     const msg = eventCount > 0
-      ? `Usunąć mecz „${m.team_A} vs ${m.team_B}" (${m.match_date})? Razem z nim usuniętych zostanie ${eventCount} zarejestrowanych eventów.`
-      : `Usunąć mecz „${m.team_A} vs ${m.team_B}" (${m.match_date})?`;
-    if (!confirm(msg)) return;
-    // Optimistic remove
-    DATA.scheduledMatches = DATA.scheduledMatches.filter(x => x.id !== id);
-    DATA.events           = DATA.events.filter(e => e.match_id !== id);
+      ? `Usunąć mecz ${m.team_A} vs ${m.team_B} (${m.match_date})? Usuniętych zostanie też ${eventCount} eventów.`
+      : `Usunąć mecz ${m.team_A} vs ${m.team_B} (${m.match_date})?`;
+    APP.modal = { type: 'confirm', title: 'Usuń mecz', message: msg, _action: 'delete-match', _arg: id };
     render();
-    // Async GAS
-    gasDeleteMatch(id).catch(function(e) {
-      if (e.code !== 'DEV_MODE') {
-        APP.banner = { type: 'error', msg: 'Błąd usunięcia meczu: ' + (e.message || e) };
-        render();
-      }
-    });
   },
   'submit-match': (id) => {
     const tournament = (document.getElementById('match-tournament').value || '').trim();
@@ -443,8 +448,35 @@ const HANDLERS = {
     render();
   },
   'delete-event': (id) => {
-    if (!confirm('Usunąć ten event?')) return;
-    deleteEvent(id);
+    const ev = DATA.events.find(e => String(e.id) === String(id));
+    if (!ev) return;
+
+    // Optimistic remove z UI
+    DATA.events = DATA.events.filter(e => String(e.id) !== String(id));
+
+    // Dodaj do kolejki cofnięcia i zresetuj timer (5s)
+    APP._deleteQueue = (APP._deleteQueue || []).concat([ev]);
+    clearTimeout(APP._deleteTimer);
+    const count = APP._deleteQueue.length;
+    APP.banner = { type: 'delete-undo', count };
+    APP._deleteTimer = setTimeout(function() {
+      _commitDeleteQueue();
+      render();
+    }, 5000);
+
+    render();
+  },
+  'undo-delete': () => {
+    clearTimeout(APP._deleteTimer);
+    APP._deleteTimer = null;
+    const queue = APP._deleteQueue || [];
+    APP._deleteQueue = [];
+    APP.banner = null;
+    queue.forEach(function(ev) { DATA.events.push(ev); });
+    render();
+  },
+  'commit-delete': () => {
+    _commitDeleteQueue();
     render();
   },
 
@@ -461,6 +493,13 @@ const HANDLERS = {
 
   // Modal actions
   'cancel-modal': () => closeModal(),
+  'confirm-dialog-ok': () => {
+    const m = APP.modal;
+    APP.modal = null;
+    if (m._action === 'delete-tournament') { deleteTournamentConfirmed(m._arg); return; }
+    if (m._action === 'delete-match')      { deleteMatchConfirmed(m._arg); return; }
+    render();
+  },
 
   // Ad-hoc match creation
   'create-ad-hoc': () => {

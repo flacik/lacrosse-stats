@@ -68,6 +68,15 @@ function renderMatchInput(root) {
           <button class="cancel" data-action="dismiss-period-undo">OK</button>
         </div>
       `;
+    } else if (APP.banner.type === 'delete-undo') {
+      const n = APP.banner.count;
+      bannerHtml = `
+        <div class="match-banner delete-undo">
+          <span>🗑 Usunięto ${n} event${n === 1 ? '' : 'ów'}</span>
+          <button data-action="undo-delete">↩ Cofnij</button>
+          <button class="cancel" data-action="commit-delete">OK</button>
+        </div>
+      `;
     }
   }
 
@@ -158,9 +167,9 @@ function renderMatchInput(root) {
 function renderHistoryRow(e, match) {
   const slot  = teamSlot(match.id, e.team_event);
   const flags = [];
-  if (e.man_up)                          flags.push('<span class="flag man-up">man-up</span>');
-  if (e.man_down)                        flags.push('<span class="flag man-down">man-down</span>');
-  if (e.assisted && e.result === 'gol') flags.push('<span class="flag assisted">asysta</span>');
+  if (e.man_up)    flags.push('<span class="flag man-up">man-up</span>');
+  if (e.man_down)  flags.push('<span class="flag man-down">man-down</span>');
+  if (e.assisted)  flags.push('<span class="flag assisted">A</span>');
 
   // Wskaźnik synchronizacji z GAS
   let syncBadge = '';
@@ -179,7 +188,6 @@ function renderHistoryRow(e, match) {
       <div class="period">${periodLabel(e.period)}</div>
       <div class="team-tag ${slot}">${slot}</div>
       <div class="result ${e.result}">${e.result}</div>
-      <div class="zone${e.zone_name === 'own-half' ? ' own-half' : ''}">${e.zone_name}</div>
       <div class="flags">${flags.join('')}${syncBadge}</div>
       <div class="actions">
         ${retryBtn}

@@ -85,6 +85,19 @@ body {
   font-size: 12px; color: #666;
 }
 
+.offline-recovery-banner {
+  max-width: 720px; margin: 0 auto 0; padding: 10px 16px;
+  background: #fffbeb; border: 1px solid #fde68a; border-bottom: none;
+  border-radius: 10px 10px 0 0; font-size: 13px; color: #92400e;
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+}
+.offline-recovery-actions { display: flex; gap: 6px; margin-left: auto; }
+.home-info-banner {
+  max-width: 720px; margin: 0 auto 8px; padding: 8px 16px;
+  background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px;
+  font-size: 13px; color: #166534;
+}
+.btn-sm { padding: 3px 10px; font-size: 12px; }
 .home-content { max-width: 720px; margin: 0 auto; padding: 24px 20px; }
 .home-content h2 {
   font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em;
@@ -169,6 +182,7 @@ svg.field.field-half {
 }
 .match-banner.swap-question { background: #eff6ff; border-color: #bfdbfe; color: #1e40af; }
 .match-banner.period-end { background: #f5f3ff; border-color: #ddd6fe; color: #5b21b6; }
+.match-banner.delete-undo { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
 .match-banner button {
   font-family: inherit; font-size: 12px; padding: 4px 10px;
   border: 1px solid currentColor; background: white; color: inherit;
@@ -192,15 +206,15 @@ svg.field.field-half {
 .history-header .count { font-weight: 400; color: #888; font-size: 12px; }
 .history-header .toggle-icon { transition: transform 0.2s; display: inline-block; }
 .history-header.collapsed .toggle-icon { transform: rotate(-90deg); }
-.history-list { max-height: 400px; overflow-y: auto; }
+.history-list { max-height: 55vh; overflow-y: auto; }
 .history-empty { padding: 20px; text-align: center; color: #888; font-size: 13px; }
 .history-row {
   display: grid;
-  grid-template-columns: 50px 28px 80px minmax(110px, 1fr) auto auto;
-  gap: 8px; align-items: center;
-  padding: 10px 16px;
+  grid-template-columns: 36px 24px 62px 1fr auto;
+  gap: 5px; align-items: center;
+  padding: 8px 10px;
   border-bottom: 1px solid #f0f0eb;
-  font-size: 13px;
+  font-size: 12px;
 }
 .history-row:last-child { border-bottom: none; }
 .history-row .period {
@@ -229,11 +243,11 @@ svg.field.field-half {
 }
 .history-row .flag.man-up { background: #dcfce7; color: #166534; }
 .history-row .flag.man-down { background: #fee2e2; color: #991b1b; }
-.history-row .flag.assisted { background: #dbeafe; color: #1d4ed8; }
+.history-row .flag.assisted { background: #fef3c7; color: #92400e; }
 .history-row .actions { display: flex; gap: 4px; }
 .history-row .icon-btn {
   background: none; border: none; cursor: pointer;
-  padding: 4px 6px; border-radius: 3px; font-size: 14px;
+  padding: 2px 4px; border-radius: 3px; font-size: 13px;
   color: #888;
 }
 .history-row .icon-btn:hover { background: #f0f0eb; color: #1a1a1a; }
@@ -314,8 +328,8 @@ label.field input:focus, label.field select:focus {
 
 @media (max-width: 700px) {
   .history-row {
-    grid-template-columns: 50px 28px 1fr auto;
-    gap: 6px;
+    grid-template-columns: 36px 24px 1fr auto;
+    gap: 5px;
   }
   .history-row .zone, .history-row .flags { display: none; }
   .match-info-bar .sides-indicator { display: none; }
@@ -648,6 +662,8 @@ table.stats-table td.num {
 [data-theme="dark"] .match-info-bar .sides-indicator { color: #8b949e; }
 
 /* Home */
+[data-theme="dark"] .offline-recovery-banner { background: #2d2200; border-color: #4d3800; color: #d29922; }
+[data-theme="dark"] .home-info-banner { background: #0d2b1a; border-color: #1e5733; color: #3fb950; }
 [data-theme="dark"] .home-content h2 { color: #8b949e; }
 [data-theme="dark"] .match-card { background: #161b22; border-color: #30363d; }
 [data-theme="dark"] .match-tournament { color: #8b949e; }
@@ -666,6 +682,7 @@ table.stats-table td.num {
 
 /* Banners */
 [data-theme="dark"] .match-banner { background: #2d2500; border-color: #3d3000; color: #d29922; }
+[data-theme="dark"] .match-banner.delete-undo { background: #3d0e0e; border-color: #7f1d1d; color: #f87171; }
 [data-theme="dark"] .match-banner.swap-question { background: #0d2149; border-color: #1f6feb; color: #79c0ff; }
 [data-theme="dark"] .match-banner.period-end { background: #1a0a3d; border-color: #6e40c9; color: #bc8cff; }
 [data-theme="dark"] .match-banner button { background: #161b22; }
@@ -690,7 +707,7 @@ table.stats-table td.num {
 [data-theme="dark"] .history-row .flag { background: #1c2128; color: #8b949e; }
 [data-theme="dark"] .history-row .flag.man-up { background: #0f2d1c; color: #3fb950; }
 [data-theme="dark"] .history-row .flag.man-down { background: #3d0e0e; color: #f85149; }
-[data-theme="dark"] .history-row .flag.assisted { background: #0d1b33; color: #58a6ff; }
+[data-theme="dark"] .history-row .flag.assisted { background: #2d1f00; color: #fcd34d; }
 [data-theme="dark"] .history-row .icon-btn { color: #6e7681; }
 [data-theme="dark"] .history-row .icon-btn:hover { background: #1c2128; color: #e6edf3; }
 [data-theme="dark"] .history-row .icon-btn.delete:hover { color: #f85149; background: #1f0e0e; }
@@ -724,7 +741,11 @@ table.stats-table td.num {
 [data-theme="dark"] label.field select:focus { outline-color: #58a6ff; }
 
 /* SVG boisko */
-[data-theme="dark"] svg.field { background: #1c2128; }
+[data-theme="dark"] svg.field { background: #1e2a1e; }
+[data-theme="dark"] .field-bg { fill: #1e2a1e; }
+[data-theme="dark"] .field-markings line { stroke: #4a7a4a; }
+[data-theme="dark"] .field-markings circle { fill: #1e2a1e; stroke: #4a7a4a; }
+[data-theme="dark"] .field-markings rect { stroke: #333d33; }
 
 /* Viewer */
 [data-theme="dark"] .viewer-card { background: #161b22; border-color: #21262d; }
@@ -1113,6 +1134,9 @@ table.stats-table td.num {
 
 .match-history-col-v2 {
   border-top: 1px solid #e5e5e0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 /* Boisko: pełna szerokość, bez marginesów i zaokrąglenia na małych ekranach */
@@ -1595,6 +1619,35 @@ function removeFromOfflineBuffer(clientEventId) {
   saveOfflineBuffer(loadOfflineBuffer().filter(function(b) { return b.client_event_id !== clientEventId; }));
 }
 
+function exportOfflineBufferToFile() {
+  var buffer = loadOfflineBuffer();
+  if (!buffer.length) return;
+  var json = JSON.stringify(buffer, null, 2);
+  var blob = new Blob([json], { type: 'application/json' });
+  var url  = URL.createObjectURL(blob);
+  var a    = document.createElement('a');
+  a.href     = url;
+  a.download = 'lacrosse-backup-' + todayISO() + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importOfflineBufferFromFile(file, onDone) {
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      var events = JSON.parse(e.target.result);
+      if (!Array.isArray(events)) return;
+      var count = 0;
+      events.forEach(function(ev) {
+        if (ev && ev.client_event_id) { addToOfflineBuffer(ev); count++; }
+      });
+      if (onDone) onDone(count);
+    } catch (_) {}
+  };
+  reader.readAsText(file);
+}
+
 // ── SAMPLE_DATA — fallback dla trybu dev ──────────────────────────────────────
 
 // Mulberry32 — deterministyczny PRNG z seedem
@@ -1903,7 +1956,12 @@ function teamSlot(matchId, teamName) {
 function eventsForMatch(matchId) {
   return DATA.events
     .filter(e => String(e.match_id) === String(matchId) && e.event_type !== 'goalie_set')
-    .sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
+    .sort((a, b) => {
+      const aId = Number(a.id) || 0;
+      const bId = Number(b.id) || 0;
+      if (aId !== bId) return bId - aId;
+      return (Number(b.created_at) || 0) - (Number(a.created_at) || 0);
+    });
 }
 
 function getCurrentGoalieNumber(teamName, events) {
@@ -2073,12 +2131,22 @@ let APP = {
   // CSV bulk import (panel admin)
   csvImport: null,  // null | { rows: [], importing: bool }
 
+  // Offline buffer recovery
+  offlineBanner: null,  // number | null — liczba eventów w offline bufferze przy starcie
+
+  // Undo queue dla usuwania eventów (delete-event handler)
+  _deleteQueue: [],     // Event[] — usunięte z UI, czekają na GAS
+  _deleteTimer: null,   // setTimeout ID — commit po 5s braku aktywności
+
   // Standings (tabela ligowa)
   standingsLoading:    false,
   standingsError:      null,
   standingsData:       null,   // { events: [], matches: [], tournaments: [] }
   standingsTournament: '',     // nazwa wybranego turnieju; '' = pierwszy dostępny
   standingsSort:       { col: 'goals', dir: 'desc' },
+
+  // Analytics — sortowanie tabeli bramkarzy (v7.0.1)
+  analyticsGoalieSort: { col: 'savePct', dir: 'desc' },
 };
 
 // ── Routing ────────────────────────────────────────────────────────────────────
@@ -2088,6 +2156,10 @@ function go(screen, opts) {
   if (APP.refreshInterval) {
     clearInterval(APP.refreshInterval);
     APP.refreshInterval = null;
+  }
+  // Flush pending event deletions before leaving current screen
+  if (APP._deleteQueue && APP._deleteQueue.length > 0) {
+    _commitDeleteQueue();
   }
   APP.screen      = screen;
   APP.matchId     = opts.matchId || null;
@@ -2263,6 +2335,21 @@ async function loadStandingsData() {
   render();
 }
 
+// ── Offline buffer recovery ────────────────────────────────────────────────────
+
+// Scal eventy z offline buffera dla danego meczu z powrotem do DATA.events.
+// Wywoływana po każdym loadMatchEvents — eventy przetrwały restart przeglądarki,
+// ale GAS ich nie ma (nigdy nie zostały zapisane), więc trzeba je scalić ręcznie.
+function _mergeOfflineBufferForMatch(matchId) {
+  const buffered = loadOfflineBuffer().filter(b => String(b.match_id) === String(matchId));
+  buffered.forEach(function(ev) {
+    if (!DATA.events.some(e => e.client_event_id === ev.client_event_id)) {
+      DATA.events.push(Object.assign({}, ev, { _syncing: false, _syncError: 'Niezsynchronizowany' }));
+      _scheduleRetry(ev.client_event_id, ev, 1);
+    }
+  });
+}
+
 // ── Ładowanie eventów — tryb wpisu i podglądu ──────────────────────────────────
 
 async function loadMatchEvents(matchId) {
@@ -2274,6 +2361,9 @@ async function loadMatchEvents(matchId) {
     // Zachowaj eventy innych meczów (dla wyników na home), zastąp bieżącego meczu
     DATA.events = DATA.events.filter(e => String(e.match_id) !== String(matchId));
     DATA.events = DATA.events.concat(events || []);
+
+    // Przywróć niezsynchronizowane eventy z offline buffera (przetrwały restart)
+    _mergeOfflineBufferForMatch(matchId);
 
     // Zmień status 'scheduled' → 'live' przy pierwszym otwarciu
     const match = DATA.scheduledMatches.find(m => String(m.id) === String(matchId));
@@ -2289,6 +2379,9 @@ async function loadMatchEvents(matchId) {
       );
       DATA.events = DATA.events.filter(ev => String(ev.match_id) !== String(matchId));
       DATA.events = DATA.events.concat(sampleForMatch);
+
+      // Przywróć niezsynchronizowane eventy z offline buffera
+      _mergeOfflineBufferForMatch(matchId);
 
       // Zmień status w SAMPLE_DATA (tylko lokalnie)
       const match = DATA.scheduledMatches.find(m => String(m.id) === String(matchId));
@@ -2522,6 +2615,55 @@ async function recordEvent(eventData) {
   render();  // re-render po GAS response (aktualizacja stanu sync)
 }
 
+// Natychmiast commituje wszystkie zdarzenia w kolejce usunięć do GAS.
+// Wywoływana przy timeout, "OK" i nawigacji do innego ekranu.
+function _commitDeleteQueue() {
+  clearTimeout(APP._deleteTimer);
+  APP._deleteTimer = null;
+  const queue = APP._deleteQueue || [];
+  APP._deleteQueue = [];
+  APP.banner = null;
+
+  queue.forEach(function(ev) {
+    removeFromOfflineBuffer(ev.client_event_id);
+
+    const hasGasId = !ev._syncing && !ev._syncError &&
+                     String(ev.id) !== ev.client_event_id &&
+                     !isNaN(Number(ev.id));
+    if (!hasGasId) return;
+
+    gasDeleteEvent(ev.id).catch(function(e) {
+      if (e.code !== 'DEV_MODE') {
+        APP.banner = { type: 'error', msg: 'Błąd usunięcia eventu: ' + (e.message || e) };
+        render();
+      }
+    });
+  });
+}
+
+function deleteTournamentConfirmed(id) {
+  DATA.tournaments = DATA.tournaments.filter(x => x.id !== id);
+  render();
+  gasDeleteTournament(id).catch(function(e) {
+    if (e.code !== 'DEV_MODE') {
+      APP.banner = { type: 'error', msg: 'Błąd usunięcia turnieju: ' + (e.message || e) };
+      render();
+    }
+  });
+}
+
+function deleteMatchConfirmed(id) {
+  DATA.scheduledMatches = DATA.scheduledMatches.filter(x => x.id !== id);
+  DATA.events           = DATA.events.filter(e => e.match_id !== id);
+  render();
+  gasDeleteMatch(id).catch(function(e) {
+    if (e.code !== 'DEV_MODE') {
+      APP.banner = { type: 'error', msg: 'Błąd usunięcia meczu: ' + (e.message || e) };
+      render();
+    }
+  });
+}
+
 /**
  * Usuwa event po id (UUID tymczasowy lub numeryczny GAS).
  * Optimistic: natychmiast usuwa z DATA.events.
@@ -2638,7 +2780,7 @@ function buildFieldSvg(match) {
   svg.appendChild(sideLabels);
 
   const fieldG = svgEl('g', { transform: 'translate(0, 50)' });
-  fieldG.appendChild(svgEl('rect', { x: 0, y: 0, width: 1100, height: 600, fill: '#9bbf85' }));
+  fieldG.appendChild(svgEl('rect', { x: 0, y: 0, width: 1100, height: 600, fill: '#9bbf85', class: 'field-bg' }));
 
   // Zone overlay (toggleable)
   if (APP.match.show_zones) {
@@ -2659,7 +2801,7 @@ function buildFieldSvg(match) {
   }
 
   // Field markings
-  const markings = svgEl('g');
+  const markings = svgEl('g', { class: 'field-markings' });
   markings.innerHTML = `
     <line x1="550" y1="0" x2="550" y2="600" stroke="white" stroke-width="2"/>
     <line x1="540" y1="290" x2="560" y2="310" stroke="white" stroke-width="2"/>
@@ -2711,7 +2853,21 @@ function buildFieldSvg(match) {
       'stroke-width': isLatest ? (isOwnHalf ? 4 : 3) : (isOwnHalf ? 3 : 2),
       class: 'marker' + (isLatest ? ' latest' : '')
     });
-    markersG.appendChild(dot);
+
+    if (e.assisted) {
+      const g = svgEl('g');
+      g.appendChild(dot);
+      const bx = sx + dotR - 2;
+      const by = sy - dotR + 2;
+      g.appendChild(svgEl('circle', { cx: bx, cy: by, r: 6, fill: '#f59e0b', stroke: 'white', 'stroke-width': 1 }));
+      const t = svgEl('text', { x: bx, y: by + 0.5, 'text-anchor': 'middle', 'dominant-baseline': 'middle',
+        'font-size': 7, 'font-weight': 'bold', fill: 'white' });
+      t.textContent = 'A';
+      g.appendChild(t);
+      markersG.appendChild(g);
+    } else {
+      markersG.appendChild(dot);
+    }
   });
   fieldG.appendChild(markersG);
 
@@ -2823,7 +2979,7 @@ function drawHalfFieldChart(svg, match, filtered, viewer) {
 
   const fieldG = svgEl('g', { transform: 'translate(0, 50)' });
   // Half-field 540 wide × 600 tall (one offensive half, goal at top).
-  fieldG.appendChild(svgEl('rect', { x: 0, y: 0, width: 540, height: 600, fill: '#9bbf85' }));
+  fieldG.appendChild(svgEl('rect', { x: 0, y: 0, width: 540, height: 600, fill: '#9bbf85', class: 'field-bg' }));
   // Center line at the bottom (where attack starts).
   fieldG.appendChild(svgEl('line', { x1: 0, y1: 600, x2: 540, y2: 600, stroke: 'white', 'stroke-width': 3 }));
   // Restraining line (attacker_progress 0.4368 → cy = (1 − 0.4368) × 600 ≈ 337.92).
@@ -2847,14 +3003,14 @@ function drawHalfFieldChart(svg, match, filtered, viewer) {
     const cx = e.shot_y * 540;
     const cy = (1 - e.shot_x) * 600;
     if (viewer.display_mode === 'heatmap') drawHeatBlob(fieldG, cx, cy, teamColor);
-    else                                    drawShotMarker(fieldG, cx, cy, teamColor, e.result, false, e.man_up, e.man_down);
+    else                                    drawShotMarker(fieldG, cx, cy, teamColor, e.result, false, e.man_up, e.man_down, e.assisted);
   });
 
   svg.appendChild(fieldG);
 }
 
 function drawFieldMarkings(g, w, h) {
-  g.appendChild(svgEl('rect',   { x: 0, y: 0, width: w, height: h, fill: '#9bbf85' }));
+  g.appendChild(svgEl('rect',   { x: 0, y: 0, width: w, height: h, fill: '#9bbf85', class: 'field-bg' }));
   g.appendChild(svgEl('line',   { x1: w / 2, y1: 0, x2: w / 2, y2: h, stroke: 'white', 'stroke-width': 2 }));
   g.appendChild(svgEl('line',   { x1: w / 2 - 10, y1: h / 2 - 10, x2: w / 2 + 10, y2: h / 2 + 10, stroke: 'white', 'stroke-width': 2 }));
   g.appendChild(svgEl('line',   { x1: w / 2 - 10, y1: h / 2 + 10, x2: w / 2 + 10, y2: h / 2 - 10, stroke: 'white', 'stroke-width': 2 }));
@@ -2878,11 +3034,11 @@ function drawShotsFullField(g, events, match, displayMode) {
     const cx = physical_x * 1100;
     const cy = physical_y * 600;
     if (displayMode === 'heatmap') drawHeatBlob(g, cx, cy, color);
-    else                            drawShotMarker(g, cx, cy, color, e.result, e.zone_name === 'own-half', e.man_up, e.man_down);
+    else                            drawShotMarker(g, cx, cy, color, e.result, e.zone_name === 'own-half', e.man_up, e.man_down, e.assisted);
   });
 }
 
-function drawShotMarker(g, cx, cy, color, result, isOwnHalf, manUp, manDown) {
+function drawShotMarker(g, cx, cy, color, result, isOwnHalf, manUp, manDown, hasAssist) {
   const isGoal   = result === 'gol';
   const isMissed = result === 'niecelny';
   const strokeColor = isOwnHalf ? '#ca8a04' : color;
@@ -2910,6 +3066,17 @@ function drawShotMarker(g, cx, cy, color, result, isOwnHalf, manUp, manDown) {
       stroke: isOwnHalf ? '#ca8a04' : (isGoal ? 'white' : color),
       'stroke-width': 2
     }));
+  }
+
+  if (hasAssist) {
+    g.appendChild(svgEl('circle', { cx: cx + 5, cy: cy - 5, r: 5, fill: '#f59e0b', stroke: 'white', 'stroke-width': 1 }));
+    const t = svgEl('text', {
+      x: cx + 5, y: cy - 4.5,
+      'text-anchor': 'middle', 'dominant-baseline': 'middle',
+      'font-size': 6, 'font-weight': 'bold', fill: 'white'
+    });
+    t.textContent = 'A';
+    g.appendChild(t);
   }
 }
 
@@ -2999,6 +3166,14 @@ function buildFieldLegend(match, opts) {
       Man-down
     </span>
     ` : ''}
+    <span class="leg-item">
+      <svg width="22" height="14" viewBox="0 0 22 14">
+        <circle cx="7" cy="7" r="6" fill="#1d4ed8"/>
+        <circle cx="17" cy="3" r="4" fill="#f59e0b"/>
+        <text x="17" y="3.5" text-anchor="middle" dominant-baseline="middle" font-size="5" font-weight="bold" fill="white">A</text>
+      </svg>
+      Asysta
+    </span>
   `;
   return div;
 }
@@ -3098,6 +3273,20 @@ function renderHome(root) {
     `;
   }
 
+  const infoBannerHtml = (APP.banner && APP.banner.type === 'info')
+    ? `<div class="home-info-banner">${escapeHtml(APP.banner.msg)}</div>`
+    : '';
+
+  const offlineBannerHtml = APP.offlineBanner
+    ? `<div class="offline-recovery-banner">
+        ⚠ ${APP.offlineBanner} event${APP.offlineBanner === 1 ? '' : 'ów'} czeka na synchronizację (brak internetu przy ostatnim użyciu).
+        <div class="offline-recovery-actions">
+          <button class="btn btn-sm" data-action="export-offline-backup" title="Pobierz kopię zapasową jako plik JSON">Pobierz kopię</button>
+          <button class="btn btn-sm" data-action="import-offline-backup" title="Importuj kopię zapasową z pliku JSON">Importuj z pliku</button>
+        </div>
+      </div>`
+    : '';
+
   let html = `
     <div class="app-header">
       <h1>Lacrosse Stats</h1>
@@ -3107,6 +3296,8 @@ function renderHome(root) {
       <button class="btn" data-action="open-standings">🏆 Tabela</button>
       <button class="btn" data-action="toggle-dark-mode" id="theme-toggle" title="Przełącz tryb ciemny">🌙</button>
     </div>
+    ${offlineBannerHtml}
+    ${infoBannerHtml}
     <div class="home-content">
       <h2>Mecze dzisiaj</h2>
   `;
@@ -3203,6 +3394,15 @@ function renderMatchInput(root) {
           <button class="cancel" data-action="dismiss-period-undo">OK</button>
         </div>
       `;
+    } else if (APP.banner.type === 'delete-undo') {
+      const n = APP.banner.count;
+      bannerHtml = `
+        <div class="match-banner delete-undo">
+          <span>🗑 Usunięto ${n} event${n === 1 ? '' : 'ów'}</span>
+          <button data-action="undo-delete">↩ Cofnij</button>
+          <button class="cancel" data-action="commit-delete">OK</button>
+        </div>
+      `;
     }
   }
 
@@ -3293,9 +3493,9 @@ function renderMatchInput(root) {
 function renderHistoryRow(e, match) {
   const slot  = teamSlot(match.id, e.team_event);
   const flags = [];
-  if (e.man_up)                          flags.push('<span class="flag man-up">man-up</span>');
-  if (e.man_down)                        flags.push('<span class="flag man-down">man-down</span>');
-  if (e.assisted && e.result === 'gol') flags.push('<span class="flag assisted">asysta</span>');
+  if (e.man_up)    flags.push('<span class="flag man-up">man-up</span>');
+  if (e.man_down)  flags.push('<span class="flag man-down">man-down</span>');
+  if (e.assisted)  flags.push('<span class="flag assisted">A</span>');
 
   // Wskaźnik synchronizacji z GAS
   let syncBadge = '';
@@ -3314,7 +3514,6 @@ function renderHistoryRow(e, match) {
       <div class="period">${periodLabel(e.period)}</div>
       <div class="team-tag ${slot}">${slot}</div>
       <div class="result ${e.result}">${e.result}</div>
-      <div class="zone${e.zone_name === 'own-half' ? ' own-half' : ''}">${e.zone_name}</div>
       <div class="flags">${flags.join('')}${syncBadge}</div>
       <div class="actions">
         ${retryBtn}
@@ -3800,9 +3999,240 @@ function _renderAnalyticsBody(filtered, matches, f) {
   return `
     <div class="analytics-body">
       ${_renderAnalyticsStats(filtered, f)}
+      ${_renderAnalyticsGoalies(filtered, APP.analyticsData.events, APP.analyticsData.matches, f)}
       ${_renderAnalyticsHeatmap(filtered, APP.analyticsData.events, f)}
       ${_renderAnalyticsMatchHistory(filtered, APP.analyticsData.events, APP.analyticsData.matches, f)}
     </div>`;
+}
+
+// ── Bramkarze w analityce historycznej ───────────────────────────────────────
+
+function _computeGoalieAnalytics(filteredShots, allEvents, allMatches, f, sort) {
+  const matchIds = new Set(filteredShots.map(e => String(e.match_id)));
+
+  // matchMap: matchId -> { team_A, team_B } — do identyfikacji broniącej drużyny
+  const matchMap = {};
+  allMatches.forEach(m => { matchMap[String(m.id)] = m; });
+
+  // Wszystkie strzały na bramkę w objętych meczach (oba kierunki)
+  let shotsOnGoal = allEvents.filter(e =>
+    e.event_type !== 'goalie_set' &&
+    matchIds.has(String(e.match_id)) &&
+    (e.result === 'gol' || e.result === 'celny')
+  );
+  if (f.period)   shotsOnGoal = shotsOnGoal.filter(e => String(e.period) === f.period);
+  if (f.dateFrom) shotsOnGoal = shotsOnGoal.filter(e => e.match_date >= f.dateFrom);
+  if (f.dateTo)   shotsOnGoal = shotsOnGoal.filter(e => e.match_date <= f.dateTo);
+
+  const goalieSets = allEvents.filter(e =>
+    e.event_type === 'goalie_set' &&
+    matchIds.has(String(e.match_id))
+  );
+
+  function getDefendingTeam(shot) {
+    const m = matchMap[String(shot.match_id)];
+    if (!m) return null;
+    if (shot.team_event === m.team_A) return m.team_B;
+    if (shot.team_event === m.team_B) return m.team_A;
+    return null;
+  }
+
+  function getActiveGoalie(teamName, matchId, period) {
+    const sets = goalieSets
+      .filter(e => e.team_event === teamName && String(e.match_id) === matchId)
+      .sort((a, b) => getPeriodOrder(a.period) - getPeriodOrder(b.period));
+    let number = null;
+    for (const s of sets) {
+      if (getPeriodOrder(s.period) <= getPeriodOrder(period)) number = s.goalie_number;
+    }
+    return number;
+  }
+
+  const byKey = {};       // key: `${team}::${num}`
+  const matchesPerKey = {};
+
+  for (const shot of shotsOnGoal) {
+    const defTeam = getDefendingTeam(shot);
+    if (!defTeam) continue;
+    if (f.team && defTeam !== f.team) continue;
+
+    const num = getActiveGoalie(defTeam, String(shot.match_id), shot.period) || '__none__';
+    const key = `${defTeam}::${num}`;
+
+    if (!byKey[key]) {
+      byKey[key] = { team: defTeam, number: num, saves: 0, goalsAgainst: 0, shotsOnGoal: 0, byPeriod: {} };
+      matchesPerKey[key] = new Set();
+    }
+    const g = byKey[key];
+    if (shot.result === 'celny') g.saves++;
+    if (shot.result === 'gol')   g.goalsAgainst++;
+    g.shotsOnGoal++;
+    matchesPerKey[key].add(String(shot.match_id));
+
+    const p = String(shot.period);
+    if (!g.byPeriod[p]) g.byPeriod[p] = { saves: 0, goalsAgainst: 0, shotsOnGoal: 0 };
+    if (shot.result === 'celny') g.byPeriod[p].saves++;
+    if (shot.result === 'gol')   g.byPeriod[p].goalsAgainst++;
+    g.byPeriod[p].shotsOnGoal++;
+  }
+
+  const list = Object.entries(byKey).map(([key, g]) => ({
+    team:         g.team,
+    number:       g.number === '__none__' ? null : g.number,
+    saves:        g.saves,
+    goalsAgainst: g.goalsAgainst,
+    shotsOnGoal:  g.shotsOnGoal,
+    savePct:      g.shotsOnGoal > 0 ? Math.round(g.saves / g.shotsOnGoal * 100) : null,
+    matchCount:   matchesPerKey[key].size,
+    byPeriod:     g.byPeriod,
+  })).sort((a, b) => {
+    const s = sort || { col: 'savePct', dir: 'desc' };
+    let aVal, bVal;
+    if (s.col.startsWith('p:')) {
+      const p = s.col.slice(2);
+      const ap = a.byPeriod[p], bp = b.byPeriod[p];
+      aVal = ap && ap.shotsOnGoal > 0 ? ap.saves / ap.shotsOnGoal : -1;
+      bVal = bp && bp.shotsOnGoal > 0 ? bp.saves / bp.shotsOnGoal : -1;
+    } else if (s.col === 'number') {
+      aVal = a.number !== null ? (isNaN(Number(a.number)) ? a.number : Number(a.number)) : (s.dir === 'asc' ? Infinity : -Infinity);
+      bVal = b.number !== null ? (isNaN(Number(b.number)) ? b.number : Number(b.number)) : (s.dir === 'asc' ? Infinity : -Infinity);
+      if (typeof aVal === 'string' || typeof bVal === 'string') {
+        const sa = String(aVal), sb = String(bVal);
+        return s.dir === 'asc' ? sa.localeCompare(sb) : sb.localeCompare(sa);
+      }
+    } else {
+      aVal = a[s.col] !== null ? a[s.col] : -1;
+      bVal = b[s.col] !== null ? b[s.col] : -1;
+    }
+    if (aVal === bVal) return 0;
+    return s.dir === 'desc' ? bVal - aVal : aVal - bVal;
+  });
+
+  const totalSaves       = list.reduce((s, g) => s + g.saves, 0);
+  const totalGoals       = list.reduce((s, g) => s + g.goalsAgainst, 0);
+  const totalShotsOnGoal = list.reduce((s, g) => s + g.shotsOnGoal, 0);
+  const avgSavePct       = totalShotsOnGoal > 0
+    ? Math.round(totalSaves / totalShotsOnGoal * 100)
+    : null;
+
+  return { list, totalSaves, totalGoals, totalShotsOnGoal, avgSavePct, matchCount: matchIds.size };
+}
+
+function _renderAnalyticsGoalies(filtered, allEvents, allMatches, f) {
+  if (filtered.length === 0) return '';
+
+  const sort = APP.analyticsGoalieSort;
+  const data = _computeGoalieAnalytics(filtered, allEvents, allMatches, f, sort);
+  if (data.totalShotsOnGoal === 0) return '';
+
+  const teamLabel = f.team ? escapeHtml(f.team) : null;
+
+  function sortTh(label, col, style) {
+    const active = sort.col === col;
+    const arrow  = active ? (sort.dir === 'desc' ? ' ↓' : ' ↑') : '';
+    const base   = 'cursor:pointer;user-select:none;white-space:nowrap;';
+    const hlCss  = active ? 'text-decoration:underline;' : '';
+    const extra  = style ? style + ';' : '';
+    return `<th style="${base}${hlCss}${extra}" data-action="analytics-goalie-sort" data-arg="${col}">${label}${arrow}</th>`;
+  }
+
+  function savePctAttr(pct) {
+    if (pct === null) return '';
+    if (pct >= 70) return 'style="color:#15803d;font-weight:700"';
+    if (pct >= 55) return 'style="color:#1d4ed8;font-weight:700"';
+    return 'style="color:#b91c1c;font-weight:700"';
+  }
+
+  function savePctBar(pct) {
+    if (pct === null) return '';
+    const color = pct >= 70 ? '#16a34a' : pct >= 55 ? '#3b82f6' : '#dc2626';
+    const w = Math.round(pct * 0.6);
+    return `<span style="display:inline-block;width:60px;height:5px;background:#e5e7eb;border-radius:3px;vertical-align:middle;margin-left:6px;"><span style="display:block;width:${w}px;height:5px;border-radius:3px;background:${color};"></span></span>`;
+  }
+
+  const rankStyles = [
+    'background:#fde68a;color:#92400e',
+    'background:#d1d5db;color:#374151',
+    'background:#fed7aa;color:#9a3412',
+  ];
+
+  const mainRows = data.list.map((g, i) => {
+    const rankStyle  = i < 3 ? rankStyles[i] : 'background:#e5e7eb;color:#4b5563';
+    const numLabel   = g.number !== null ? `#${escapeHtml(g.number)}` : '—';
+    const pctLabel   = g.savePct !== null ? `${g.savePct}%` : '—';
+    const subLabel   = escapeHtml(g.team);
+    return `
+      <tr>
+        <td><span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;font-size:11px;font-weight:600;${rankStyle}">${i + 1}</span></td>
+        <td style="line-height:1.3">
+          <span style="font-weight:600;font-size:14px">${numLabel}</span>
+          <span style="font-size:11px;color:#6b7280;display:block;margin-top:1px">${subLabel}</span>
+        </td>
+        <td class="num">${g.matchCount}</td>
+        <td class="num">${g.shotsOnGoal}</td>
+        <td class="num">${g.saves}</td>
+        <td class="num">${g.goalsAgainst}</td>
+        <td class="num"><span ${savePctAttr(g.savePct)}>${pctLabel}</span>${savePctBar(g.savePct)}</td>
+      </tr>`;
+  }).join('');
+
+  let periodTable = '';
+  if (!f.period && data.list.length >= 1 && data.list.length <= 5) {
+    const periodSet = new Set();
+    data.list.forEach(g => Object.keys(g.byPeriod).forEach(p => periodSet.add(p)));
+    const periods = [...periodSet].sort((a, b) => getPeriodOrder(a) - getPeriodOrder(b));
+    if (periods.length > 1) {
+      const periodHeaders = periods.map(p => sortTh(escapeHtml(periodLabel(p)), 'p:' + p)).join('');
+      const periodRows = data.list.map(g => {
+        const numLabel = g.number !== null ? `#${escapeHtml(g.number)}` : '—';
+        const cells = periods.map(p => {
+          const pd = g.byPeriod[p];
+          if (!pd || pd.shotsOnGoal === 0) return `<td class="num" style="color:#9ca3af">—</td>`;
+          const pct = Math.round(pd.saves / pd.shotsOnGoal * 100);
+          return `<td class="num" ${savePctAttr(pct)}>${pct}%</td>`;
+        }).join('');
+        return `<tr><td style="line-height:1.3"><span style="font-weight:600">${numLabel}</span><span style="font-size:11px;color:#6b7280;display:block;margin-top:1px">${escapeHtml(g.team)}</span></td>${cells}</tr>`;
+      }).join('');
+      periodTable = `
+        <h3>Save% per kwarta</h3>
+        <table class="stats-table">
+          <thead><tr>${sortTh('Bramkarz', 'number')}${periodHeaders}</tr></thead>
+          <tbody>${periodRows}</tbody>
+        </table>`;
+    }
+  }
+
+  const avgLabel   = data.avgSavePct !== null ? `${data.avgSavePct}%` : '—';
+  const matchBadge = `<span style="display:inline-block;font-size:11px;font-weight:600;background:#dbeafe;color:#1e40af;padding:2px 8px;border-radius:4px;margin-left:8px;vertical-align:middle">${data.matchCount} meczów</span>`;
+  const heading    = teamLabel ? `Bramkarze: ${teamLabel}` : 'Bramkarze';
+
+  return `
+    <section class="analytics-section">
+      <h2>${heading}${matchBadge}</h2>
+      <div class="stats-grid">
+        <div class="stat-box"><div class="stat-val">${data.list.length}</div><div class="stat-lbl">Bramkarzy</div></div>
+        <div class="stat-box"><div class="stat-val">${data.totalShotsOnGoal}</div><div class="stat-lbl">Strzałów na bramkę</div></div>
+        <div class="stat-box"><div class="stat-val">${data.totalSaves}</div><div class="stat-lbl">Obrony</div></div>
+        <div class="stat-box"><div class="stat-val">${data.totalGoals}</div><div class="stat-lbl">Bramek straconych</div></div>
+        <div class="stat-box"><div class="stat-val">${avgLabel}</div><div class="stat-lbl">Avg save%</div></div>
+      </div>
+      <h3>Per bramkarz</h3>
+      <table class="stats-table">
+        <thead>
+          <tr>
+            <th style="width:28px">#</th>
+            ${sortTh('Bramkarz', 'number')}
+            ${sortTh('Mecze', 'matchCount')}
+            ${sortTh('Strzały na br.', 'shotsOnGoal')}
+            ${sortTh('Obrony', 'saves')}
+            ${sortTh('Bramki str.', 'goalsAgainst')}
+            ${sortTh('Save%', 'savePct')}
+          </tr>
+        </thead>
+        <tbody>${mainRows}</tbody>
+      </table>
+      ${periodTable}
+    </section>`;
 }
 
 // ── V5-03: Porównanie ofensywa vs defensywa ───────────────────────────────────
@@ -4033,6 +4463,7 @@ function _renderAnalyticsStats(filtered, f) {
   if (filtered.length === 0) return '';
   const s = computeAnalyticsStats(filtered);
   const teamLabel = f.team || 'Wszystkie drużyny';
+  const matchCount = new Set(filtered.map(e => String(e.match_id))).size;
 
   const zoneOrder = ['attack-center','attack-left','attack-right',
                      'midfield-center','midfield-left','midfield-right','own-half'];
@@ -4068,6 +4499,7 @@ function _renderAnalyticsStats(filtered, f) {
     <section class="analytics-section">
       <h2>Statystyki: ${escapeHtml(teamLabel)}</h2>
       <div class="stats-grid">
+        <div class="stat-box"><div class="stat-val">${matchCount}</div><div class="stat-lbl">Meczy</div></div>
         <div class="stat-box"><div class="stat-val">${s.total}</div><div class="stat-lbl">Strzałów</div></div>
         <div class="stat-box"><div class="stat-val">${s.goals}</div><div class="stat-lbl">Bramek</div></div>
         <div class="stat-box"><div class="stat-val">${s.onTarget}</div><div class="stat-lbl">Celnych</div></div>
@@ -4802,6 +5234,7 @@ function renderModal() {
   else if (APP.modal.type === 'match-form')          bg.innerHTML = renderMatchModal(APP.modal.match);
   else if (APP.modal.type === 'goalie-form')         bg.innerHTML = renderGoalieFormModal();
   else if (APP.modal.type === 'goalie-retroactive')  bg.innerHTML = renderGoalieRetroactiveModal();
+  else if (APP.modal.type === 'confirm')             bg.innerHTML = renderConfirmModal();
 
   document.body.appendChild(bg);
 }
@@ -4903,6 +5336,20 @@ function renderConfirmEnd() {
       <div class="modal-actions">
         <button class="btn" data-action="cancel-modal">Anuluj</button>
         <button class="btn btn-danger" data-action="confirm-end-match">🏁 Zakończ mecz</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderConfirmModal() {
+  const m = APP.modal;
+  return `
+    <div class="modal" data-stop-propagation="true" style="max-width:360px">
+      <h2>${escapeHtml(m.title || 'Potwierdzenie')}</h2>
+      ${m.message ? `<div class="modal-subtitle" style="font-size:14px;color:inherit;opacity:0.8">${escapeHtml(m.message)}</div>` : ''}
+      <div class="modal-actions">
+        <button class="btn" data-action="cancel-modal">Anuluj</button>
+        <button class="btn btn-danger" data-action="confirm-dialog-ok">Usuń</button>
       </div>
     </div>
   `;
@@ -5028,6 +5475,24 @@ const HANDLERS = {
   'open-admin':     () => goAdmin(),
   'open-analytics': () => goAnalytics(),
   'home-retry':     () => loadHomeData(),
+
+  // Offline backup — export/import
+  'export-offline-backup': () => exportOfflineBufferToFile(),
+  'import-offline-backup': () => {
+    const input = document.createElement('input');
+    input.type   = 'file';
+    input.accept = '.json';
+    input.onchange = function(e) {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      importOfflineBufferFromFile(file, function(count) {
+        APP.offlineBanner = loadOfflineBuffer().length || null;
+        APP.banner = { type: 'info', msg: 'Zaimportowano ' + count + ' eventów z kopii zapasowej' };
+        render();
+      });
+    };
+    input.click();
+  },
   'viewer-retry':   () => startViewerRefresh(),
   'admin-retry':    () => loadAdminData(),
 
@@ -5044,6 +5509,12 @@ const HANDLERS = {
   'go-home-from-analytics': () => goHome(),
   'analytics-heatmap-toggle': (mode) => {
     APP.analyticsHeatmapMode = mode;
+    render();
+  },
+  'analytics-goalie-sort': (col) => {
+    const s = APP.analyticsGoalieSort;
+    s.dir = s.col === col ? (s.dir === 'desc' ? 'asc' : 'desc') : 'desc';
+    s.col = col;
     render();
   },
   'open-viewer-from-analytics': (matchId) => {
@@ -5155,19 +5626,10 @@ const HANDLERS = {
     if (!t) return;
     const matchCount = DATA.scheduledMatches.filter(m => m.tournament === t.name).length;
     const msg = matchCount > 0
-      ? `Usunąć turniej „${t.name}"? ${matchCount} przypisanych meczów zostanie BEZ turnieju (string nie wyczyści się automatycznie).`
+      ? `Usunąć „${t.name}"? ${matchCount} meczów straci przypisany turniej.`
       : `Usunąć turniej „${t.name}"?`;
-    if (!confirm(msg)) return;
-    // Optimistic remove
-    DATA.tournaments = DATA.tournaments.filter(x => x.id !== id);
+    APP.modal = { type: 'confirm', title: 'Usuń turniej', message: msg, _action: 'delete-tournament', _arg: id };
     render();
-    // Async GAS
-    gasDeleteTournament(id).catch(function(e) {
-      if (e.code !== 'DEV_MODE') {
-        APP.banner = { type: 'error', msg: 'Błąd usunięcia turnieju: ' + (e.message || e) };
-        render();
-      }
-    });
   },
   'submit-tournament': (id) => {
     const input = document.getElementById('tournament-name');
@@ -5219,20 +5681,10 @@ const HANDLERS = {
     if (!m) return;
     const eventCount = DATA.events.filter(e => e.match_id === id).length;
     const msg = eventCount > 0
-      ? `Usunąć mecz „${m.team_A} vs ${m.team_B}" (${m.match_date})? Razem z nim usuniętych zostanie ${eventCount} zarejestrowanych eventów.`
-      : `Usunąć mecz „${m.team_A} vs ${m.team_B}" (${m.match_date})?`;
-    if (!confirm(msg)) return;
-    // Optimistic remove
-    DATA.scheduledMatches = DATA.scheduledMatches.filter(x => x.id !== id);
-    DATA.events           = DATA.events.filter(e => e.match_id !== id);
+      ? `Usunąć mecz ${m.team_A} vs ${m.team_B} (${m.match_date})? Usuniętych zostanie też ${eventCount} eventów.`
+      : `Usunąć mecz ${m.team_A} vs ${m.team_B} (${m.match_date})?`;
+    APP.modal = { type: 'confirm', title: 'Usuń mecz', message: msg, _action: 'delete-match', _arg: id };
     render();
-    // Async GAS
-    gasDeleteMatch(id).catch(function(e) {
-      if (e.code !== 'DEV_MODE') {
-        APP.banner = { type: 'error', msg: 'Błąd usunięcia meczu: ' + (e.message || e) };
-        render();
-      }
-    });
   },
   'submit-match': (id) => {
     const tournament = (document.getElementById('match-tournament').value || '').trim();
@@ -5465,8 +5917,35 @@ const HANDLERS = {
     render();
   },
   'delete-event': (id) => {
-    if (!confirm('Usunąć ten event?')) return;
-    deleteEvent(id);
+    const ev = DATA.events.find(e => String(e.id) === String(id));
+    if (!ev) return;
+
+    // Optimistic remove z UI
+    DATA.events = DATA.events.filter(e => String(e.id) !== String(id));
+
+    // Dodaj do kolejki cofnięcia i zresetuj timer (5s)
+    APP._deleteQueue = (APP._deleteQueue || []).concat([ev]);
+    clearTimeout(APP._deleteTimer);
+    const count = APP._deleteQueue.length;
+    APP.banner = { type: 'delete-undo', count };
+    APP._deleteTimer = setTimeout(function() {
+      _commitDeleteQueue();
+      render();
+    }, 5000);
+
+    render();
+  },
+  'undo-delete': () => {
+    clearTimeout(APP._deleteTimer);
+    APP._deleteTimer = null;
+    const queue = APP._deleteQueue || [];
+    APP._deleteQueue = [];
+    APP.banner = null;
+    queue.forEach(function(ev) { DATA.events.push(ev); });
+    render();
+  },
+  'commit-delete': () => {
+    _commitDeleteQueue();
     render();
   },
 
@@ -5483,6 +5962,13 @@ const HANDLERS = {
 
   // Modal actions
   'cancel-modal': () => closeModal(),
+  'confirm-dialog-ok': () => {
+    const m = APP.modal;
+    APP.modal = null;
+    if (m._action === 'delete-tournament') { deleteTournamentConfirmed(m._arg); return; }
+    if (m._action === 'delete-match')      { deleteMatchConfirmed(m._arg); return; }
+    render();
+  },
 
   // Ad-hoc match creation
   'create-ad-hoc': () => {
@@ -5754,6 +6240,10 @@ function _syncThemeToggle() {
 }
 
 // Init — must be last after all modules loaded.
+(function() {
+  var buf = loadOfflineBuffer();
+  if (buf.length > 0) APP.offlineBanner = buf.length;
+})();
 go('home');
 </script>
 </body>

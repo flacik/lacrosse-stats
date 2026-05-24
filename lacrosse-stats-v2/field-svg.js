@@ -31,7 +31,7 @@ function buildFieldSvg(match) {
   svg.appendChild(sideLabels);
 
   const fieldG = svgEl('g', { transform: 'translate(0, 50)' });
-  fieldG.appendChild(svgEl('rect', { x: 0, y: 0, width: 1100, height: 600, fill: '#9bbf85' }));
+  fieldG.appendChild(svgEl('rect', { x: 0, y: 0, width: 1100, height: 600, fill: '#9bbf85', class: 'field-bg' }));
 
   // Zone overlay (toggleable)
   if (APP.match.show_zones) {
@@ -52,7 +52,7 @@ function buildFieldSvg(match) {
   }
 
   // Field markings
-  const markings = svgEl('g');
+  const markings = svgEl('g', { class: 'field-markings' });
   markings.innerHTML = `
     <line x1="550" y1="0" x2="550" y2="600" stroke="white" stroke-width="2"/>
     <line x1="540" y1="290" x2="560" y2="310" stroke="white" stroke-width="2"/>
@@ -104,7 +104,21 @@ function buildFieldSvg(match) {
       'stroke-width': isLatest ? (isOwnHalf ? 4 : 3) : (isOwnHalf ? 3 : 2),
       class: 'marker' + (isLatest ? ' latest' : '')
     });
-    markersG.appendChild(dot);
+
+    if (e.assisted) {
+      const g = svgEl('g');
+      g.appendChild(dot);
+      const bx = sx + dotR - 2;
+      const by = sy - dotR + 2;
+      g.appendChild(svgEl('circle', { cx: bx, cy: by, r: 6, fill: '#f59e0b', stroke: 'white', 'stroke-width': 1 }));
+      const t = svgEl('text', { x: bx, y: by + 0.5, 'text-anchor': 'middle', 'dominant-baseline': 'middle',
+        'font-size': 7, 'font-weight': 'bold', fill: 'white' });
+      t.textContent = 'A';
+      g.appendChild(t);
+      markersG.appendChild(g);
+    } else {
+      markersG.appendChild(dot);
+    }
   });
   fieldG.appendChild(markersG);
 
@@ -216,7 +230,7 @@ function drawHalfFieldChart(svg, match, filtered, viewer) {
 
   const fieldG = svgEl('g', { transform: 'translate(0, 50)' });
   // Half-field 540 wide × 600 tall (one offensive half, goal at top).
-  fieldG.appendChild(svgEl('rect', { x: 0, y: 0, width: 540, height: 600, fill: '#9bbf85' }));
+  fieldG.appendChild(svgEl('rect', { x: 0, y: 0, width: 540, height: 600, fill: '#9bbf85', class: 'field-bg' }));
   // Center line at the bottom (where attack starts).
   fieldG.appendChild(svgEl('line', { x1: 0, y1: 600, x2: 540, y2: 600, stroke: 'white', 'stroke-width': 3 }));
   // Restraining line (attacker_progress 0.4368 → cy = (1 − 0.4368) × 600 ≈ 337.92).
@@ -240,14 +254,14 @@ function drawHalfFieldChart(svg, match, filtered, viewer) {
     const cx = e.shot_y * 540;
     const cy = (1 - e.shot_x) * 600;
     if (viewer.display_mode === 'heatmap') drawHeatBlob(fieldG, cx, cy, teamColor);
-    else                                    drawShotMarker(fieldG, cx, cy, teamColor, e.result, false, e.man_up, e.man_down);
+    else                                    drawShotMarker(fieldG, cx, cy, teamColor, e.result, false, e.man_up, e.man_down, e.assisted);
   });
 
   svg.appendChild(fieldG);
 }
 
 function drawFieldMarkings(g, w, h) {
-  g.appendChild(svgEl('rect',   { x: 0, y: 0, width: w, height: h, fill: '#9bbf85' }));
+  g.appendChild(svgEl('rect',   { x: 0, y: 0, width: w, height: h, fill: '#9bbf85', class: 'field-bg' }));
   g.appendChild(svgEl('line',   { x1: w / 2, y1: 0, x2: w / 2, y2: h, stroke: 'white', 'stroke-width': 2 }));
   g.appendChild(svgEl('line',   { x1: w / 2 - 10, y1: h / 2 - 10, x2: w / 2 + 10, y2: h / 2 + 10, stroke: 'white', 'stroke-width': 2 }));
   g.appendChild(svgEl('line',   { x1: w / 2 - 10, y1: h / 2 + 10, x2: w / 2 + 10, y2: h / 2 - 10, stroke: 'white', 'stroke-width': 2 }));
@@ -271,11 +285,11 @@ function drawShotsFullField(g, events, match, displayMode) {
     const cx = physical_x * 1100;
     const cy = physical_y * 600;
     if (displayMode === 'heatmap') drawHeatBlob(g, cx, cy, color);
-    else                            drawShotMarker(g, cx, cy, color, e.result, e.zone_name === 'own-half', e.man_up, e.man_down);
+    else                            drawShotMarker(g, cx, cy, color, e.result, e.zone_name === 'own-half', e.man_up, e.man_down, e.assisted);
   });
 }
 
-function drawShotMarker(g, cx, cy, color, result, isOwnHalf, manUp, manDown) {
+function drawShotMarker(g, cx, cy, color, result, isOwnHalf, manUp, manDown, hasAssist) {
   const isGoal   = result === 'gol';
   const isMissed = result === 'niecelny';
   const strokeColor = isOwnHalf ? '#ca8a04' : color;
@@ -303,6 +317,17 @@ function drawShotMarker(g, cx, cy, color, result, isOwnHalf, manUp, manDown) {
       stroke: isOwnHalf ? '#ca8a04' : (isGoal ? 'white' : color),
       'stroke-width': 2
     }));
+  }
+
+  if (hasAssist) {
+    g.appendChild(svgEl('circle', { cx: cx + 5, cy: cy - 5, r: 5, fill: '#f59e0b', stroke: 'white', 'stroke-width': 1 }));
+    const t = svgEl('text', {
+      x: cx + 5, y: cy - 4.5,
+      'text-anchor': 'middle', 'dominant-baseline': 'middle',
+      'font-size': 6, 'font-weight': 'bold', fill: 'white'
+    });
+    t.textContent = 'A';
+    g.appendChild(t);
   }
 }
 
@@ -392,6 +417,14 @@ function buildFieldLegend(match, opts) {
       Man-down
     </span>
     ` : ''}
+    <span class="leg-item">
+      <svg width="22" height="14" viewBox="0 0 22 14">
+        <circle cx="7" cy="7" r="6" fill="#1d4ed8"/>
+        <circle cx="17" cy="3" r="4" fill="#f59e0b"/>
+        <text x="17" y="3.5" text-anchor="middle" dominant-baseline="middle" font-size="5" font-weight="bold" fill="white">A</text>
+      </svg>
+      Asysta
+    </span>
   `;
   return div;
 }
