@@ -130,29 +130,38 @@ cd lacrosse-stats-v2/
 
 ## Status
 
-**Current: v8.0.2 — deployed 2026-05-24**
+**Current: v1.9.1 — deployed 2026-05-24**
 
-**v8.0.2 (2026-05-24)** — analytics match count tile, assist in legend and viewer badge:
+### Versioning rules
+
+| Digit | When to bump |
+|---|---|
+| **MAJOR** | Sheets schema change (add/remove column) that requires a data migration |
+| **MINOR** | New user-facing feature or screen |
+| **PATCH** | Bug fix, UI tweak, performance improvement |
+
+### Changelog
+
+**v1.9.1 (2026-05-24)** — analytics match count tile, assist in legend and viewer badge:
 
 - **Meczy tile in analytics** — new stat box to the left of Strzałów showing the number of distinct matches included in the current filter selection; updates live with tournament / team / date / period filters
 - **Assist badge in viewer mode** — yellow "A" badge on shot markers in the coach viewer shot chart (was already present in input mode)
 - **Assist in shot map legend** — legend in both input and viewer modes includes the "A" (assist) marker
 
-**v8.0.0 (2026-05-24)** — offline recovery, undo delete:
+**v1.9.0 (2026-05-24)** — offline recovery, undo delete:
 
 - **Offline event recovery** — if the app is closed or refreshed while events are pending in the offline buffer, they are restored from `localStorage` on next load and retried automatically; no shots are silently lost
 - **Undo delete** — after deleting a shot, a toast notification appears with an "Cofnij" (undo) button; the event is restored locally and re-synced to the backend within 5 seconds
 - **Shot ID sorting** — events in the viewer match list are sorted by numeric row ID, ensuring correct chronological order regardless of insertion timing
-- Source sync with v7.0.0 / v7.0.1 (goalie analytics, assist badge, UI polish carried into the new branch baseline)
 
-**v7.0.1 (2026-05-22)** — sortable goalie tables:
+**v1.8.1 (2026-05-22)** — sortable goalie tables:
 
 - All columns in the **Per bramkarz** table are now sortable by clicking the header: Bramkarz (number), Mecze, Strzały na br., Obrony, Bramki str., Save%
 - Quarter columns in the **Save% per kwarta** table are also sortable — click Q1/Q2/Q3/Q4 to rank goalies by that quarter's save%
 - Both tables share the same sort key so goalie order is consistent between them
 - Clicking the active column header toggles ascending ↑ / descending ↓; default is Save% descending
 
-**v7.0.0 (2026-05-22)** — goalie analytics, UI polish, assist badge:
+**v1.8.0 (2026-05-22)** — goalie analytics, UI polish, assist badge:
 
 - **Goalie ranking in analytics** — new section below stats grid showing cross-match save% per goalkeeper; grouped by goalie number per team; includes saves, goals against, shots on goal, match count, and a colour-coded save% bar; per-quarter breakdown table when multiple quarters exist; visible without team filter (all goalies) or scoped to a selected team
 - **Assist badge** — yellow "A" badge on shot markers in the field map (input mode and viewer mode) and in the shot history list; legend updated
@@ -161,13 +170,13 @@ cd lacrosse-stats-v2/
 - **Dark mode field colors** — field SVG in dark mode uses dark green tones (`#1e2a1e` background, `#4a7a4a` lines)
 - **In-app confirm modals** — delete confirmations no longer use the browser's native `confirm()` dialog; replaced with a styled modal matching the light/dark theme
 
-**v6.3.0 (2026-05-20)** — assist flag + past matches on home screen:
+**v1.7.0 (2026-05-20)** — assist flag + past matches on home screen:
 
 - New **Asysta** checkbox in the shot modal (alongside man-up/man-down) — marks whether a goal was assisted; shown as a blue badge in shot history
 - Home screen now shows a **Mecze z przeszłości** section below today's matches — past matches load and can be opened for stat entry
 - GitHub Pages demo at https://flacik.github.io/lacrosse-stats/ — runs with sample data, no login needed
 
-**v6.2.0 (2026-05-20)** — standings: tournament leaderboard:
+**v1.6.0 (2026-05-20)** — standings: tournament leaderboard:
 
 - New **🏆 Tabela** button on the home screen opens a per-tournament standings table
 - Columns: Drużyna / Mecze / Gole+ / Gole− / Celne / Niecelne / % skuteczności / % celności / Man-up gole
@@ -178,13 +187,13 @@ cd lacrosse-stats-v2/
 - `seedProdData()` helper in Code.gs — seeds PROD spreadsheet with 3 tournaments, 14 matches, ~480 events in one click from the GAS editor
 - `mecze-template.xlsx` — Excel template for CSV bulk import (columns: turniej, data, druzyna_a, druzyna_b, link)
 
-**v6.1.0 (2026-05-19)** — dark mode:
+**v1.5.0 (2026-05-19)** — dark mode:
 
 - Toggle button (🌙 / ☀) in every screen header (home, input, viewer, admin, analytics)
 - Night Blue theme: `#0d1117` background, `#e6edf3` text, `#1c2128` cards — full coverage including analytics filters, stat boxes, donut/bar chart SVG labels, match history borders
 - Preference stored in `localStorage` (`lax_theme`) and restored on every page load
 
-**v6.0.0 (2026-05-19)** — CSV bulk import + video URLs:
+**v1.4.0 (2026-05-19)** — CSV bulk import + video URLs:
 
 - Admin panel: new **Import CSV** card — upload file, preview table, one-click import (up to 200 matches)
 - CSV format: `turniej,data,druzyna_a,druzyna_b,link`; separator auto-detected (`,` or `;`), header row auto-detected
@@ -194,14 +203,14 @@ cd lacrosse-stats-v2/
 - `setupSheets()` now detects and adds missing columns (migration-safe, no manual sheet editing needed)
 - `sanitizeUrl()` helper: only allows `http(s)`, strips control chars, max 500 chars
 
-**v5.0.0 (2026-05-19)** — analytics visualizations:
+**v1.3.0 (2026-05-19)** — analytics visualizations:
 
 - Donut chart of shot results (goal / saved / missed) with percentage breakdown
 - Bar chart of goal accuracy per period (Q1…/OT1…) rendered alongside the period table
 - Man-up / man-down / even-strength situation cards with goals, shots, and accuracy %; hidden when no relevant events exist
 - Zone efficiency heatmap (3rd shot-chart mode): 6 zones coloured by goal % (grey → orange → green)
 
-**v4.0.0 (2026-05-19)** — historical analytics screen:
+**v1.2.0 (2026-05-19)** — historical analytics screen:
 
 - New **Analityka** screen (4th screen) with tournament / team / date / period filters
 - Team dropdown scoped to selected tournament; resets on tournament change
@@ -210,7 +219,7 @@ cd lacrosse-stats-v2/
 - Match history table with W/D/L colouring and viewer shortcut
 - Backend: `listAllEvents()` + `seedDummyData()` (3 tournaments, 14 matches, ~563 events)
 
-**v3.0.0 (2026-05-18)** — UI/UX redesign, frontend-only:
+**v1.1.0 (2026-05-18)** — UI/UX redesign, frontend-only:
 
 - LIVE badge redesign — red pulsing header bar when match is live, grey when finished
 - Split bars in stats tables — proportional A vs B gradient under each row, toggleable
@@ -221,4 +230,4 @@ cd lacrosse-stats-v2/
 - Last-updated timestamp replacing "auto-refresh every 5s"
 - Tablet responsive layout — two-column grid at ≥768px, fat-finger safe buttons (48px min)
 
-**v2.0.0 (2026-05-15)** — production-ready baseline. Smoke tested against all 8 core scenarios: shot recording, real-time viewer, admin CRUD, offline buffer recovery, edit/delete flows.
+**v1.0.0 (2026-05-15)** — production-ready baseline. Smoke tested against all 8 core scenarios: shot recording, real-time viewer, admin CRUD, offline buffer recovery, edit/delete flows.
