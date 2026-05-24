@@ -601,6 +601,7 @@ function _renderAnalyticsStats(filtered, f) {
   if (filtered.length === 0) return '';
   const s = computeAnalyticsStats(filtered);
   const teamLabel = f.team || 'Wszystkie drużyny';
+  const matchCount = new Set(filtered.map(e => String(e.match_id))).size;
 
   const zoneOrder = ['attack-center','attack-left','attack-right',
                      'midfield-center','midfield-left','midfield-right','own-half'];
@@ -636,6 +637,7 @@ function _renderAnalyticsStats(filtered, f) {
     <section class="analytics-section">
       <h2>Statystyki: ${escapeHtml(teamLabel)}</h2>
       <div class="stats-grid">
+        <div class="stat-box"><div class="stat-val">${matchCount}</div><div class="stat-lbl">Meczy</div></div>
         <div class="stat-box"><div class="stat-val">${s.total}</div><div class="stat-lbl">Strzałów</div></div>
         <div class="stat-box"><div class="stat-val">${s.goals}</div><div class="stat-lbl">Bramek</div></div>
         <div class="stat-box"><div class="stat-val">${s.onTarget}</div><div class="stat-lbl">Celnych</div></div>
