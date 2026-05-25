@@ -70,10 +70,8 @@ All data is stored in Google Sheets, so the club always has a permanent record o
 | Instance | Access | URL |
 |---|---|---|
 | Demo (sample data) | Public, view-only | https://flacik.github.io/lacrosse-stats/ |
-| Polish Lacrosse League — viewer | Public, view-only | https://script.google.com/macros/s/AKfycby3VTG18nbxJ4KITk2EfIWNYMq_ZSpP_6rUX-k5RpL0ujtThQzqCQa7W0jwDrpLH6g/exec |
 
-> The Polish National Team deployment is private (internal link only).  
-> Editor access to the League app requires a token passed as `?token=...` in the URL.
+> Production deployments (Polish National Team, Polish Lacrosse League) are internal — available on request.
 
 ---
 
