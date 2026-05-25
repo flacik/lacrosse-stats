@@ -106,10 +106,13 @@ Backend spreadsheet: https://docs.google.com/spreadsheets/d/1nrNDjbIFX6Ac-eMXmUe
 lacrosse-stats-v2/   ← frontend source (16 JS modules + CSS + index.html)
   build.sh           ← bundles everything into dist.html
   dist.html          ← production build (deployed to GAS)
-gas/
+gas/                 ← GAS backend — Polish National Team
   Code.gs            ← all backend functions
   appsscript.json    ← GAS manifest
   DEPLOY.md          ← deployment instructions
+gas-liga/            ← GAS backend — Polish Lacrosse League
+  Code.gs            ← same backend, separate spreadsheet + EDITOR_TOKEN
+  appsscript.json    ← GAS manifest
 ```
 
 ---
@@ -130,7 +133,7 @@ cd lacrosse-stats-v2/
 
 ## Status
 
-**Current: v1.9.1 — deployed 2026-05-24**
+**Current: v1.10.0 — deployed 2026-05-25**
 
 ### Versioning rules
 
@@ -141,6 +144,14 @@ cd lacrosse-stats-v2/
 | **PATCH** | Bug fix, UI tweak, performance improvement |
 
 ### Changelog
+
+**v1.10.0 (2026-05-25)** — viewer-only deployment mode, multi-project support:
+
+- **Viewer-only mode** — deployments can be restricted to read-only: no "Input stats", no admin panel, no ad-hoc match button; controlled by `EDITOR_TOKEN` in GAS Script Properties; if the token is not set, full access is granted to everyone (backwards-compatible)
+- **Token-based access** — editor URL includes `?token=TOKEN`; viewer URL has no token; same deployment ID, same codebase
+- **Two independent GAS projects** — Polish National Team (`gas/`) and Polish Lacrosse League (`gas-liga/`) each connect to their own Google Sheets spreadsheet; frontend code is shared via a single `dist.html` build
+- **Route guard** — navigating to input or admin screens without editor access is silently redirected to home
+- **GitHub Pages demo** defaults to viewer mode (no `APP_CONFIG` injected outside GAS)
 
 **v1.9.1 (2026-05-24)** — analytics match count tile, assist in legend and viewer badge:
 

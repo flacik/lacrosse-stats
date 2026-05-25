@@ -20,6 +20,14 @@ const IS_GAS = (function () {
   }
 })();
 
+// true gdy zalogowany jako edytor (wstrzykiwane przez doGet w Code.gs)
+// false domyślnie — GitHub Pages i lokalne podglądy działają jako viewer
+const IS_EDITOR = (
+  typeof window !== 'undefined' &&
+  window.APP_CONFIG &&
+  window.APP_CONFIG.isEditor === true
+);
+
 // ── Generyczny wrapper ─────────────────────────────────────────────────────────
 
 /**

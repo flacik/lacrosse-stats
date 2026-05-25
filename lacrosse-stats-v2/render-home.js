@@ -12,7 +12,7 @@ function renderHome(root) {
       <div class="app-header">
         <h1>Lacrosse Stats</h1>
         <span class="meta">${today}</span>
-        <button class="btn" data-action="open-admin">📋 Turnieje</button>
+        ${IS_EDITOR ? '<button class="btn" data-action="open-admin">📋 Turnieje</button>' : ''}
         <button class="btn" data-action="open-analytics">📊 Analityka</button>
         <button class="btn" data-action="open-standings">🏆 Tabela</button>
         <button class="btn" data-action="toggle-dark-mode" id="theme-toggle" title="Przełącz tryb ciemny">🌙</button>
@@ -33,7 +33,7 @@ function renderHome(root) {
       <div class="app-header">
         <h1>Lacrosse Stats</h1>
         <span class="meta">${today}</span>
-        <button class="btn" data-action="open-admin">📋 Turnieje</button>
+        ${IS_EDITOR ? '<button class="btn" data-action="open-admin">📋 Turnieje</button>' : ''}
         <button class="btn" data-action="open-analytics">📊 Analityka</button>
         <button class="btn" data-action="open-standings">🏆 Tabela</button>
         <button class="btn" data-action="toggle-dark-mode" id="theme-toggle" title="Przełącz tryb ciemny">🌙</button>
@@ -77,7 +77,7 @@ function renderHome(root) {
           ${eventCount > 0 ? ` · ${eventCount} eventów` : ''}
         </div>
         <div class="match-actions">
-          <button class="btn btn-primary"   data-action="open-match"  data-arg="${m.id}">${isFinished ? 'Otwórz' : 'Wpisuj statystyki'}</button>
+          ${IS_EDITOR ? `<button class="btn btn-primary" data-action="open-match" data-arg="${m.id}">${isFinished ? 'Otwórz' : 'Wpisuj statystyki'}</button>` : ''}
           <button class="btn btn-secondary" data-action="open-viewer" data-arg="${m.id}">Tylko podgląd</button>
         </div>
       </div>
@@ -102,7 +102,7 @@ function renderHome(root) {
     <div class="app-header">
       <h1>Lacrosse Stats</h1>
       <span class="meta">${today}</span>
-      <button class="btn" data-action="open-admin">📋 Turnieje</button>
+      ${IS_EDITOR ? '<button class="btn" data-action="open-admin">📋 Turnieje</button>' : ''}
       <button class="btn" data-action="open-analytics">📊 Analityka</button>
       <button class="btn" data-action="open-standings">🏆 Tabela</button>
       <button class="btn" data-action="toggle-dark-mode" id="theme-toggle" title="Przełącz tryb ciemny">🌙</button>
@@ -114,7 +114,9 @@ function renderHome(root) {
   `;
 
   if (todayMatches.length === 0) {
-    html += '<div class="empty">Brak meczy zaplanowanych na dziś.<br>Dodaj mecze w panelu Turniejów lub utwórz mecz ad-hoc.</div>';
+    html += '<div class="empty">Brak meczy zaplanowanych na dziś.' +
+      (IS_EDITOR ? '<br>Dodaj mecze w panelu Turniejów lub utwórz mecz ad-hoc.' : '') +
+      '</div>';
   } else {
     html += '<div class="match-list">';
     todayMatches.forEach(m => { html += renderMatchCard(m); });
@@ -128,6 +130,6 @@ function renderHome(root) {
     html += '</div>';
   }
 
-  html += `<button class="add-match" data-action="ad-hoc">+ Nowy mecz ad-hoc</button></div>`;
+  html += (IS_EDITOR ? '<button class="add-match" data-action="ad-hoc">+ Nowy mecz ad-hoc</button>' : '') + '</div>';
   root.innerHTML = html;
 }

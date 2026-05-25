@@ -69,6 +69,10 @@ let APP = {
 
 function go(screen, opts) {
   opts = opts || {};
+  if (!IS_EDITOR && (screen === 'match-input' || screen === 'admin')) {
+    screen = 'home';
+    opts = {};
+  }
   if (APP.refreshInterval) {
     clearInterval(APP.refreshInterval);
     APP.refreshInterval = null;
@@ -129,12 +133,14 @@ async function loadHomeData() {
   render();
 
   try {
-    const [matches, tournaments] = await Promise.all([
+    const [matches, tournaments, events] = await Promise.all([
       gasListAllMatches(),
-      gasListTournaments()
+      gasListTournaments(),
+      gasListAllEvents(),
     ]);
     DATA.scheduledMatches = matches      || [];
     DATA.tournaments      = tournaments  || [];
+    DATA.events           = events       || [];
   } catch (e) {
     if (e.code === 'DEV_MODE') {
       // Lokalny dev — użyj SAMPLE_DATA

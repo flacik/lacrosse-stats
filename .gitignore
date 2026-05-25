@@ -7,6 +7,9 @@ gas/.clasp.json
 gas/Code.js
 gas/index.html
 
+gas-liga/.clasp.json
+gas-liga/index.html
+
 CLAUDE.md
 
 # Internal project management files — never commit

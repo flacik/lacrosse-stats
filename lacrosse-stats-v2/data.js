@@ -75,13 +75,15 @@ function _prng(seed) {
 
 function makeSampleEvents() {
   const ZONES = [
-    { name: 'attack-center',   sxMin: 0.65, sxMax: 0.99, syMin: 0.28, syMax: 0.72, w: 0.34, pGol: 0.38, pCelny: 0.30 },
-    { name: 'attack-left',     sxMin: 0.65, sxMax: 0.99, syMin: 0.01, syMax: 0.33, w: 0.18, pGol: 0.28, pCelny: 0.32 },
-    { name: 'attack-right',    sxMin: 0.65, sxMax: 0.99, syMin: 0.67, syMax: 0.99, w: 0.18, pGol: 0.28, pCelny: 0.32 },
-    { name: 'midfield-center', sxMin: 0.25, sxMax: 0.60, syMin: 0.28, syMax: 0.72, w: 0.14, pGol: 0.14, pCelny: 0.28 },
+    { name: 'attack-center',   sxMin: 0.65, sxMax: 0.99, syMin: 0.28, syMax: 0.72, w: 0.32, pGol: 0.38, pCelny: 0.30 },
+    { name: 'attack-left',     sxMin: 0.65, sxMax: 0.99, syMin: 0.01, syMax: 0.33, w: 0.17, pGol: 0.28, pCelny: 0.32 },
+    { name: 'attack-right',    sxMin: 0.65, sxMax: 0.99, syMin: 0.67, syMax: 0.99, w: 0.17, pGol: 0.28, pCelny: 0.32 },
+    { name: 'midfield-center', sxMin: 0.25, sxMax: 0.60, syMin: 0.28, syMax: 0.72, w: 0.13, pGol: 0.14, pCelny: 0.28 },
     { name: 'midfield-left',   sxMin: 0.25, sxMax: 0.60, syMin: 0.01, syMax: 0.33, w: 0.08, pGol: 0.09, pCelny: 0.22 },
     { name: 'midfield-right',  sxMin: 0.25, sxMax: 0.60, syMin: 0.67, syMax: 0.99, w: 0.08, pGol: 0.09, pCelny: 0.22 },
+    { name: 'own-half',        sxMin:-0.80, sxMax:-0.05, syMin: 0.05, syMax: 0.95, w: 0.05, pGol: 0.02, pCelny: 0.10 },
   ];
+  // Weights: 0.32+0.17+0.17+0.13+0.08+0.08+0.05 = 1.00
 
   const MATCHES = [
     // Liga PL Wiosna 2026
@@ -102,69 +104,114 @@ function makeSampleEvents() {
     { id: 'm15', tour: 'Sparingi',             tA: 'Vikings', tB: 'Bears',   date: '2026-03-29' },
   ];
 
+  // Per-match: numery bramkarzy na start, zmiany bramkarzy w trakcie, flaga OT
+  const MATCH_META = [
+    { gA: '33', gB: '7'  },                                                     // m3:  Hawks(33) vs Vikings(7)
+    { gA: '11', gB: '44' },                                                     // m4:  Hussars(11) vs Eagles(44)
+    { gA: '33', gB: '11', changes: [{ slot:'A', period:'3', num:'22' }] },      // m5:  Hawks #33→#22 w Q3
+    { gA: '7',  gB: '44' },                                                     // m6:  Vikings(7) vs Eagles(44)
+    { gA: '33', gB: '44', ot: true },                                           // m7:  Hawks vs Eagles →OT1
+    { gA: '7',  gB: '11' },                                                     // m8:  Vikings(7) vs Hussars(11)
+    { gA: '33', gB: '11', ot: true },                                           // m9:  Hawks vs Hussars →OT1
+    { gA: '44', gB: '7'  },                                                     // m10: Eagles(44) vs Vikings(7)
+    { gA: '22', gB: '7',  changes: [{ slot:'B', period:'2', num:'21' }] },      // m11: Vikings #7→#21 w Q2
+    { gA: '11', gB: '44' },                                                     // m12: Hussars(11) vs Eagles(44)
+    { gA: '5',  gB: '15' },                                                     // m13: Wolves(5) vs Bears(15)
+    { gA: '33', gB: '5'  },                                                     // m14: Hawks(33) vs Wolves(5)
+    { gA: '7',  gB: '15' },                                                     // m15: Vikings(7) vs Bears(15)
+  ];
+
   const events = [];
   let eIdx = 0;
 
   MATCHES.forEach((m, mi) => {
     const rand = _prng(mi * 9973 + 31337);
+    const meta = MATCH_META[mi];
 
-    ['1', '2', '3', '4'].forEach(period => {
-      // ~8-10 strzałów per kwarta per mecz (łącznie ~32-40 / mecz)
-      const total = 8 + Math.floor(rand() * 3);
+    function pushGoalie(team, num, period) {
+      events.push({
+        id: `gs_${m.id}_${team}_${period}`, client_event_id: `gs_${m.id}_${team}_${period}_c`,
+        event_type: 'goalie_set', match_id: m.id, tournament: m.tour,
+        team_A: m.tA, team_B: m.tB, team_event: team, goalie_number: num, period,
+        match_date: m.date, created_at: Date.now(),
+      });
+    }
+
+    pushGoalie(m.tA, meta.gA, '1');
+    pushGoalie(m.tB, meta.gB, '1');
+    if (meta.changes) {
+      meta.changes.forEach(ch => pushGoalie(ch.slot === 'A' ? m.tA : m.tB, ch.num, ch.period));
+    }
+
+    const periods = ['1', '2', '3', '4'];
+    if (meta.ot) periods.push('OT1');
+
+    periods.forEach(period => {
+      const isOT = period.startsWith('OT');
+      const total = isOT ? (2 + Math.floor(rand() * 3)) : (8 + Math.floor(rand() * 3));
 
       for (let i = 0; i < total; i++) {
         const team = rand() < 0.50 ? m.tA : m.tB;
 
-        // wybór strefy wg wag
         let zr = rand(), cumW = 0, zone = ZONES[0];
-        for (const z of ZONES) {
-          cumW += z.w;
-          if (zr <= cumW) { zone = z; break; }
-        }
+        for (const z of ZONES) { cumW += z.w; if (zr <= cumW) { zone = z; break; } }
 
         const sx = zone.sxMin + rand() * (zone.sxMax - zone.sxMin);
         const sy = zone.syMin + rand() * (zone.syMax - zone.syMin);
-
         const rr = rand();
-        const result = rr < zone.pGol ? 'gol'
-                     : rr < zone.pGol + zone.pCelny ? 'celny'
-                     : 'niecelny';
-
+        const result = rr < zone.pGol ? 'gol' : rr < zone.pGol + zone.pCelny ? 'celny' : 'niecelny';
         const mr = rand();
         const man_up   = mr < 0.10;
         const man_down = !man_up && mr > 0.88;
 
         events.push({
-          id:               `e_${++eIdx}`,
-          client_event_id:  `e_${eIdx}_c`,
-          match_id:         m.id,
-          tournament:       m.tour,
-          team_A:           m.tA,
-          team_B:           m.tB,
-          period,
-          team_event:       team,
-          shot_x:           Math.round(sx * 1000) / 1000,
-          shot_y:           Math.round(sy * 1000) / 1000,
-          zone_name:        zone.name,
-          result,
-          man_up,
-          man_down,
-          match_date:       m.date,
-          created_at:       Date.now(),
+          id: `e_${++eIdx}`, client_event_id: `e_${eIdx}_c`,
+          match_id: m.id, tournament: m.tour, team_A: m.tA, team_B: m.tB,
+          period, team_event: team,
+          shot_x: Math.round(sx * 1000) / 1000,
+          shot_y: Math.round(sy * 1000) / 1000,
+          zone_name: zone.name, result, man_up, man_down,
+          match_date: m.date, created_at: Date.now(),
         });
       }
     });
   });
 
-  // Dorzuć też live-match m1 events (do home screena)
-  const liveEvents = [
-    { id:'se_01', match_id:'m1', tournament:'Liga PL Wiosna 2026', team_A:'Hawks', team_B:'Vikings', period:'1', team_event:'Hawks',  shot_x:0.82, shot_y:0.52, zone_name:'attack-center', result:'gol',     man_up:false, man_down:false },
-    { id:'se_02', match_id:'m1', tournament:'Liga PL Wiosna 2026', team_A:'Hawks', team_B:'Vikings', period:'1', team_event:'Vikings', shot_x:0.75, shot_y:0.35, zone_name:'attack-left',   result:'celny',   man_up:false, man_down:false },
-    { id:'se_08', match_id:'m1', tournament:'Liga PL Wiosna 2026', team_A:'Hawks', team_B:'Vikings', period:'2', team_event:'Hawks',  shot_x:0.93, shot_y:0.45, zone_name:'attack-center', result:'gol',     man_up:true,  man_down:false },
-    { id:'se_12', match_id:'m1', tournament:'Liga PL Wiosna 2026', team_A:'Hawks', team_B:'Vikings', period:'2', team_event:'Hawks',  shot_x:0.77, shot_y:0.33, zone_name:'attack-left',   result:'gol',     man_up:false, man_down:false },
-  ].map(e => ({ ...e, client_event_id: e.id + '_c', match_date: todayISO(), created_at: Date.now() }));
+  // Live mecz m1 — bramkarze + strzały (Q1 + Q2 w trakcie)
+  const liveGoalies = [
+    { id: 'sg_m1_H', event_type: 'goalie_set', team_event: 'Hawks',   goalie_number: '33', period: '1' },
+    { id: 'sg_m1_V', event_type: 'goalie_set', team_event: 'Vikings', goalie_number: '7',  period: '1' },
+  ].map(e => ({
+    ...e, client_event_id: e.id + '_c',
+    match_id: 'm1', tournament: 'Liga PL Wiosna 2026',
+    team_A: 'Hawks', team_B: 'Vikings',
+    match_date: todayISO(), created_at: Date.now(),
+  }));
 
-  return [...liveEvents, ...events];
+  const liveShots = [
+    { id:'se_01', period:'1', team_event:'Hawks',   shot_x: 0.82, shot_y:0.52, zone_name:'attack-center',   result:'gol',      man_up:false, man_down:false },
+    { id:'se_02', period:'1', team_event:'Vikings', shot_x: 0.75, shot_y:0.35, zone_name:'attack-left',     result:'celny',    man_up:false, man_down:false },
+    { id:'se_03', period:'1', team_event:'Hawks',   shot_x: 0.45, shot_y:0.62, zone_name:'midfield-right',  result:'niecelny', man_up:false, man_down:false },
+    { id:'se_04', period:'1', team_event:'Vikings', shot_x: 0.88, shot_y:0.50, zone_name:'attack-center',   result:'gol',      man_up:false, man_down:false },
+    { id:'se_05', period:'1', team_event:'Hawks',   shot_x: 0.91, shot_y:0.44, zone_name:'attack-center',   result:'celny',    man_up:true,  man_down:false },
+    { id:'se_06', period:'1', team_event:'Vikings', shot_x: 0.38, shot_y:0.58, zone_name:'midfield-center', result:'niecelny', man_up:false, man_down:false },
+    { id:'se_07', period:'2', team_event:'Vikings', shot_x: 0.71, shot_y:0.28, zone_name:'attack-left',     result:'celny',    man_up:true,  man_down:false },
+    { id:'se_08', period:'2', team_event:'Hawks',   shot_x: 0.90, shot_y:0.48, zone_name:'attack-center',   result:'gol',      man_up:true,  man_down:false },
+    { id:'se_09', period:'2', team_event:'Hawks',   shot_x: 0.93, shot_y:0.45, zone_name:'attack-center',   result:'gol',      man_up:true,  man_down:false },
+    { id:'se_10', period:'2', team_event:'Vikings', shot_x: 0.40, shot_y:0.55, zone_name:'midfield-center', result:'niecelny', man_up:false, man_down:true  },
+    { id:'se_11', period:'2', team_event:'Hawks',   shot_x: 0.78, shot_y:0.68, zone_name:'attack-right',    result:'celny',    man_up:false, man_down:true  },
+    { id:'se_12', period:'2', team_event:'Vikings', shot_x: 0.85, shot_y:0.42, zone_name:'attack-center',   result:'gol',      man_up:false, man_down:false },
+    { id:'se_13', period:'2', team_event:'Hawks',   shot_x: 0.77, shot_y:0.33, zone_name:'attack-left',     result:'gol',      man_up:false, man_down:false },
+    { id:'se_14', period:'2', team_event:'Hawks',   shot_x:-0.30, shot_y:0.45, zone_name:'own-half',        result:'niecelny', man_up:false, man_down:false },
+    { id:'se_15', period:'2', team_event:'Vikings', shot_x: 0.55, shot_y:0.48, zone_name:'midfield-center', result:'celny',    man_up:false, man_down:false },
+  ].map(e => ({
+    ...e, client_event_id: e.id + '_c',
+    match_id: 'm1', tournament: 'Liga PL Wiosna 2026',
+    team_A: 'Hawks', team_B: 'Vikings',
+    match_date: todayISO(), created_at: Date.now(),
+  }));
+
+  return [...liveGoalies, ...liveShots, ...events];
 }
 
 const SAMPLE_DATA = {
