@@ -36,6 +36,13 @@ JS_FILES=(
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Lacrosse Stats — mockup</title>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-5YGD00QZV9"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-5YGD00QZV9');
+</script>
 <style>
 HTML_HEAD
   cat "$DIR/styles.css"
