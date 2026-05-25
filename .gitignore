@@ -3,12 +3,12 @@ node_modules/
 *.log
 remote-control-qr.png
 
-gas/.clasp.json
-gas/Code.js
-gas/index.html
+backend/reprezentacja/.clasp.json
+backend/reprezentacja/Code.js
+backend/reprezentacja/index.html
 
-gas-liga/.clasp.json
-gas-liga/index.html
+backend/liga/.clasp.json
+backend/liga/index.html
 
 CLAUDE.md
 
@@ -19,4 +19,13 @@ CONVERSATION-HANDOFF.md
 Lacrosse-Stats-V3-Plan.docx
 decyzje-v2.md
 architektura-v1.md
+architektura-v2.md
+V4-STATE.md
+V5-STATE.md
+GOALIE-ANALYTICS.md
+INSTRUCTIONS-UI-V2.md
+*-STATE.md
+
+# Build artifacts
+src/dist.html
 

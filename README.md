@@ -1,11 +1,22 @@
 # Lacrosse Stats
 
+![Vanilla JS](https://img.shields.io/badge/Vanilla%20JS-F7DF1E?style=flat&logo=javascript&logoColor=black)
+![Google Apps Script](https://img.shields.io/badge/Google%20Apps%20Script-4285F4?style=flat&logo=google&logoColor=white)
+![Google Sheets](https://img.shields.io/badge/Google%20Sheets-34A853?style=flat&logo=google-sheets&logoColor=white)
+![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-222222?style=flat&logo=github&logoColor=white)
+
 A web application for recording shot statistics during lacrosse matches, with a real-time viewer mode for coaches.
 
 **Live demo (sample data):** https://flacik.github.io/lacrosse-stats/
 
 > The demo runs entirely in the browser with built-in sample data — no login or Google account needed.
-> The production app (connected to a real Google Sheets database) is used by the club internally.
+> The production app (connected to a real Google Sheets database) is used by clubs internally.
+
+---
+
+## Preview
+
+![Lacrosse Stats — home screen](docs/screenshot.png)
 
 ---
 
@@ -51,6 +62,18 @@ All data is stored in Google Sheets, so the club always has a permanent record o
 - Schedule matches (date, teams, venue, optional recording/stream URL); filter by tournament, date range, and status
 - CSV bulk import — upload a file (up to 200 rows), preview table, one-click import; auto-detects `,` or `;` separator and header row
 - Matches flow automatically into the home screen for scorers to pick up
+
+---
+
+## Live deployments
+
+| Instance | Access | URL |
+|---|---|---|
+| Demo (sample data) | Public, view-only | https://flacik.github.io/lacrosse-stats/ |
+| Polish Lacrosse League — viewer | Public, view-only | https://script.google.com/macros/s/AKfycby3VTG18nbxJ4KITk2EfIWNYMq_ZSpP_6rUX-k5RpL0ujtThQzqCQa7W0jwDrpLH6g/exec |
+
+> The Polish National Team deployment is private (internal link only).  
+> Editor access to the League app requires a token passed as `?token=...` in the URL.
 
 ---
 
@@ -103,30 +126,33 @@ Backend spreadsheet: https://docs.google.com/spreadsheets/d/1nrNDjbIFX6Ac-eMXmUe
 ## Project structure
 
 ```
-lacrosse-stats-v2/   ← frontend source (16 JS modules + CSS + index.html)
-  build.sh           ← bundles everything into dist.html
-  dist.html          ← production build (deployed to GAS)
-gas/                 ← GAS backend — Polish National Team
-  Code.gs            ← all backend functions
-  appsscript.json    ← GAS manifest
-  DEPLOY.md          ← deployment instructions
-gas-liga/            ← GAS backend — Polish Lacrosse League
-  Code.gs            ← same backend, separate spreadsheet + EDITOR_TOKEN
-  appsscript.json    ← GAS manifest
+src/                       ← frontend (16 JS modules + CSS)
+  build.sh                 ← bundles everything into dist.html
+  *.js / styles.css        ← source modules
+backend/
+  reprezentacja/           ← GAS backend — Polish National Team
+    Code.gs                ← all server-side functions
+    appsscript.json
+  liga/                    ← GAS backend — Polish Lacrosse League
+    Code.gs                ← same backend, separate spreadsheet + viewer token
+    appsscript.json
+docs/                      ← GitHub Pages demo (auto-updated by build.sh)
+templates/
+  mecze-template.xlsx      ← Excel template for CSV bulk import
 ```
 
 ---
 
 ## How to run locally
 
-Open `lacrosse-stats-v2/index.html` in a browser. The app starts in dev mode (`IS_GAS: false`) with sample data — no backend connection needed for UI development.
+Open `src/index.html` in a browser. The app starts in dev mode (`IS_GAS: false`) with sample data — no backend connection needed for UI development.
 
 To build the production bundle:
 
 ```bash
-cd lacrosse-stats-v2/
+cd src/
 ./build.sh
-# → generates dist.html
+# → generates src/dist.html and copies to docs/index.html
 ```
 
 ---

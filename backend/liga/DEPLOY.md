@@ -51,7 +51,7 @@ Uruchom **Run → testConnection** — sprawdź w panelu Execution log czy test 
 
 W edytorze GAS: **File → New → HTML file** → nazwa `index`.
 
-Wklej zawartość `lacrosse-stats-v2/dist.html` (wygenerowanego przez `build.sh`).
+Wklej zawartość `src/dist.html` (wygenerowanego przez `build.sh`).
 
 ### 8. Deploy jako Web App
 
@@ -84,7 +84,7 @@ Rollback: w **Manage deployments** wybierz poprzednią wersję.
 ```bash
 cd lacrosse-stats-v2/
 ./build.sh
-# → generuje lacrosse-stats-v2/dist.html
+# → generuje src/dist.html
 ```
 
 ### B. Wgraj frontend do GAS
@@ -92,7 +92,7 @@ cd lacrosse-stats-v2/
 1. Otwórz projekt GAS: https://script.google.com → projekt `lacrosse-stats-v2`
 2. Kliknij plik `index.html` w panelu po lewej
 3. Zaznacz całą jego zawartość (Ctrl+A / Cmd+A) i usuń
-4. Wklej zawartość nowego `lacrosse-stats-v2/dist.html`
+4. Wklej zawartość nowego `src/dist.html`
 5. Zapisz (Ctrl+S / Cmd+S)
 
 ### C. Wdróż wersję prod
