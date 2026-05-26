@@ -91,6 +91,70 @@ function doGet(e) {
     .setTitle('Lacrosse Stats');
 }
 
+/**
+ * HTTP POST entry point — JSON REST-like API dla Postmana i integracji zewnętrznych.
+ *
+ * Body (application/json): { "action": "<nazwa>", ...parametry }
+ *
+ * Dostępne akcje:
+ *   listTournaments
+ *   createTournament          { name }
+ *   updateTournament          { id, name }
+ *   deleteTournament          { id }
+ *   listAllScheduledMatches
+ *   listScheduledMatchesForDate { date }          — YYYY-MM-DD
+ *   createScheduledMatch      { match: { tournament, match_date, team_A, team_B, status?, video_url? } }
+ *   updateScheduledMatch      { id, match: {...} }
+ *   deleteScheduledMatch      { id }
+ *   bulkCreateMatches         { matches: [...] }
+ *   saveEvent                 { event: {...} }
+ *   updateEvent               { id, event: {...} }
+ *   deleteEvent               { id }
+ *   listEventsForMatch        { matchId }
+ *   listAllEvents
+ */
+function doPost(e) {
+  try {
+    if (!e || !e.postData || !e.postData.contents) {
+      return jsonResponse(err('BAD_REQUEST', 'Brak body w żądaniu POST'));
+    }
+
+    var body;
+    try {
+      body = JSON.parse(e.postData.contents);
+    } catch (parseErr) {
+      return jsonResponse(err('BAD_REQUEST', 'Niepoprawny JSON: ' + parseErr.message));
+    }
+
+    var action = body.action;
+    if (!action) {
+      return jsonResponse(err('BAD_REQUEST', 'Brak pola "action" w body'));
+    }
+
+    if (action === 'listTournaments')           return jsonResponse(listTournaments());
+    if (action === 'createTournament')          return jsonResponse(createTournament(body.name));
+    if (action === 'updateTournament')          return jsonResponse(updateTournament(body.id, body.name));
+    if (action === 'deleteTournament')          return jsonResponse(deleteTournament(body.id));
+
+    if (action === 'listAllScheduledMatches')   return jsonResponse(listAllScheduledMatches());
+    if (action === 'listScheduledMatchesForDate') return jsonResponse(listScheduledMatchesForDate(body.date));
+    if (action === 'createScheduledMatch')      return jsonResponse(createScheduledMatch(body.match));
+    if (action === 'updateScheduledMatch')      return jsonResponse(updateScheduledMatch(body.id, body.match));
+    if (action === 'deleteScheduledMatch')      return jsonResponse(deleteScheduledMatch(body.id));
+    if (action === 'bulkCreateMatches')         return jsonResponse(bulkCreateMatches(body.matches));
+
+    if (action === 'saveEvent')                 return jsonResponse(saveEvent(body.event));
+    if (action === 'updateEvent')               return jsonResponse(updateEvent(body.id, body.event));
+    if (action === 'deleteEvent')               return jsonResponse(deleteEventById(body.id));
+    if (action === 'listEventsForMatch')        return jsonResponse(listEventsForMatch(body.matchId));
+    if (action === 'listAllEvents')             return jsonResponse(listAllEvents());
+
+    return jsonResponse(err('UNKNOWN_ACTION', 'Nieznana akcja: ' + action));
+  } catch (ex) {
+    return jsonResponse(err('INTERNAL_ERROR', ex.message));
+  }
+}
+
 // ── HELPERS — SPREADSHEET ─────────────────────────────────────────────────────
 
 function getSpreadsheet() {
@@ -113,6 +177,12 @@ function ok(data) {
 
 function err(code, message) {
   return { ok: false, error: { code: code, message: message } };
+}
+
+function jsonResponse(result) {
+  return ContentService
+    .createTextOutput(JSON.stringify(result))
+    .setMimeType(ContentService.MimeType.JSON);
 }
 
 // ── HELPERS — TEKST ───────────────────────────────────────────────────────────
