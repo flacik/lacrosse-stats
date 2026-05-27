@@ -160,7 +160,7 @@ cd src/
 
 ## Status
 
-**Current: v1.13.0 — deployed 2026-05-27**
+**Current: v2.1.0 — deployed 2026-05-27**
 
 ### Versioning rules
 
@@ -171,6 +171,27 @@ cd src/
 | **PATCH** | Bug fix, UI tweak, performance improvement |
 
 ### Changelog
+
+**v2.1.0 (2026-05-27)** — three-tier role system:
+
+- **admin/editor/viewer roles** — `admin` manages access list and tournaments/matches; `editor` enters stats only; `viewer` is read-only. Previously only `editor` and `viewer` existed.
+- **Admin panel button** (`📋 Turnieje`) and ad-hoc match creation now restricted to `admin` role
+- Delete guard now protects the last `admin` (previously guarded last `editor`)
+- Bootstrap flow creates the first user as `admin`
+
+**v2.0.0 (2026-05-27)** — Google login + RBAC access control (MAJOR — new sheet tab + column):
+
+- **Replaced token auth** — `?token=` URL parameter removed; access now requires a Google account login via `Session.getActiveUser().getEmail()`
+- **Access list** — new `access_list` tab in Google Sheets (`id`, `email`, `role`, `created_at`); users not on the list see a "Brak dostępu" screen with their email
+- **Bootstrap flow** — first visit with empty list shows a setup screen to create the first admin account
+- **Logged-in email** shown in the app header for all authenticated users
+- **Admin panel — user management** — new "Dostęp — Użytkownicy" section in the admin screen: add, edit, delete users; cannot delete self or the last admin
+- **`added_by` column in events** — each recorded event stores the email of the user who added it
+
+**v1.13.1 (2026-05-27)** — presence mode distinction (input vs viewer):
+
+- Presence badge now shows two separate counts: ✏️ N (editors in input mode, yellow) and 👁 N (viewers in viewer mode, green); self is excluded from the relevant count
+- Viewer mode also sends a heartbeat every 30 seconds
 
 **v1.13.0 (2026-05-27)** — presence indicators:
 
