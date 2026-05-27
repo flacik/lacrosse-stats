@@ -46,6 +46,7 @@ body {
 }
 .app-header h1 { margin: 0; font-size: 17px; font-weight: 600; flex: 1; }
 .app-header .meta { font-size: 12px; color: #666; }
+.user-email-tag { font-size: 11px; color: #888; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .match-info-bar {
   display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
@@ -682,6 +683,7 @@ table.stats-table td.num {
 /* Header */
 [data-theme="dark"] .app-header { background: #161b22; border-bottom-color: #21262d; }
 [data-theme="dark"] .app-header .meta { color: #8b949e; }
+[data-theme="dark"] .user-email-tag { color: #8b949e; }
 
 /* Match info bar */
 [data-theme="dark"] .match-info-bar { background: #161b22; border-bottom-color: #21262d; }
@@ -1519,6 +1521,10 @@ const IS_EDITOR = (
   window.APP_CONFIG.isEditor === true
 );
 
+// Email i rola zalogowanego użytkownika (wstrzykiwane przez doGet w Code.gs)
+const USER_EMAIL = (typeof window !== 'undefined' && window.APP_CONFIG && window.APP_CONFIG.userEmail) || '';
+const USER_ROLE  = (typeof window !== 'undefined' && window.APP_CONFIG && window.APP_CONFIG.userRole)  || 'viewer';
+
 // Unikalny identyfikator tej karty przeglądarki (per-tab, wygasa po zamknięciu).
 const SESSION_ID = (function () {
   try {
@@ -1671,6 +1677,28 @@ function gasPresenceLeave(matchId) {
 /** Zwraca liczby obecnych użytkowników per mecz. matchIds = string[]. */
 function gasPresenceGetCounts(matchIds) {
   return gasCall('presenceGetCounts', matchIds);
+}
+
+// ── API — Access list ──────────────────────────────────────────────────────────
+
+/** Zwraca listę autoryzowanych użytkowników. */
+function gasListAccessUsers() {
+  return gasCall('listAccessUsers');
+}
+
+/** Tworzy nowego użytkownika. Zwraca { id }. */
+function gasCreateAccessUser(email, role) {
+  return gasCall('createAccessUser', email, role);
+}
+
+/** Aktualizuje email/rolę użytkownika. */
+function gasUpdateAccessUser(id, email, role) {
+  return gasCall('updateAccessUser', id, email, role);
+}
+
+/** Usuwa użytkownika z listy dostępu. */
+function gasDeleteAccessUser(id) {
+  return gasCall('deleteAccessUser', id);
 }
 
 
@@ -2334,6 +2362,14 @@ let APP = {
   // Presence — kto jest w danym meczu
   presenceCounts:   {},   // { matchId: count } — home screen + viewer
   presenceInterval: null, // setInterval ID dla heartbeatu w match-input
+
+  // Access list — zarządzanie dostępem (panel admina)
+  accessUsers:   [],    // { id, email, role, created_at }[]
+  accessLoading: false,
+  accessError:   null,
+
+  // Zalogowany użytkownik
+  userEmail: USER_EMAIL,
 };
 
 // ── Routing ────────────────────────────────────────────────────────────────────
@@ -2390,6 +2426,7 @@ function go(screen, opts) {
     _startPresenceHeartbeat(opts.matchId, 'viewer');
   } else if (screen === 'admin') {
     loadAdminData();                             // pełna lista meczów + turnieje
+    loadAccessData();                            // lista użytkowników
   } else if (screen === 'analytics') {
     loadAnalyticsData();
   } else if (screen === 'standings') {
@@ -2468,6 +2505,26 @@ async function loadAdminData() {
   }
 
   APP.adminLoading = false;
+  render();
+}
+
+async function loadAccessData() {
+  APP.accessLoading = true;
+  APP.accessError   = null;
+  render();
+
+  try {
+    const users = await gasListAccessUsers();
+    APP.accessUsers = users || [];
+  } catch (e) {
+    if (e.code === 'DEV_MODE') {
+      APP.accessUsers = [];
+    } else {
+      APP.accessError = e.message || 'Błąd ładowania listy dostępu';
+    }
+  }
+
+  APP.accessLoading = false;
   render();
 }
 
@@ -2795,6 +2852,7 @@ async function recordEvent(eventData) {
     match_date:      match.match_date,
     period:          APP.match.period,
     created_at:      Date.now(),
+    added_by:        USER_EMAIL,
     _syncing:        true,
     _syncError:      null,
   }, eventData);
@@ -3533,6 +3591,7 @@ function renderHome(root) {
       ${IS_EDITOR ? '<button class="btn" data-action="open-admin">📋 Turnieje</button>' : ''}
       <button class="btn" data-action="open-analytics">📊 Analityka</button>
       <button class="btn" data-action="open-standings">🏆 Tabela</button>
+      ${USER_EMAIL ? `<span class="user-email-tag" title="Zalogowany jako ${escapeHtml(USER_EMAIL)}">${escapeHtml(USER_EMAIL)}</span>` : ''}
       <button class="btn" data-action="toggle-dark-mode" id="theme-toggle" title="Przełącz tryb ciemny">🌙</button>
     </div>
     ${offlineBannerHtml}
@@ -5042,9 +5101,63 @@ function renderAdmin(root) {
 
   root.innerHTML = header + `
     <div class="admin-content">
+      ${renderAccessCard()}
       ${renderTournamentsCard()}
       ${renderMatchesCard(filter)}
       ${renderCsvImportCard()}
+    </div>
+  `;
+}
+
+function renderAccessCard() {
+  if (APP.accessLoading) {
+    return `<div class="admin-card"><h2>Dostęp — Użytkownicy</h2><p class="admin-loading">Ładowanie…</p></div>`;
+  }
+  if (APP.accessError) {
+    return `<div class="admin-card"><h2>Dostęp — Użytkownicy</h2><p class="admin-error">⚠ ${escapeHtml(APP.accessError)}</p></div>`;
+  }
+
+  const users = APP.accessUsers || [];
+  const selfEmail = APP.userEmail || '';
+  const editorCount = users.filter(u => u.role === 'editor').length;
+
+  let rows = '';
+  if (users.length === 0) {
+    rows = '<div class="admin-empty">Brak użytkowników na liście.</div>';
+  } else {
+    rows = '<ul class="admin-list">';
+    users.forEach(u => {
+      const isSelf = u.email === selfEmail;
+      const isLastEditor = u.role === 'editor' && editorCount === 1;
+      const cantDelete = isSelf || isLastEditor;
+      const deleteTitle = isSelf
+        ? 'Nie możesz usunąć swojego konta'
+        : isLastEditor
+        ? 'Nie można usunąć ostatniego editora'
+        : 'Usuń użytkownika';
+      rows += `
+        <li class="admin-row">
+          <div class="admin-row-main">
+            <strong>${escapeHtml(u.email)}</strong>
+            <span class="admin-row-meta">${escapeHtml(u.role)}${isSelf ? ' (ty)' : ''}</span>
+          </div>
+          <div class="admin-row-actions">
+            <button class="btn btn-sm" data-action="access-user-edit" data-arg="${escapeHtml(u.id)}">Edytuj</button>
+            <button class="btn btn-sm btn-danger" data-action="access-user-delete" data-arg="${escapeHtml(u.id)}"
+              ${cantDelete ? 'disabled title="' + escapeHtml(deleteTitle) + '"' : ''}>Usuń</button>
+          </div>
+        </li>`;
+    });
+    rows += '</ul>';
+  }
+
+  return `
+    <div class="admin-card">
+      <div class="admin-card-header">
+        <h2>Dostęp — Użytkownicy</h2>
+        <button class="btn btn-primary btn-sm" data-action="access-user-new">+ Dodaj użytkownika</button>
+      </div>
+      ${rows}
     </div>
   `;
 }
@@ -5499,6 +5612,7 @@ function renderModal() {
   else if (APP.modal.type === 'goalie-form')         bg.innerHTML = renderGoalieFormModal();
   else if (APP.modal.type === 'goalie-retroactive')  bg.innerHTML = renderGoalieRetroactiveModal();
   else if (APP.modal.type === 'confirm')             bg.innerHTML = renderConfirmModal();
+  else if (APP.modal.type === 'access-user-form')   bg.innerHTML = renderAccessUserModal(APP.modal.user);
 
   document.body.appendChild(bg);
 }
@@ -5672,6 +5786,32 @@ function renderGoalieFormModal() {
       <div class="modal-actions">
         <button class="btn" data-action="cancel-modal">Anuluj</button>
         <button class="btn btn-primary" data-action="save-goalie" data-arg="${slot}">Zapisz</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderAccessUserModal(user) {
+  const isEdit = !!user;
+  return `
+    <div class="modal" data-stop-propagation="true" style="max-width:380px">
+      <h2>${isEdit ? 'Edytuj użytkownika' : 'Dodaj użytkownika'}</h2>
+      <label class="field">
+        <span class="field-label">Email</span>
+        <input type="email" id="access-email" value="${isEdit ? escapeHtml(user.email) : ''}" placeholder="np. jan@example.com">
+      </label>
+      <label class="field">
+        <span class="field-label">Rola</span>
+        <select id="access-role">
+          <option value="editor"  ${(!isEdit || user.role === 'editor')  ? 'selected' : ''}>editor</option>
+          <option value="viewer"  ${(isEdit  && user.role === 'viewer')  ? 'selected' : ''}>viewer</option>
+        </select>
+      </label>
+      <div class="modal-actions">
+        <button class="btn" data-action="cancel-modal">Anuluj</button>
+        <button class="btn btn-primary" data-action="submit-access-user" data-arg="${isEdit ? escapeHtml(user.id) : ''}">
+          ${isEdit ? 'Zapisz zmiany' : 'Dodaj'}
+        </button>
       </div>
     </div>
   `;
@@ -6284,6 +6424,15 @@ const HANDLERS = {
     APP.modal = null;
     if (m._action === 'delete-tournament') { deleteTournamentConfirmed(m._arg); return; }
     if (m._action === 'delete-match')      { deleteMatchConfirmed(m._arg); return; }
+    if (m._action === 'delete-access-user') {
+      gasDeleteAccessUser(m._arg).then(() => loadAccessData()).catch(e => {
+        if (e.code !== 'DEV_MODE') {
+          APP.banner = { type: 'error', msg: 'Błąd usunięcia użytkownika: ' + (e.message || e) };
+          render();
+        }
+      });
+      return;
+    }
     render();
   },
 
@@ -6391,6 +6540,58 @@ const HANDLERS = {
   'open-goalie-retroactive': () => {
     APP.modal = { type: 'goalie-retroactive' };
     render();
+  },
+
+  // ===== Access list (v2.0.0) =====
+  'access-user-new': () => {
+    APP.modal = { type: 'access-user-form', user: null };
+    render();
+  },
+  'access-user-edit': (id) => {
+    const u = (APP.accessUsers || []).find(x => x.id === id);
+    if (!u) return;
+    APP.modal = { type: 'access-user-form', user: u };
+    render();
+  },
+  'access-user-delete': (id) => {
+    const u = (APP.accessUsers || []).find(x => x.id === id);
+    if (!u) return;
+    APP.modal = {
+      type: 'confirm',
+      title: 'Usuń użytkownika',
+      message: `Usunąć dostęp dla ${u.email}?`,
+      _action: 'delete-access-user',
+      _arg: id,
+    };
+    render();
+  },
+  'submit-access-user': (id) => {
+    const emailEl = document.getElementById('access-email');
+    const roleEl  = document.getElementById('access-role');
+    if (!emailEl || !roleEl) return;
+    const email = emailEl.value.trim().toLowerCase();
+    const role  = roleEl.value;
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      alert('Podaj prawidłowy adres email.');
+      return;
+    }
+    APP.modal = null;
+    render();
+    if (id) {
+      gasUpdateAccessUser(id, email, role).then(() => loadAccessData()).catch(e => {
+        if (e.code !== 'DEV_MODE') {
+          APP.banner = { type: 'error', msg: 'Błąd zapisu użytkownika: ' + (e.message || e) };
+          render();
+        }
+      });
+    } else {
+      gasCreateAccessUser(email, role).then(() => loadAccessData()).catch(e => {
+        if (e.code !== 'DEV_MODE') {
+          APP.banner = { type: 'error', msg: 'Błąd tworzenia użytkownika: ' + (e.message || e) };
+          render();
+        }
+      });
+    }
   },
 
   'save-goalie-retroactive': () => {

@@ -551,6 +551,15 @@ const HANDLERS = {
     APP.modal = null;
     if (m._action === 'delete-tournament') { deleteTournamentConfirmed(m._arg); return; }
     if (m._action === 'delete-match')      { deleteMatchConfirmed(m._arg); return; }
+    if (m._action === 'delete-access-user') {
+      gasDeleteAccessUser(m._arg).then(() => loadAccessData()).catch(e => {
+        if (e.code !== 'DEV_MODE') {
+          APP.banner = { type: 'error', msg: 'Błąd usunięcia użytkownika: ' + (e.message || e) };
+          render();
+        }
+      });
+      return;
+    }
     render();
   },
 
@@ -658,6 +667,58 @@ const HANDLERS = {
   'open-goalie-retroactive': () => {
     APP.modal = { type: 'goalie-retroactive' };
     render();
+  },
+
+  // ===== Access list (v2.0.0) =====
+  'access-user-new': () => {
+    APP.modal = { type: 'access-user-form', user: null };
+    render();
+  },
+  'access-user-edit': (id) => {
+    const u = (APP.accessUsers || []).find(x => x.id === id);
+    if (!u) return;
+    APP.modal = { type: 'access-user-form', user: u };
+    render();
+  },
+  'access-user-delete': (id) => {
+    const u = (APP.accessUsers || []).find(x => x.id === id);
+    if (!u) return;
+    APP.modal = {
+      type: 'confirm',
+      title: 'Usuń użytkownika',
+      message: `Usunąć dostęp dla ${u.email}?`,
+      _action: 'delete-access-user',
+      _arg: id,
+    };
+    render();
+  },
+  'submit-access-user': (id) => {
+    const emailEl = document.getElementById('access-email');
+    const roleEl  = document.getElementById('access-role');
+    if (!emailEl || !roleEl) return;
+    const email = emailEl.value.trim().toLowerCase();
+    const role  = roleEl.value;
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      alert('Podaj prawidłowy adres email.');
+      return;
+    }
+    APP.modal = null;
+    render();
+    if (id) {
+      gasUpdateAccessUser(id, email, role).then(() => loadAccessData()).catch(e => {
+        if (e.code !== 'DEV_MODE') {
+          APP.banner = { type: 'error', msg: 'Błąd zapisu użytkownika: ' + (e.message || e) };
+          render();
+        }
+      });
+    } else {
+      gasCreateAccessUser(email, role).then(() => loadAccessData()).catch(e => {
+        if (e.code !== 'DEV_MODE') {
+          APP.banner = { type: 'error', msg: 'Błąd tworzenia użytkownika: ' + (e.message || e) };
+          render();
+        }
+      });
+    }
   },
 
   'save-goalie-retroactive': () => {

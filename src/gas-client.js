@@ -28,6 +28,10 @@ const IS_EDITOR = (
   window.APP_CONFIG.isEditor === true
 );
 
+// Email i rola zalogowanego użytkownika (wstrzykiwane przez doGet w Code.gs)
+const USER_EMAIL = (typeof window !== 'undefined' && window.APP_CONFIG && window.APP_CONFIG.userEmail) || '';
+const USER_ROLE  = (typeof window !== 'undefined' && window.APP_CONFIG && window.APP_CONFIG.userRole)  || 'viewer';
+
 // Unikalny identyfikator tej karty przeglądarki (per-tab, wygasa po zamknięciu).
 const SESSION_ID = (function () {
   try {
@@ -180,5 +184,27 @@ function gasPresenceLeave(matchId) {
 /** Zwraca liczby obecnych użytkowników per mecz. matchIds = string[]. */
 function gasPresenceGetCounts(matchIds) {
   return gasCall('presenceGetCounts', matchIds);
+}
+
+// ── API — Access list ──────────────────────────────────────────────────────────
+
+/** Zwraca listę autoryzowanych użytkowników. */
+function gasListAccessUsers() {
+  return gasCall('listAccessUsers');
+}
+
+/** Tworzy nowego użytkownika. Zwraca { id }. */
+function gasCreateAccessUser(email, role) {
+  return gasCall('createAccessUser', email, role);
+}
+
+/** Aktualizuje email/rolę użytkownika. */
+function gasUpdateAccessUser(id, email, role) {
+  return gasCall('updateAccessUser', id, email, role);
+}
+
+/** Usuwa użytkownika z listy dostępu. */
+function gasDeleteAccessUser(id) {
+  return gasCall('deleteAccessUser', id);
 }
 

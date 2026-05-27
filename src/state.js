@@ -70,6 +70,14 @@ let APP = {
   // Presence — kto jest w danym meczu
   presenceCounts:   {},   // { matchId: count } — home screen + viewer
   presenceInterval: null, // setInterval ID dla heartbeatu w match-input
+
+  // Access list — zarządzanie dostępem (panel admina)
+  accessUsers:   [],    // { id, email, role, created_at }[]
+  accessLoading: false,
+  accessError:   null,
+
+  // Zalogowany użytkownik
+  userEmail: USER_EMAIL,
 };
 
 // ── Routing ────────────────────────────────────────────────────────────────────
@@ -126,6 +134,7 @@ function go(screen, opts) {
     _startPresenceHeartbeat(opts.matchId, 'viewer');
   } else if (screen === 'admin') {
     loadAdminData();                             // pełna lista meczów + turnieje
+    loadAccessData();                            // lista użytkowników
   } else if (screen === 'analytics') {
     loadAnalyticsData();
   } else if (screen === 'standings') {
@@ -204,6 +213,26 @@ async function loadAdminData() {
   }
 
   APP.adminLoading = false;
+  render();
+}
+
+async function loadAccessData() {
+  APP.accessLoading = true;
+  APP.accessError   = null;
+  render();
+
+  try {
+    const users = await gasListAccessUsers();
+    APP.accessUsers = users || [];
+  } catch (e) {
+    if (e.code === 'DEV_MODE') {
+      APP.accessUsers = [];
+    } else {
+      APP.accessError = e.message || 'Błąd ładowania listy dostępu';
+    }
+  }
+
+  APP.accessLoading = false;
   render();
 }
 
@@ -531,6 +560,7 @@ async function recordEvent(eventData) {
     match_date:      match.match_date,
     period:          APP.match.period,
     created_at:      Date.now(),
+    added_by:        USER_EMAIL,
     _syncing:        true,
     _syncError:      null,
   }, eventData);

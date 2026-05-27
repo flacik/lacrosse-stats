@@ -108,6 +108,7 @@ function renderHome(root) {
       ${IS_EDITOR ? '<button class="btn" data-action="open-admin">📋 Turnieje</button>' : ''}
       <button class="btn" data-action="open-analytics">📊 Analityka</button>
       <button class="btn" data-action="open-standings">🏆 Tabela</button>
+      ${USER_EMAIL ? `<span class="user-email-tag" title="Zalogowany jako ${escapeHtml(USER_EMAIL)}">${escapeHtml(USER_EMAIL)}</span>` : ''}
       <button class="btn" data-action="toggle-dark-mode" id="theme-toggle" title="Przełącz tryb ciemny">🌙</button>
     </div>
     ${offlineBannerHtml}

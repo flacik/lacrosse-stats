@@ -32,6 +32,7 @@ body {
 }
 .app-header h1 { margin: 0; font-size: 17px; font-weight: 600; flex: 1; }
 .app-header .meta { font-size: 12px; color: #666; }
+.user-email-tag { font-size: 11px; color: #888; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .match-info-bar {
   display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
@@ -668,6 +669,7 @@ table.stats-table td.num {
 /* Header */
 [data-theme="dark"] .app-header { background: #161b22; border-bottom-color: #21262d; }
 [data-theme="dark"] .app-header .meta { color: #8b949e; }
+[data-theme="dark"] .user-email-tag { color: #8b949e; }
 
 /* Match info bar */
 [data-theme="dark"] .match-info-bar { background: #161b22; border-bottom-color: #21262d; }
