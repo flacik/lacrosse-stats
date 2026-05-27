@@ -90,6 +90,7 @@ body {
 .match-info-bar .sides-indicator {
   margin-left: auto;
   font-size: 12px; color: #666;
+  display: flex; align-items: center; gap: 8px;
 }
 
 .offline-recovery-banner {
@@ -133,6 +134,19 @@ body {
   padding: 2px 6px; border-radius: 3px;
   animation: pulse-live 2s infinite;
   vertical-align: middle;
+}
+.presence-badge {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 10px; font-weight: 600;
+  padding: 2px 6px; border-radius: 3px;
+  background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe;
+  white-space: nowrap; vertical-align: middle;
+}
+.match-tournament { display: flex; align-items: center; gap: 6px; }
+.match-tournament .presence-badge { margin-left: auto; }
+.presence-badge-header { flex-shrink: 0; }
+[data-theme="dark"] .presence-badge {
+  background: #0d2149; color: #58a6ff; border-color: #1f6feb;
 }
 .match-meta { font-size: 12px; color: #888; margin-bottom: 12px; }
 .match-meta .status-scheduled { color: #16a34a; }
@@ -1495,6 +1509,19 @@ const IS_EDITOR = (
   window.APP_CONFIG.isEditor === true
 );
 
+// Unikalny identyfikator tej karty przeglądarki (per-tab, wygasa po zamknięciu).
+const SESSION_ID = (function () {
+  try {
+    var stored = sessionStorage.getItem('lax_session_id');
+    if (stored) return stored;
+    var id = 'sess_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
+    sessionStorage.setItem('lax_session_id', id);
+    return id;
+  } catch (e) {
+    return 'sess_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
+  }
+})();
+
 // ── Generyczny wrapper ─────────────────────────────────────────────────────────
 
 /**
@@ -1619,6 +1646,21 @@ function gasListAllEvents() {
 /** Tworzy wiele meczów naraz (bulk import z CSV). Zwraca { ids, count }. */
 function gasBulkCreateMatches(matchesArray) {
   return gasCall('bulkCreateMatches', matchesArray);
+}
+
+/** Rejestruje heartbeat obecności w meczu (tylko tryb edycji). */
+function gasPresenceHeartbeat(matchId) {
+  return gasCall('presenceHeartbeat', matchId, SESSION_ID);
+}
+
+/** Informuje backend o opuszczeniu meczu. */
+function gasPresenceLeave(matchId) {
+  return gasCall('presenceLeave', matchId, SESSION_ID);
+}
+
+/** Zwraca liczby obecnych użytkowników per mecz. matchIds = string[]. */
+function gasPresenceGetCounts(matchIds) {
+  return gasCall('presenceGetCounts', matchIds);
 }
 
 
@@ -2264,6 +2306,10 @@ let APP = {
 
   // Analytics — sortowanie tabeli bramkarzy (v7.0.1)
   analyticsGoalieSort: { col: 'savePct', dir: 'desc' },
+
+  // Presence — kto jest w danym meczu
+  presenceCounts:   {},   // { matchId: count } — home screen + viewer
+  presenceInterval: null, // setInterval ID dla heartbeatu w match-input
 };
 
 // ── Routing ────────────────────────────────────────────────────────────────────
@@ -2277,6 +2323,13 @@ function go(screen, opts) {
   if (APP.refreshInterval) {
     clearInterval(APP.refreshInterval);
     APP.refreshInterval = null;
+  }
+  if (APP.presenceInterval) {
+    clearInterval(APP.presenceInterval);
+    APP.presenceInterval = null;
+  }
+  if (APP.screen === 'match-input' && APP.matchId && IS_EDITOR) {
+    gasPresenceLeave(APP.matchId).catch(function () {});
   }
   // Flush pending event deletions before leaving current screen
   if (APP._deleteQueue && APP._deleteQueue.length > 0) {
@@ -2306,6 +2359,7 @@ function go(screen, opts) {
   } else if (screen === 'match-input' && opts.matchId) {
     APP.match = _initMatchState();
     loadMatchEvents(opts.matchId);               // async — renderuje sam gdy gotowe
+    if (IS_EDITOR) _startPresenceHeartbeat(opts.matchId);
   } else if (screen === 'match-viewer' && opts.matchId) {
     APP.viewer = initViewerSession();
     startViewerRefresh();
@@ -2342,12 +2396,20 @@ async function loadHomeData() {
     DATA.scheduledMatches = matches      || [];
     DATA.tournaments      = tournaments  || [];
     DATA.events           = events       || [];
+    const _matchIds = DATA.scheduledMatches.map(m => String(m.id));
+    if (_matchIds.length > 0) {
+      gasPresenceGetCounts(_matchIds).then(counts => {
+        APP.presenceCounts = counts || {};
+        render();
+      }).catch(() => {});
+    }
   } catch (e) {
     if (e.code === 'DEV_MODE') {
       // Lokalny dev — użyj SAMPLE_DATA
       DATA.scheduledMatches = JSON.parse(JSON.stringify(SAMPLE_DATA.scheduledMatches));
       DATA.tournaments      = JSON.parse(JSON.stringify(SAMPLE_DATA.tournaments));
       DATA.events           = SAMPLE_DATA.events; // pełne sample events na home
+      APP.presenceCounts    = {};
     } else {
       APP.homeError = e.message || 'Błąd ładowania danych';
     }
@@ -2558,6 +2620,9 @@ function startViewerRefresh() {
       DATA.events = DATA.events.filter(e => String(e.match_id) !== String(matchId));
       DATA.events = DATA.events.concat(events || []);
       APP.lastViewerRefresh = new Date();
+      gasPresenceGetCounts([String(matchId)]).then(counts => {
+        if (counts) APP.presenceCounts = Object.assign({}, APP.presenceCounts, counts);
+      }).catch(() => {});
       if (isFirst) {
         APP.viewerLoading = false;
         APP.viewerError   = null;
@@ -2594,6 +2659,26 @@ function startViewerRefresh() {
 
   // Cykliczne odświeżanie co 10s (zmniejsza zużycie limitów GAS o ~50% vs poprzednie 5s)
   APP.refreshInterval = setInterval(function () { doRefresh(false); }, 10000);
+}
+
+// ── Presence heartbeat ────────────────────────────────────────────────────────
+
+function _startPresenceHeartbeat(matchId) {
+  gasPresenceHeartbeat(matchId).catch(function () {});
+  APP.presenceInterval = setInterval(function () {
+    if (APP.screen !== 'match-input' || APP.matchId !== matchId) {
+      clearInterval(APP.presenceInterval);
+      APP.presenceInterval = null;
+      return;
+    }
+    gasPresenceHeartbeat(matchId).then(function (result) {
+      if (result && typeof result.count === 'number') {
+        const key = String(matchId);
+        APP.presenceCounts = Object.assign({}, APP.presenceCounts, { [key]: result.count });
+        render();
+      }
+    }).catch(function () {});
+  }, 30000);
 }
 
 // ── Retry queue (krok 8) ──────────────────────────────────────────────────────
@@ -3372,11 +3457,16 @@ function renderHome(root) {
     const eventCount = DATA.events.filter(e => e.match_id === m.id).length;
     const isFinished = m.status === 'finished';
     const isLive     = m.status === 'live';
+    const presenceCount = APP.presenceCounts[String(m.id)] || 0;
+    const presenceBadgeHtml = presenceCount > 0
+      ? `<span class="presence-badge" title="${presenceCount} ${presenceCount === 1 ? 'osoba' : 'osoby'} aktualnie w meczu">👤 ${presenceCount}</span>`
+      : '';
     return `
       <div class="match-card ${isFinished ? 'finished' : ''}">
         <div class="match-tournament">
           ${escapeHtml(m.tournament || '— brak turnieju —')}
           ${isLive ? ' <span class="badge-live">LIVE</span>' : ''}
+          ${presenceBadgeHtml}
         </div>
         <div class="match-teams">
           <span>${escapeHtml(m.team_A)}</span>
@@ -3561,6 +3651,11 @@ function renderMatchInput(root) {
     ? '<div class="history-empty">Brak zarejestrowanych eventów</div>'
     : events.map(e => renderHistoryRow(e, match)).join('');
 
+  const othersCount = Math.max(0, (APP.presenceCounts[String(match.id)] || 0) - 1);
+  const presenceBadgeHtml = othersCount > 0
+    ? `<span class="presence-badge presence-badge-header" title="${othersCount} ${othersCount === 1 ? 'inna osoba' : 'inne osoby'} też edytuje ten mecz">👤 ${othersCount}</span>`
+    : '';
+
   root.innerHTML = `
     <div class="app-header app-header-v2">
       <button class="btn btn-back-v2" data-action="back-home">← Wróć</button>
@@ -3575,6 +3670,7 @@ function renderMatchInput(root) {
         ${match.video_url ? `<a class="btn-video-pill-v2" href="${escapeHtml(match.video_url)}" target="_blank" rel="noopener">▶ Nagranie</a>` : ''}
       </div>
       <span class="sides-tag-v2">A: ${A_left ? 'lewej' : 'prawej'}</span>
+      ${presenceBadgeHtml}
       <button class="btn" data-action="toggle-dark-mode" id="theme-toggle" title="Przełącz tryb ciemny">🌙</button>
     </div>
     <div class="match-screen match-screen-v2">
@@ -3730,6 +3826,10 @@ function renderMatchViewer(root) {
 
   const tagClass  = APP.refreshFlash ? 'refresh-tag refreshing' : 'refresh-tag';
   const tagLabel  = APP.refreshFlash ? 'Odświeżanie…' : _viewerRefreshLabel();
+  const viewerPresenceCount = APP.presenceCounts[String(match.id)] || 0;
+  const presenceBadgeHtml = viewerPresenceCount > 0
+    ? `<span class="presence-badge" title="${viewerPresenceCount} ${viewerPresenceCount === 1 ? 'edytor' : 'edytorów'} aktualnie w meczu">👤 ${viewerPresenceCount}</span>`
+    : '';
 
   root.innerHTML = `
     <div class="app-header">
@@ -3745,7 +3845,7 @@ function renderMatchViewer(root) {
       </div>
       <div class="period">${match.status === 'live' ? '🔴 LIVE' : (match.status === 'finished' ? 'KONIEC' : 'PLANOWANY')}</div>
       <div class="tournament">${escapeHtml(match.tournament)}</div>
-      <div class="sides-indicator"><span class="${tagClass}"><span class="dot"></span>${tagLabel}</span></div>
+      <div class="sides-indicator">${presenceBadgeHtml}<span class="${tagClass}"><span class="dot"></span>${tagLabel}</span></div>
     </div>
     <div class="viewer-screen">
       <div class="viewer-section">
@@ -6393,7 +6493,7 @@ function parseCsvMatches(text) {
 
 // Top-level render dispatcher + init.
 
-const APP_VERSION = 'v2.0.0';
+const APP_VERSION = 'v2.1.0';
 
 function _renderFooter(container) {
   const f = document.createElement('footer');

@@ -157,7 +157,7 @@ cd src/
 
 ## Status
 
-**Current: v1.12.0 — deployed 2026-05-27**
+**Current: v1.13.0 — deployed 2026-05-27**
 
 ### Versioning rules
 
@@ -168,6 +168,13 @@ cd src/
 | **PATCH** | Bug fix, UI tweak, performance improvement |
 
 ### Changelog
+
+**v1.13.0 (2026-05-27)** — presence indicators:
+
+- **Presence badge on match list** — each match card shows a 👤 N badge when N > 0 editors are currently in that match; uses CacheService batch query so home-screen load has one extra GAS call
+- **Presence indicator in input mode** — the header shows how many *other* editors are in the same match (self excluded); heartbeat sent every 30 seconds
+- **Presence indicator in viewer mode** — match-info-bar shows editor count, updated on each 10s viewer refresh
+- **Tab-scoped identity** — SESSION_ID generated per browser tab via `sessionStorage`; presence disappears when the tab closes (2-minute staleness + 300s cache TTL)
 
 **v1.12.0 (2026-05-27)** — period picker with side memory:
 

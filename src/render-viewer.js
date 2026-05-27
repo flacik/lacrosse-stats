@@ -58,6 +58,10 @@ function renderMatchViewer(root) {
 
   const tagClass  = APP.refreshFlash ? 'refresh-tag refreshing' : 'refresh-tag';
   const tagLabel  = APP.refreshFlash ? 'Odświeżanie…' : _viewerRefreshLabel();
+  const viewerPresenceCount = APP.presenceCounts[String(match.id)] || 0;
+  const presenceBadgeHtml = viewerPresenceCount > 0
+    ? `<span class="presence-badge" title="${viewerPresenceCount} ${viewerPresenceCount === 1 ? 'edytor' : 'edytorów'} aktualnie w meczu">👤 ${viewerPresenceCount}</span>`
+    : '';
 
   root.innerHTML = `
     <div class="app-header">
@@ -73,7 +77,7 @@ function renderMatchViewer(root) {
       </div>
       <div class="period">${match.status === 'live' ? '🔴 LIVE' : (match.status === 'finished' ? 'KONIEC' : 'PLANOWANY')}</div>
       <div class="tournament">${escapeHtml(match.tournament)}</div>
-      <div class="sides-indicator"><span class="${tagClass}"><span class="dot"></span>${tagLabel}</span></div>
+      <div class="sides-indicator">${presenceBadgeHtml}<span class="${tagClass}"><span class="dot"></span>${tagLabel}</span></div>
     </div>
     <div class="viewer-screen">
       <div class="viewer-section">

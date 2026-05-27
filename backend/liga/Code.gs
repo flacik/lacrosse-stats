@@ -149,6 +149,10 @@ function doPost(e) {
     if (action === 'listEventsForMatch')        return jsonResponse(listEventsForMatch(body.matchId));
     if (action === 'listAllEvents')             return jsonResponse(listAllEvents());
 
+    if (action === 'presenceHeartbeat')         return jsonResponse(presenceHeartbeat(body.matchId, body.sessionId));
+    if (action === 'presenceLeave')             return jsonResponse(presenceLeave(body.matchId, body.sessionId));
+    if (action === 'presenceGetCounts')         return jsonResponse(presenceGetCounts(body.matchIds));
+
     return jsonResponse(err('UNKNOWN_ACTION', 'Nieznana akcja: ' + action));
   } catch (ex) {
     return jsonResponse(err('INTERNAL_ERROR', ex.message));
@@ -407,6 +411,79 @@ function checkRateLimit(sessionKey) {
   } catch (e) {
     // Jeśli cache nie działa — nie blokuj zapisu
     return true;
+  }
+}
+
+// ── PRESENCE ──────────────────────────────────────────────────────────────────
+
+function presenceHeartbeat(matchId, sessionId) {
+  try {
+    if (!matchId || !sessionId || typeof matchId !== 'string' || typeof sessionId !== 'string') {
+      return err('BAD_REQUEST', 'matchId i sessionId muszą być niepustymi stringami');
+    }
+    var mId = matchId.substring(0, 64);
+    var sId = sessionId.substring(0, 64);
+    var cache = CacheService.getScriptCache();
+    var key = 'pm_' + mId;
+    var raw = cache.get(key);
+    var data = {};
+    if (raw) { try { data = JSON.parse(raw); } catch (e) { data = {}; } }
+    var now = Date.now();
+    Object.keys(data).forEach(function (k) {
+      if (now - data[k] > 120000) delete data[k];
+    });
+    data[sId] = now;
+    cache.put(key, JSON.stringify(data), 300);
+    return ok({ count: Object.keys(data).length });
+  } catch (e) {
+    return ok({ count: 0 });
+  }
+}
+
+function presenceLeave(matchId, sessionId) {
+  try {
+    if (!matchId || !sessionId || typeof matchId !== 'string' || typeof sessionId !== 'string') {
+      return ok(null);
+    }
+    var mId = matchId.substring(0, 64);
+    var sId = sessionId.substring(0, 64);
+    var cache = CacheService.getScriptCache();
+    var key = 'pm_' + mId;
+    var raw = cache.get(key);
+    var data = {};
+    if (raw) { try { data = JSON.parse(raw); } catch (e) { data = {}; } }
+    delete data[sId];
+    if (Object.keys(data).length === 0) {
+      cache.remove(key);
+    } else {
+      cache.put(key, JSON.stringify(data), 300);
+    }
+    return ok(null);
+  } catch (e) {
+    return ok(null);
+  }
+}
+
+function presenceGetCounts(matchIds) {
+  try {
+    if (!Array.isArray(matchIds)) return ok({});
+    var ids = matchIds.slice(0, 50);
+    var cache = CacheService.getScriptCache();
+    var keys = ids.map(function (id) { return 'pm_' + String(id).substring(0, 64); });
+    var all = cache.getAll(keys);
+    var now = Date.now();
+    var result = {};
+    ids.forEach(function (matchId) {
+      var raw = all['pm_' + String(matchId).substring(0, 64)];
+      if (!raw) { result[String(matchId)] = 0; return; }
+      var data = {};
+      try { data = JSON.parse(raw); } catch (e) { data = {}; }
+      var active = Object.keys(data).filter(function (k) { return now - data[k] <= 120000; });
+      result[String(matchId)] = active.length;
+    });
+    return ok(result);
+  } catch (e) {
+    return ok({});
   }
 }
 

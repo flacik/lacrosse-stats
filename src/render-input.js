@@ -109,6 +109,11 @@ function renderMatchInput(root) {
     ? '<div class="history-empty">Brak zarejestrowanych eventów</div>'
     : events.map(e => renderHistoryRow(e, match)).join('');
 
+  const othersCount = Math.max(0, (APP.presenceCounts[String(match.id)] || 0) - 1);
+  const presenceBadgeHtml = othersCount > 0
+    ? `<span class="presence-badge presence-badge-header" title="${othersCount} ${othersCount === 1 ? 'inna osoba' : 'inne osoby'} też edytuje ten mecz">👤 ${othersCount}</span>`
+    : '';
+
   root.innerHTML = `
     <div class="app-header app-header-v2">
       <button class="btn btn-back-v2" data-action="back-home">← Wróć</button>
@@ -123,6 +128,7 @@ function renderMatchInput(root) {
         ${match.video_url ? `<a class="btn-video-pill-v2" href="${escapeHtml(match.video_url)}" target="_blank" rel="noopener">▶ Nagranie</a>` : ''}
       </div>
       <span class="sides-tag-v2">A: ${A_left ? 'lewej' : 'prawej'}</span>
+      ${presenceBadgeHtml}
       <button class="btn" data-action="toggle-dark-mode" id="theme-toggle" title="Przełącz tryb ciemny">🌙</button>
     </div>
     <div class="match-screen match-screen-v2">

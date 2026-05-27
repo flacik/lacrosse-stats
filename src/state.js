@@ -66,6 +66,10 @@ let APP = {
 
   // Analytics — sortowanie tabeli bramkarzy (v7.0.1)
   analyticsGoalieSort: { col: 'savePct', dir: 'desc' },
+
+  // Presence — kto jest w danym meczu
+  presenceCounts:   {},   // { matchId: count } — home screen + viewer
+  presenceInterval: null, // setInterval ID dla heartbeatu w match-input
 };
 
 // ── Routing ────────────────────────────────────────────────────────────────────
@@ -79,6 +83,13 @@ function go(screen, opts) {
   if (APP.refreshInterval) {
     clearInterval(APP.refreshInterval);
     APP.refreshInterval = null;
+  }
+  if (APP.presenceInterval) {
+    clearInterval(APP.presenceInterval);
+    APP.presenceInterval = null;
+  }
+  if (APP.screen === 'match-input' && APP.matchId && IS_EDITOR) {
+    gasPresenceLeave(APP.matchId).catch(function () {});
   }
   // Flush pending event deletions before leaving current screen
   if (APP._deleteQueue && APP._deleteQueue.length > 0) {
@@ -108,6 +119,7 @@ function go(screen, opts) {
   } else if (screen === 'match-input' && opts.matchId) {
     APP.match = _initMatchState();
     loadMatchEvents(opts.matchId);               // async — renderuje sam gdy gotowe
+    if (IS_EDITOR) _startPresenceHeartbeat(opts.matchId);
   } else if (screen === 'match-viewer' && opts.matchId) {
     APP.viewer = initViewerSession();
     startViewerRefresh();
@@ -144,12 +156,20 @@ async function loadHomeData() {
     DATA.scheduledMatches = matches      || [];
     DATA.tournaments      = tournaments  || [];
     DATA.events           = events       || [];
+    const _matchIds = DATA.scheduledMatches.map(m => String(m.id));
+    if (_matchIds.length > 0) {
+      gasPresenceGetCounts(_matchIds).then(counts => {
+        APP.presenceCounts = counts || {};
+        render();
+      }).catch(() => {});
+    }
   } catch (e) {
     if (e.code === 'DEV_MODE') {
       // Lokalny dev — użyj SAMPLE_DATA
       DATA.scheduledMatches = JSON.parse(JSON.stringify(SAMPLE_DATA.scheduledMatches));
       DATA.tournaments      = JSON.parse(JSON.stringify(SAMPLE_DATA.tournaments));
       DATA.events           = SAMPLE_DATA.events; // pełne sample events na home
+      APP.presenceCounts    = {};
     } else {
       APP.homeError = e.message || 'Błąd ładowania danych';
     }
@@ -360,6 +380,9 @@ function startViewerRefresh() {
       DATA.events = DATA.events.filter(e => String(e.match_id) !== String(matchId));
       DATA.events = DATA.events.concat(events || []);
       APP.lastViewerRefresh = new Date();
+      gasPresenceGetCounts([String(matchId)]).then(counts => {
+        if (counts) APP.presenceCounts = Object.assign({}, APP.presenceCounts, counts);
+      }).catch(() => {});
       if (isFirst) {
         APP.viewerLoading = false;
         APP.viewerError   = null;
@@ -396,6 +419,26 @@ function startViewerRefresh() {
 
   // Cykliczne odświeżanie co 10s (zmniejsza zużycie limitów GAS o ~50% vs poprzednie 5s)
   APP.refreshInterval = setInterval(function () { doRefresh(false); }, 10000);
+}
+
+// ── Presence heartbeat ────────────────────────────────────────────────────────
+
+function _startPresenceHeartbeat(matchId) {
+  gasPresenceHeartbeat(matchId).catch(function () {});
+  APP.presenceInterval = setInterval(function () {
+    if (APP.screen !== 'match-input' || APP.matchId !== matchId) {
+      clearInterval(APP.presenceInterval);
+      APP.presenceInterval = null;
+      return;
+    }
+    gasPresenceHeartbeat(matchId).then(function (result) {
+      if (result && typeof result.count === 'number') {
+        const key = String(matchId);
+        APP.presenceCounts = Object.assign({}, APP.presenceCounts, { [key]: result.count });
+        render();
+      }
+    }).catch(function () {});
+  }, 30000);
 }
 
 // ── Retry queue (krok 8) ──────────────────────────────────────────────────────

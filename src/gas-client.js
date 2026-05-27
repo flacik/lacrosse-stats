@@ -28,6 +28,19 @@ const IS_EDITOR = (
   window.APP_CONFIG.isEditor === true
 );
 
+// Unikalny identyfikator tej karty przeglądarki (per-tab, wygasa po zamknięciu).
+const SESSION_ID = (function () {
+  try {
+    var stored = sessionStorage.getItem('lax_session_id');
+    if (stored) return stored;
+    var id = 'sess_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
+    sessionStorage.setItem('lax_session_id', id);
+    return id;
+  } catch (e) {
+    return 'sess_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
+  }
+})();
+
 // ── Generyczny wrapper ─────────────────────────────────────────────────────────
 
 /**
@@ -152,5 +165,20 @@ function gasListAllEvents() {
 /** Tworzy wiele meczów naraz (bulk import z CSV). Zwraca { ids, count }. */
 function gasBulkCreateMatches(matchesArray) {
   return gasCall('bulkCreateMatches', matchesArray);
+}
+
+/** Rejestruje heartbeat obecności w meczu (tylko tryb edycji). */
+function gasPresenceHeartbeat(matchId) {
+  return gasCall('presenceHeartbeat', matchId, SESSION_ID);
+}
+
+/** Informuje backend o opuszczeniu meczu. */
+function gasPresenceLeave(matchId) {
+  return gasCall('presenceLeave', matchId, SESSION_ID);
+}
+
+/** Zwraca liczby obecnych użytkowników per mecz. matchIds = string[]. */
+function gasPresenceGetCounts(matchIds) {
+  return gasCall('presenceGetCounts', matchIds);
 }
 
