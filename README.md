@@ -160,7 +160,7 @@ cd src/
 
 ## Status
 
-**Current: v2.1.0 — deployed 2026-05-27**
+**Current: v2.1.2 — deployed 2026-05-27**
 
 ### Versioning rules
 
@@ -171,6 +171,12 @@ cd src/
 | **PATCH** | Bug fix, UI tweak, performance improvement |
 
 ### Changelog
+
+**v2.1.2 (2026-05-27)** — fix Google login flow:
+
+- **Root cause fixed** — `appsscript.json` had `access: ANYONE_ANONYMOUS`; GAS never authenticated users so `getActiveUser().getEmail()` always returned `""`. Changed to `ANYONE` + added `userinfo.email` OAuth scope. GAS now automatically redirects unauthenticated users to Google login.
+
+**v2.1.1 (2026-05-27)** — login button on no-access screen (superseded by v2.1.2)
 
 **v2.1.0 (2026-05-27)** — three-tier role system:
 
