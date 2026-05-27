@@ -157,7 +157,7 @@ cd src/
 
 ## Status
 
-**Current: v1.10.0 — deployed 2026-05-25**
+**Current: v1.11.1 — deployed 2026-05-27**
 
 ### Versioning rules
 
@@ -168,6 +168,14 @@ cd src/
 | **PATCH** | Bug fix, UI tweak, performance improvement |
 
 ### Changelog
+
+**v1.11.1 (2026-05-27)** — undo queue dla zmiany kwarty:
+
+- **Undo queue dla zmiany kwarty** — wielokrotne kliknięcie "Następna kwarta" akumuluje historię zmian; cofnięcie zawsze przywraca stan sprzed wszystkich przypadkowych kliknięć (nie tylko jeden krok wstecz), identycznie jak undo delete eventów
+
+**v1.11.0 (2026-05-27)** — doPost JSON API:
+
+- **JSON API via doPost** — backend obsługuje wywołania `POST` z `Content-Type: application/json`; umożliwia testowanie endpointów narzędziami takimi jak Postman bez użycia `google.script.run`
 
 **v1.10.0 (2026-05-25)** — viewer-only deployment mode, multi-project support:
 

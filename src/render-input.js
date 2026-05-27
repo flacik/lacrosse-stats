@@ -61,9 +61,11 @@ function renderMatchInput(root) {
         </div>
       `;
     } else if (APP.banner.type === 'period-undo') {
+      const orig = APP._periodQueue && APP._periodQueue[0];
+      const fromLabel = orig ? periodLabel(orig.prevPeriod) : '?';
       bannerHtml = `
         <div class="match-banner period-undo">
-          <span>${escapeHtml(periodLabel(APP.banner.prevPeriod))} → ${escapeHtml(periodLabel(APP.banner.newPeriod))}, strony zamienione</span>
+          <span>${escapeHtml(fromLabel)} → ${escapeHtml(periodLabel(APP.banner.newPeriod))}, strony zamienione</span>
           <button data-action="undo-period">↩ Cofnij</button>
           <button class="cancel" data-action="dismiss-period-undo">OK</button>
         </div>

@@ -344,24 +344,34 @@ const HANDLERS = {
     const newP = nextPeriod(APP.match.period);
     APP.match.period = newP;
     APP.match.team_A_side = prevSide === 'left' ? 'right' : 'left';
+    APP._periodQueue = (APP._periodQueue || []).concat([{ prevPeriod, prevSide }]);
     clearTimeout(APP._undoTimer);
-    APP.banner = { type: 'period-undo', prevPeriod, prevSide, newPeriod: newP };
+    APP.banner = { type: 'period-undo', newPeriod: newP };
     APP._undoTimer = setTimeout(() => {
-      if (APP.banner && APP.banner.type === 'period-undo') { APP.banner = null; render(); }
+      if (APP.banner && APP.banner.type === 'period-undo') {
+        APP._periodQueue = [];
+        APP.banner = null;
+        render();
+      }
     }, 8000);
     render();
   },
   'undo-period': () => {
     clearTimeout(APP._undoTimer);
     APP._undoTimer = null;
-    APP.match.period = APP.banner.prevPeriod;
-    APP.match.team_A_side = APP.banner.prevSide;
+    const queue = APP._periodQueue || [];
+    APP._periodQueue = [];
+    if (queue.length > 0) {
+      APP.match.period      = queue[0].prevPeriod;
+      APP.match.team_A_side = queue[0].prevSide;
+    }
     APP.banner = null;
     render();
   },
   'dismiss-period-undo': () => {
     clearTimeout(APP._undoTimer);
     APP._undoTimer = null;
+    APP._periodQueue = [];
     APP.banner = null;
     render();
   },

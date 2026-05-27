@@ -54,6 +54,9 @@ let APP = {
   _deleteQueue: [],     // Event[] — usunięte z UI, czekają na GAS
   _deleteTimer: null,   // setTimeout ID — commit po 5s braku aktywności
 
+  // Undo queue dla zmiany kwarty (next-period handler)
+  _periodQueue: [],     // { prevPeriod, prevSide }[] — historia zmian kwarty
+
   // Standings (tabela ligowa)
   standingsLoading:    false,
   standingsError:      null,
