@@ -344,24 +344,77 @@ const HANDLERS = {
     const newP = nextPeriod(APP.match.period);
     APP.match.period = newP;
     APP.match.team_A_side = prevSide === 'left' ? 'right' : 'left';
+    APP.match.periodSides = APP.match.periodSides || {};
+    APP.match.periodSides[newP] = APP.match.team_A_side;
+    APP._periodQueue = (APP._periodQueue || []).concat([{ prevPeriod, prevSide }]);
     clearTimeout(APP._undoTimer);
-    APP.banner = { type: 'period-undo', prevPeriod, prevSide, newPeriod: newP };
+    APP.banner = { type: 'period-undo', newPeriod: newP, sidesChanged: true };
     APP._undoTimer = setTimeout(() => {
-      if (APP.banner && APP.banner.type === 'period-undo') { APP.banner = null; render(); }
+      if (APP.banner && APP.banner.type === 'period-undo') {
+        APP._periodQueue = [];
+        APP.banner = null;
+        render();
+      }
     }, 8000);
     render();
   },
   'undo-period': () => {
     clearTimeout(APP._undoTimer);
     APP._undoTimer = null;
-    APP.match.period = APP.banner.prevPeriod;
-    APP.match.team_A_side = APP.banner.prevSide;
+    const queue = APP._periodQueue || [];
+    APP._periodQueue = [];
+    if (queue.length > 0) {
+      APP.match.period      = queue[0].prevPeriod;
+      APP.match.team_A_side = queue[0].prevSide;
+    }
     APP.banner = null;
     render();
   },
   'dismiss-period-undo': () => {
     clearTimeout(APP._undoTimer);
     APP._undoTimer = null;
+    APP._periodQueue = [];
+    APP.banner = null;
+    render();
+  },
+  'pick-period': () => {
+    clearTimeout(APP._undoTimer);
+    APP._undoTimer = null;
+    APP._periodQueue = [];
+    APP.banner = { type: 'period-picker' };
+    render();
+  },
+  'select-period': (period) => {
+    if (period === APP.match.period) { APP.banner = null; render(); return; }
+    const prevPeriod = APP.match.period;
+    const prevSide   = APP.match.team_A_side;
+    const sides = APP.match.periodSides = APP.match.periodSides || {};
+    sides[prevPeriod] = prevSide;
+    let newSide;
+    if (sides[period] !== undefined) {
+      newSide = sides[period];
+    } else {
+      // Oblicz na podstawie Q1: każda kwarta zmienia strony
+      const q1Side = sides['1'] || 'left';
+      const idx = getPeriodOrder(period) - 1;
+      newSide = idx % 2 === 0 ? q1Side : (q1Side === 'left' ? 'right' : 'left');
+    }
+    APP.match.period = period;
+    APP.match.team_A_side = newSide;
+    sides[period] = newSide;
+    APP._periodQueue = [{ prevPeriod, prevSide }];
+    clearTimeout(APP._undoTimer);
+    APP.banner = { type: 'period-undo', newPeriod: period, sidesChanged: newSide !== prevSide };
+    APP._undoTimer = setTimeout(() => {
+      if (APP.banner && APP.banner.type === 'period-undo') {
+        APP._periodQueue = [];
+        APP.banner = null;
+        render();
+      }
+    }, 8000);
+    render();
+  },
+  'cancel-pick-period': () => {
     APP.banner = null;
     render();
   },

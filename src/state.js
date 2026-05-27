@@ -54,6 +54,9 @@ let APP = {
   _deleteQueue: [],     // Event[] — usunięte z UI, czekają na GAS
   _deleteTimer: null,   // setTimeout ID — commit po 5s braku aktywności
 
+  // Undo queue dla zmiany kwarty (next-period handler)
+  _periodQueue: [],     // { prevPeriod, prevSide }[] — historia zmian kwarty
+
   // Standings (tabela ligowa)
   standingsLoading:    false,
   standingsError:      null,
@@ -323,6 +326,7 @@ function _initMatchState() {
   return {
     period: '1',
     team_A_side: 'left',
+    periodSides: { '1': 'left' },  // period → team_A_side at entry (for picker restore)
     own_half_mode: null,
     history_expanded: true,
     show_zones: false
