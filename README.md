@@ -41,12 +41,14 @@ All data is stored in Google Sheets, so the club always has a permanent record o
 - Offline buffer — if the network drops, shots are queued locally and auto-retried with exponential backoff (1 s → 3 s → 9 s)
 - **Offline recovery** — pending events survive page refresh/close and are restored from `localStorage` on next load
 - **Undo delete** — 5-second undo toast after deleting a shot; event re-syncs if undo is not used
+- **Presence indicator** — 👤 N badge in the header shows how many other editors are currently in the same match; heartbeat every 30 s, identity scoped per browser tab
 
 **Live viewer mode (coach)**
 - Score, team stats, goalie stats, and per-period breakdown
 - Shot chart: full-field overview + half-field zoom with heatmap overlay
 - All coordinates stored in attacker-relative space (shot_x/shot_y ∈ [-1,1] / [0,1]) and converted to display coordinates on the fly
-- Refreshes every 5 seconds; header shows exact time of last update
+- Refreshes every 10 seconds; header shows exact time of last update
+- **Presence indicator** — 👤 N badge shows how many editors are currently active in the match
 - "▶ Recording" button in the match bar when a recording URL is set
 
 **Analytics screen**
@@ -62,6 +64,7 @@ All data is stored in Google Sheets, so the club always has a permanent record o
 - Schedule matches (date, teams, venue, optional recording/stream URL); filter by tournament, date range, and status
 - CSV bulk import — upload a file (up to 200 rows), preview table, one-click import; auto-detects `,` or `;` separator and header row
 - Matches flow automatically into the home screen for scorers to pick up
+- **Presence badges on match list** — 👤 N badge on each match card when other editors are currently inside that match
 
 ---
 
