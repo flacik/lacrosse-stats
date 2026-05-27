@@ -157,7 +157,7 @@ cd src/
 
 ## Status
 
-**Current: v1.11.1 — deployed 2026-05-27**
+**Current: v1.12.0 — deployed 2026-05-27**
 
 ### Versioning rules
 
@@ -168,6 +168,11 @@ cd src/
 | **PATCH** | Bug fix, UI tweak, performance improvement |
 
 ### Changelog
+
+**v1.12.0 (2026-05-27)** — period picker z zapamiętywaniem stron:
+
+- **Period picker** — mały przycisk ▾ obok "Następny okres" otwiera wybór kwarty (Q1–Q4, Dogrywka 1–2); aplikacja zapamiętuje po której stronie była drużyna A w każdej odwiedzonej kwarcie i przywraca poprawne strony przy przełączaniu; dla nieodwiedzonych kwart oblicza automatycznie na podstawie Q1
+- Zmiana przez picker wchodzi w system undo (8s) — baner "Cofnij" działa identycznie jak przy next-period
 
 **v1.11.1 (2026-05-27)** — undo queue dla zmiany kwarty:
 
