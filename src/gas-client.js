@@ -167,9 +167,9 @@ function gasBulkCreateMatches(matchesArray) {
   return gasCall('bulkCreateMatches', matchesArray);
 }
 
-/** Rejestruje heartbeat obecności w meczu (tylko tryb edycji). */
-function gasPresenceHeartbeat(matchId) {
-  return gasCall('presenceHeartbeat', matchId, SESSION_ID);
+/** Rejestruje heartbeat obecności w meczu. mode: 'input' | 'viewer' */
+function gasPresenceHeartbeat(matchId, mode) {
+  return gasCall('presenceHeartbeat', matchId, SESSION_ID, mode || 'input');
 }
 
 /** Informuje backend o opuszczeniu meczu. */

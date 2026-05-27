@@ -416,13 +416,14 @@ function checkRateLimit(sessionKey) {
 
 // ── PRESENCE ──────────────────────────────────────────────────────────────────
 
-function presenceHeartbeat(matchId, sessionId) {
+function presenceHeartbeat(matchId, sessionId, mode) {
   try {
     if (!matchId || !sessionId || typeof matchId !== 'string' || typeof sessionId !== 'string') {
       return err('BAD_REQUEST', 'matchId i sessionId muszą być niepustymi stringami');
     }
     var mId = matchId.substring(0, 64);
     var sId = sessionId.substring(0, 64);
+    var entryMode = (mode === 'viewer') ? 'viewer' : 'input';
     var cache = CacheService.getScriptCache();
     var key = 'pm_' + mId;
     var raw = cache.get(key);
@@ -430,13 +431,16 @@ function presenceHeartbeat(matchId, sessionId) {
     if (raw) { try { data = JSON.parse(raw); } catch (e) { data = {}; } }
     var now = Date.now();
     Object.keys(data).forEach(function (k) {
-      if (now - data[k] > 120000) delete data[k];
+      var entry = data[k];
+      var ts = (typeof entry === 'object') ? entry.ts : entry;
+      if (now - ts > 120000) delete data[k];
     });
-    data[sId] = now;
+    data[sId] = { ts: now, mode: entryMode };
     cache.put(key, JSON.stringify(data), 300);
-    return ok({ count: Object.keys(data).length });
+    var counts = _presenceCounts(data);
+    return ok(counts);
   } catch (e) {
-    return ok({ count: 0 });
+    return ok({ input: 0, viewer: 0 });
   }
 }
 
@@ -464,6 +468,18 @@ function presenceLeave(matchId, sessionId) {
   }
 }
 
+function _presenceCounts(data) {
+  var now = Date.now();
+  var input = 0; var viewer = 0;
+  Object.keys(data).forEach(function (k) {
+    var entry = data[k];
+    var ts = (typeof entry === 'object') ? entry.ts : entry;
+    if (now - ts > 120000) return;
+    if (typeof entry === 'object' && entry.mode === 'viewer') { viewer++; } else { input++; }
+  });
+  return { input: input, viewer: viewer };
+}
+
 function presenceGetCounts(matchIds) {
   try {
     if (!Array.isArray(matchIds)) return ok({});
@@ -471,15 +487,13 @@ function presenceGetCounts(matchIds) {
     var cache = CacheService.getScriptCache();
     var keys = ids.map(function (id) { return 'pm_' + String(id).substring(0, 64); });
     var all = cache.getAll(keys);
-    var now = Date.now();
     var result = {};
     ids.forEach(function (matchId) {
       var raw = all['pm_' + String(matchId).substring(0, 64)];
-      if (!raw) { result[String(matchId)] = 0; return; }
+      if (!raw) { result[String(matchId)] = { input: 0, viewer: 0 }; return; }
       var data = {};
       try { data = JSON.parse(raw); } catch (e) { data = {}; }
-      var active = Object.keys(data).filter(function (k) { return now - data[k] <= 120000; });
-      result[String(matchId)] = active.length;
+      result[String(matchId)] = _presenceCounts(data);
     });
     return ok(result);
   } catch (e) {

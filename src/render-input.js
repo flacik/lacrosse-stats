@@ -109,10 +109,8 @@ function renderMatchInput(root) {
     ? '<div class="history-empty">Brak zarejestrowanych eventów</div>'
     : events.map(e => renderHistoryRow(e, match)).join('');
 
-  const othersCount = Math.max(0, (APP.presenceCounts[String(match.id)] || 0) - 1);
-  const presenceBadgeHtml = othersCount > 0
-    ? `<span class="presence-badge presence-badge-header" title="${othersCount} ${othersCount === 1 ? 'inna osoba' : 'inne osoby'} też edytuje ten mecz">👤 ${othersCount}</span>`
-    : '';
+  const _presence = APP.presenceCounts[String(match.id)] || { input: 0, viewer: 0 };
+  const presenceBadgeHtml = _renderPresenceBadge(_presence.input, _presence.viewer, 'input');
 
   root.innerHTML = `
     <div class="app-header app-header-v2">

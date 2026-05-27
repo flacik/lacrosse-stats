@@ -22,3 +22,17 @@ function uuid() {
 function todayISO() {
   return new Date().toISOString().slice(0, 10);
 }
+
+/**
+ * Buduje HTML badge'ów obecności.
+ * selfMode: 'input' | 'viewer' | null — tryb bieżącego użytkownika (do odjęcia siebie)
+ */
+function _renderPresenceBadge(inputCount, viewerCount, selfMode) {
+  const editors = selfMode === 'input' ? Math.max(0, inputCount - 1) : inputCount;
+  const viewers = selfMode === 'viewer' ? Math.max(0, viewerCount - 1) : viewerCount;
+  if (editors === 0 && viewers === 0) return '';
+  const parts = [];
+  if (editors > 0) parts.push(`<span class="presence-badge presence-badge-input" title="${editors} ${editors === 1 ? 'osoba edytuje' : 'osoby edytują'}">✏️ ${editors}</span>`);
+  if (viewers > 0) parts.push(`<span class="presence-badge presence-badge-viewer" title="${viewers} ${viewers === 1 ? 'osoba ogląda' : 'osoby oglądają'}">👁 ${viewers}</span>`);
+  return parts.join('');
+}

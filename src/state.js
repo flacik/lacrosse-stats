@@ -88,7 +88,7 @@ function go(screen, opts) {
     clearInterval(APP.presenceInterval);
     APP.presenceInterval = null;
   }
-  if (APP.screen === 'match-input' && APP.matchId && IS_EDITOR) {
+  if ((APP.screen === 'match-input' || APP.screen === 'match-viewer') && APP.matchId) {
     gasPresenceLeave(APP.matchId).catch(function () {});
   }
   // Flush pending event deletions before leaving current screen
@@ -123,6 +123,7 @@ function go(screen, opts) {
   } else if (screen === 'match-viewer' && opts.matchId) {
     APP.viewer = initViewerSession();
     startViewerRefresh();
+    _startPresenceHeartbeat(opts.matchId, 'viewer');
   } else if (screen === 'admin') {
     loadAdminData();                             // pełna lista meczów + turnieje
   } else if (screen === 'analytics') {
@@ -423,18 +424,20 @@ function startViewerRefresh() {
 
 // ── Presence heartbeat ────────────────────────────────────────────────────────
 
-function _startPresenceHeartbeat(matchId) {
-  gasPresenceHeartbeat(matchId).catch(function () {});
+function _startPresenceHeartbeat(matchId, mode) {
+  const _mode = mode || 'input';
+  const _screen = _mode === 'viewer' ? 'match-viewer' : 'match-input';
+  gasPresenceHeartbeat(matchId, _mode).catch(function () {});
   APP.presenceInterval = setInterval(function () {
-    if (APP.screen !== 'match-input' || APP.matchId !== matchId) {
+    if (APP.screen !== _screen || APP.matchId !== matchId) {
       clearInterval(APP.presenceInterval);
       APP.presenceInterval = null;
       return;
     }
-    gasPresenceHeartbeat(matchId).then(function (result) {
-      if (result && typeof result.count === 'number') {
+    gasPresenceHeartbeat(matchId, _mode).then(function (result) {
+      if (result && typeof result.input === 'number') {
         const key = String(matchId);
-        APP.presenceCounts = Object.assign({}, APP.presenceCounts, { [key]: result.count });
+        APP.presenceCounts = Object.assign({}, APP.presenceCounts, { [key]: result });
         render();
       }
     }).catch(function () {});

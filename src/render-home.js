@@ -59,10 +59,8 @@ function renderHome(root) {
     const eventCount = DATA.events.filter(e => e.match_id === m.id).length;
     const isFinished = m.status === 'finished';
     const isLive     = m.status === 'live';
-    const presenceCount = APP.presenceCounts[String(m.id)] || 0;
-    const presenceBadgeHtml = presenceCount > 0
-      ? `<span class="presence-badge" title="${presenceCount} ${presenceCount === 1 ? 'osoba' : 'osoby'} aktualnie w meczu">👤 ${presenceCount}</span>`
-      : '';
+    const presence = APP.presenceCounts[String(m.id)] || { input: 0, viewer: 0 };
+    const presenceBadgeHtml = _renderPresenceBadge(presence.input, presence.viewer, null);
     return `
       <div class="match-card ${isFinished ? 'finished' : ''}">
         <div class="match-tournament">

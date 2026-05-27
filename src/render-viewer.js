@@ -58,10 +58,8 @@ function renderMatchViewer(root) {
 
   const tagClass  = APP.refreshFlash ? 'refresh-tag refreshing' : 'refresh-tag';
   const tagLabel  = APP.refreshFlash ? 'Odświeżanie…' : _viewerRefreshLabel();
-  const viewerPresenceCount = APP.presenceCounts[String(match.id)] || 0;
-  const presenceBadgeHtml = viewerPresenceCount > 0
-    ? `<span class="presence-badge" title="${viewerPresenceCount} ${viewerPresenceCount === 1 ? 'edytor' : 'edytorów'} aktualnie w meczu">👤 ${viewerPresenceCount}</span>`
-    : '';
+  const _presence = APP.presenceCounts[String(match.id)] || { input: 0, viewer: 0 };
+  const presenceBadgeHtml = _renderPresenceBadge(_presence.input, _presence.viewer, 'viewer');
 
   root.innerHTML = `
     <div class="app-header">

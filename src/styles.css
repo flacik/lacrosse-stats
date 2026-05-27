@@ -125,14 +125,24 @@ body {
   display: inline-flex; align-items: center; gap: 3px;
   font-size: 10px; font-weight: 600;
   padding: 2px 6px; border-radius: 3px;
-  background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe;
   white-space: nowrap; vertical-align: middle;
+  border: 1px solid transparent;
+}
+.presence-badge-input {
+  background: #fef9c3; color: #854d0e; border-color: #fde047;
+}
+.presence-badge-viewer {
+  background: #f0fdf4; color: #166534; border-color: #86efac;
 }
 .match-tournament { display: flex; align-items: center; gap: 6px; }
 .match-tournament .presence-badge { margin-left: auto; }
+.match-tournament .presence-badge + .presence-badge { margin-left: 0; }
 .presence-badge-header { flex-shrink: 0; }
-[data-theme="dark"] .presence-badge {
-  background: #0d2149; color: #58a6ff; border-color: #1f6feb;
+[data-theme="dark"] .presence-badge-input {
+  background: #2d1f00; color: #fde68a; border-color: #92400e;
+}
+[data-theme="dark"] .presence-badge-viewer {
+  background: #052e16; color: #86efac; border-color: #166534;
 }
 .match-meta { font-size: 12px; color: #888; margin-bottom: 12px; }
 .match-meta .status-scheduled { color: #16a34a; }

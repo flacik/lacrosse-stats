@@ -139,14 +139,24 @@ body {
   display: inline-flex; align-items: center; gap: 3px;
   font-size: 10px; font-weight: 600;
   padding: 2px 6px; border-radius: 3px;
-  background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe;
   white-space: nowrap; vertical-align: middle;
+  border: 1px solid transparent;
+}
+.presence-badge-input {
+  background: #fef9c3; color: #854d0e; border-color: #fde047;
+}
+.presence-badge-viewer {
+  background: #f0fdf4; color: #166534; border-color: #86efac;
 }
 .match-tournament { display: flex; align-items: center; gap: 6px; }
 .match-tournament .presence-badge { margin-left: auto; }
+.match-tournament .presence-badge + .presence-badge { margin-left: 0; }
 .presence-badge-header { flex-shrink: 0; }
-[data-theme="dark"] .presence-badge {
-  background: #0d2149; color: #58a6ff; border-color: #1f6feb;
+[data-theme="dark"] .presence-badge-input {
+  background: #2d1f00; color: #fde68a; border-color: #92400e;
+}
+[data-theme="dark"] .presence-badge-viewer {
+  background: #052e16; color: #86efac; border-color: #166534;
 }
 .match-meta { font-size: 12px; color: #888; margin-bottom: 12px; }
 .match-meta .status-scheduled { color: #16a34a; }
@@ -1648,9 +1658,9 @@ function gasBulkCreateMatches(matchesArray) {
   return gasCall('bulkCreateMatches', matchesArray);
 }
 
-/** Rejestruje heartbeat obecności w meczu (tylko tryb edycji). */
-function gasPresenceHeartbeat(matchId) {
-  return gasCall('presenceHeartbeat', matchId, SESSION_ID);
+/** Rejestruje heartbeat obecności w meczu. mode: 'input' | 'viewer' */
+function gasPresenceHeartbeat(matchId, mode) {
+  return gasCall('presenceHeartbeat', matchId, SESSION_ID, mode || 'input');
 }
 
 /** Informuje backend o opuszczeniu meczu. */
@@ -1690,6 +1700,20 @@ function uuid() {
 
 function todayISO() {
   return new Date().toISOString().slice(0, 10);
+}
+
+/**
+ * Buduje HTML badge'ów obecności.
+ * selfMode: 'input' | 'viewer' | null — tryb bieżącego użytkownika (do odjęcia siebie)
+ */
+function _renderPresenceBadge(inputCount, viewerCount, selfMode) {
+  const editors = selfMode === 'input' ? Math.max(0, inputCount - 1) : inputCount;
+  const viewers = selfMode === 'viewer' ? Math.max(0, viewerCount - 1) : viewerCount;
+  if (editors === 0 && viewers === 0) return '';
+  const parts = [];
+  if (editors > 0) parts.push(`<span class="presence-badge presence-badge-input" title="${editors} ${editors === 1 ? 'osoba edytuje' : 'osoby edytują'}">✏️ ${editors}</span>`);
+  if (viewers > 0) parts.push(`<span class="presence-badge presence-badge-viewer" title="${viewers} ${viewers === 1 ? 'osoba ogląda' : 'osoby oglądają'}">👁 ${viewers}</span>`);
+  return parts.join('');
 }
 
 // ==============================================================================
@@ -2328,7 +2352,7 @@ function go(screen, opts) {
     clearInterval(APP.presenceInterval);
     APP.presenceInterval = null;
   }
-  if (APP.screen === 'match-input' && APP.matchId && IS_EDITOR) {
+  if ((APP.screen === 'match-input' || APP.screen === 'match-viewer') && APP.matchId) {
     gasPresenceLeave(APP.matchId).catch(function () {});
   }
   // Flush pending event deletions before leaving current screen
@@ -2363,6 +2387,7 @@ function go(screen, opts) {
   } else if (screen === 'match-viewer' && opts.matchId) {
     APP.viewer = initViewerSession();
     startViewerRefresh();
+    _startPresenceHeartbeat(opts.matchId, 'viewer');
   } else if (screen === 'admin') {
     loadAdminData();                             // pełna lista meczów + turnieje
   } else if (screen === 'analytics') {
@@ -2663,18 +2688,20 @@ function startViewerRefresh() {
 
 // ── Presence heartbeat ────────────────────────────────────────────────────────
 
-function _startPresenceHeartbeat(matchId) {
-  gasPresenceHeartbeat(matchId).catch(function () {});
+function _startPresenceHeartbeat(matchId, mode) {
+  const _mode = mode || 'input';
+  const _screen = _mode === 'viewer' ? 'match-viewer' : 'match-input';
+  gasPresenceHeartbeat(matchId, _mode).catch(function () {});
   APP.presenceInterval = setInterval(function () {
-    if (APP.screen !== 'match-input' || APP.matchId !== matchId) {
+    if (APP.screen !== _screen || APP.matchId !== matchId) {
       clearInterval(APP.presenceInterval);
       APP.presenceInterval = null;
       return;
     }
-    gasPresenceHeartbeat(matchId).then(function (result) {
-      if (result && typeof result.count === 'number') {
+    gasPresenceHeartbeat(matchId, _mode).then(function (result) {
+      if (result && typeof result.input === 'number') {
         const key = String(matchId);
-        APP.presenceCounts = Object.assign({}, APP.presenceCounts, { [key]: result.count });
+        APP.presenceCounts = Object.assign({}, APP.presenceCounts, { [key]: result });
         render();
       }
     }).catch(function () {});
@@ -3457,10 +3484,8 @@ function renderHome(root) {
     const eventCount = DATA.events.filter(e => e.match_id === m.id).length;
     const isFinished = m.status === 'finished';
     const isLive     = m.status === 'live';
-    const presenceCount = APP.presenceCounts[String(m.id)] || 0;
-    const presenceBadgeHtml = presenceCount > 0
-      ? `<span class="presence-badge" title="${presenceCount} ${presenceCount === 1 ? 'osoba' : 'osoby'} aktualnie w meczu">👤 ${presenceCount}</span>`
-      : '';
+    const presence = APP.presenceCounts[String(m.id)] || { input: 0, viewer: 0 };
+    const presenceBadgeHtml = _renderPresenceBadge(presence.input, presence.viewer, null);
     return `
       <div class="match-card ${isFinished ? 'finished' : ''}">
         <div class="match-tournament">
@@ -3651,10 +3676,8 @@ function renderMatchInput(root) {
     ? '<div class="history-empty">Brak zarejestrowanych eventów</div>'
     : events.map(e => renderHistoryRow(e, match)).join('');
 
-  const othersCount = Math.max(0, (APP.presenceCounts[String(match.id)] || 0) - 1);
-  const presenceBadgeHtml = othersCount > 0
-    ? `<span class="presence-badge presence-badge-header" title="${othersCount} ${othersCount === 1 ? 'inna osoba' : 'inne osoby'} też edytuje ten mecz">👤 ${othersCount}</span>`
-    : '';
+  const _presence = APP.presenceCounts[String(match.id)] || { input: 0, viewer: 0 };
+  const presenceBadgeHtml = _renderPresenceBadge(_presence.input, _presence.viewer, 'input');
 
   root.innerHTML = `
     <div class="app-header app-header-v2">
@@ -3826,10 +3849,8 @@ function renderMatchViewer(root) {
 
   const tagClass  = APP.refreshFlash ? 'refresh-tag refreshing' : 'refresh-tag';
   const tagLabel  = APP.refreshFlash ? 'Odświeżanie…' : _viewerRefreshLabel();
-  const viewerPresenceCount = APP.presenceCounts[String(match.id)] || 0;
-  const presenceBadgeHtml = viewerPresenceCount > 0
-    ? `<span class="presence-badge" title="${viewerPresenceCount} ${viewerPresenceCount === 1 ? 'edytor' : 'edytorów'} aktualnie w meczu">👤 ${viewerPresenceCount}</span>`
-    : '';
+  const _presence = APP.presenceCounts[String(match.id)] || { input: 0, viewer: 0 };
+  const presenceBadgeHtml = _renderPresenceBadge(_presence.input, _presence.viewer, 'viewer');
 
   root.innerHTML = `
     <div class="app-header">
