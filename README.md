@@ -169,18 +169,18 @@ cd src/
 
 ### Changelog
 
-**v1.12.0 (2026-05-27)** — period picker z zapamiętywaniem stron:
+**v1.12.0 (2026-05-27)** — period picker with side memory:
 
-- **Period picker** — mały przycisk ▾ obok "Następny okres" otwiera wybór kwarty (Q1–Q4, Dogrywka 1–2); aplikacja zapamiętuje po której stronie była drużyna A w każdej odwiedzonej kwarcie i przywraca poprawne strony przy przełączaniu; dla nieodwiedzonych kwart oblicza automatycznie na podstawie Q1
-- Zmiana przez picker wchodzi w system undo (8s) — baner "Cofnij" działa identycznie jak przy next-period
+- **Period picker** — small ▾ button next to "Next period" opens a quarter selector (Q1–Q4, OT1–OT2); the app remembers which side team A was on for each visited quarter and restores the correct sides when switching; for unvisited quarters, calculates automatically based on the Q1 starting side
+- Picker changes enter the undo system (8s) — the Undo banner works identically to next-period
 
-**v1.11.1 (2026-05-27)** — undo queue dla zmiany kwarty:
+**v1.11.1 (2026-05-27)** — undo queue for quarter changes:
 
-- **Undo queue dla zmiany kwarty** — wielokrotne kliknięcie "Następna kwarta" akumuluje historię zmian; cofnięcie zawsze przywraca stan sprzed wszystkich przypadkowych kliknięć (nie tylko jeden krok wstecz), identycznie jak undo delete eventów
+- **Undo queue for quarter changes** — multiple "Next period" clicks accumulate a change history; undo always restores the state before all accidental clicks (not just one step back), identical to undo-delete for events
 
 **v1.11.0 (2026-05-27)** — doPost JSON API:
 
-- **JSON API via doPost** — backend obsługuje wywołania `POST` z `Content-Type: application/json`; umożliwia testowanie endpointów narzędziami takimi jak Postman bez użycia `google.script.run`
+- **JSON API via doPost** — backend handles `POST` requests with `Content-Type: application/json`; enables endpoint testing with tools like Postman without using `google.script.run`
 
 **v1.10.0 (2026-05-25)** — viewer-only deployment mode, multi-project support:
 
