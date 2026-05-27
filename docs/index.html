@@ -1403,6 +1403,58 @@ table.stats-table td.num {
 [data-theme="dark"] .match-banner.period-undo::after {
   background: #4ade80;
 }
+
+/* ── Period nav group (next-period + picker) ─────────────────────── */
+.period-nav-group {
+  display: inline-flex;
+  align-items: stretch;
+  gap: 3px;
+}
+.btn-period-picker {
+  padding: 8px 10px;
+  font-size: 12px;
+  line-height: 1;
+}
+
+/* ── Banner: wybór kwarty ─────────────────────────────────────────── */
+.match-banner.period-picker {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #1a1a1a;
+}
+.period-picker-options {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.period-picker-options .btn {
+  padding: 4px 10px;
+  font-size: 12px;
+}
+.period-picker-options .btn-active {
+  background: #1a1a1a;
+  color: white;
+  border-color: #1a1a1a;
+}
+
+[data-theme="dark"] .match-banner.period-picker {
+  background: #161b22;
+  border-color: #30363d;
+  color: #e6edf3;
+}
+[data-theme="dark"] .period-picker-options .btn {
+  background: #21262d;
+  color: #e6edf3;
+  border-color: #30363d;
+}
+[data-theme="dark"] .period-picker-options .btn:hover {
+  background: #1c2128;
+}
+[data-theme="dark"] .period-picker-options .btn-active {
+  background: #238636;
+  color: #fff;
+  border-color: #238636;
+}
 </style>
 </head>
 <body>
@@ -2472,6 +2524,7 @@ function _initMatchState() {
   return {
     period: '1',
     team_A_side: 'left',
+    periodSides: { '1': 'left' },  // period → team_A_side at entry (for picker restore)
     own_half_mode: null,
     history_expanded: true,
     show_zones: false
@@ -3462,11 +3515,25 @@ function renderMatchInput(root) {
     } else if (APP.banner.type === 'period-undo') {
       const orig = APP._periodQueue && APP._periodQueue[0];
       const fromLabel = orig ? periodLabel(orig.prevPeriod) : '?';
+      const sidesTxt = APP.banner.sidesChanged ? ', strony zamienione' : '';
       bannerHtml = `
         <div class="match-banner period-undo">
-          <span>${escapeHtml(fromLabel)} → ${escapeHtml(periodLabel(APP.banner.newPeriod))}, strony zamienione</span>
+          <span>${escapeHtml(fromLabel)} → ${escapeHtml(periodLabel(APP.banner.newPeriod))}${sidesTxt}</span>
           <button data-action="undo-period">↩ Cofnij</button>
           <button class="cancel" data-action="dismiss-period-undo">OK</button>
+        </div>
+      `;
+    } else if (APP.banner.type === 'period-picker') {
+      const periods = ['1', '2', '3', '4', 'OT1', 'OT2'];
+      const btns = periods.map(p => {
+        const active = APP.match.period === p ? ' btn-active' : '';
+        return `<button class="btn${active}" data-action="select-period" data-arg="${p}">${escapeHtml(periodLabel(p))}</button>`;
+      }).join('');
+      bannerHtml = `
+        <div class="match-banner period-picker">
+          <span>Kwarta:</span>
+          <div class="period-picker-options">${btns}</div>
+          <button class="cancel" data-action="cancel-pick-period">✕</button>
         </div>
       `;
     } else if (APP.banner.type === 'delete-undo') {
@@ -3481,12 +3548,13 @@ function renderMatchInput(root) {
     }
   }
 
+  const pickerBtn = `<button class="btn btn-period-picker" data-action="pick-period" title="Wybierz kwartę">▾</button>`;
   let controlsHtml;
   if (isFinal) {
-    controlsHtml = `<button class="btn btn-primary" data-action="period-end-prompt">→ ${periodLabel(APP.match.period)} skończona…</button>`;
+    controlsHtml = `<div class="period-nav-group"><button class="btn btn-primary" data-action="period-end-prompt">→ ${periodLabel(APP.match.period)} skończona…</button>${pickerBtn}</div>`;
   } else {
     const np = nextPeriod(APP.match.period);
-    controlsHtml = `<button class="btn btn-primary" data-action="next-period">→ Następny okres (${periodLabel(np)})</button>`;
+    controlsHtml = `<div class="period-nav-group"><button class="btn btn-primary" data-action="next-period">→ Następny okres (${periodLabel(np)})</button>${pickerBtn}</div>`;
   }
 
   const historyRowsHtml = events.length === 0
@@ -5888,9 +5956,11 @@ const HANDLERS = {
     const newP = nextPeriod(APP.match.period);
     APP.match.period = newP;
     APP.match.team_A_side = prevSide === 'left' ? 'right' : 'left';
+    APP.match.periodSides = APP.match.periodSides || {};
+    APP.match.periodSides[newP] = APP.match.team_A_side;
     APP._periodQueue = (APP._periodQueue || []).concat([{ prevPeriod, prevSide }]);
     clearTimeout(APP._undoTimer);
-    APP.banner = { type: 'period-undo', newPeriod: newP };
+    APP.banner = { type: 'period-undo', newPeriod: newP, sidesChanged: true };
     APP._undoTimer = setTimeout(() => {
       if (APP.banner && APP.banner.type === 'period-undo') {
         APP._periodQueue = [];
@@ -5916,6 +5986,47 @@ const HANDLERS = {
     clearTimeout(APP._undoTimer);
     APP._undoTimer = null;
     APP._periodQueue = [];
+    APP.banner = null;
+    render();
+  },
+  'pick-period': () => {
+    clearTimeout(APP._undoTimer);
+    APP._undoTimer = null;
+    APP._periodQueue = [];
+    APP.banner = { type: 'period-picker' };
+    render();
+  },
+  'select-period': (period) => {
+    if (period === APP.match.period) { APP.banner = null; render(); return; }
+    const prevPeriod = APP.match.period;
+    const prevSide   = APP.match.team_A_side;
+    const sides = APP.match.periodSides = APP.match.periodSides || {};
+    sides[prevPeriod] = prevSide;
+    let newSide;
+    if (sides[period] !== undefined) {
+      newSide = sides[period];
+    } else {
+      // Oblicz na podstawie Q1: każda kwarta zmienia strony
+      const q1Side = sides['1'] || 'left';
+      const idx = getPeriodOrder(period) - 1;
+      newSide = idx % 2 === 0 ? q1Side : (q1Side === 'left' ? 'right' : 'left');
+    }
+    APP.match.period = period;
+    APP.match.team_A_side = newSide;
+    sides[period] = newSide;
+    APP._periodQueue = [{ prevPeriod, prevSide }];
+    clearTimeout(APP._undoTimer);
+    APP.banner = { type: 'period-undo', newPeriod: period, sidesChanged: newSide !== prevSide };
+    APP._undoTimer = setTimeout(() => {
+      if (APP.banner && APP.banner.type === 'period-undo') {
+        APP._periodQueue = [];
+        APP.banner = null;
+        render();
+      }
+    }, 8000);
+    render();
+  },
+  'cancel-pick-period': () => {
     APP.banner = null;
     render();
   },

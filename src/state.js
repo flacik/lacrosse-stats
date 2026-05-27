@@ -326,6 +326,7 @@ function _initMatchState() {
   return {
     period: '1',
     team_A_side: 'left',
+    periodSides: { '1': 'left' },  // period → team_A_side at entry (for picker restore)
     own_half_mode: null,
     history_expanded: true,
     show_zones: false

@@ -63,11 +63,25 @@ function renderMatchInput(root) {
     } else if (APP.banner.type === 'period-undo') {
       const orig = APP._periodQueue && APP._periodQueue[0];
       const fromLabel = orig ? periodLabel(orig.prevPeriod) : '?';
+      const sidesTxt = APP.banner.sidesChanged ? ', strony zamienione' : '';
       bannerHtml = `
         <div class="match-banner period-undo">
-          <span>${escapeHtml(fromLabel)} → ${escapeHtml(periodLabel(APP.banner.newPeriod))}, strony zamienione</span>
+          <span>${escapeHtml(fromLabel)} → ${escapeHtml(periodLabel(APP.banner.newPeriod))}${sidesTxt}</span>
           <button data-action="undo-period">↩ Cofnij</button>
           <button class="cancel" data-action="dismiss-period-undo">OK</button>
+        </div>
+      `;
+    } else if (APP.banner.type === 'period-picker') {
+      const periods = ['1', '2', '3', '4', 'OT1', 'OT2'];
+      const btns = periods.map(p => {
+        const active = APP.match.period === p ? ' btn-active' : '';
+        return `<button class="btn${active}" data-action="select-period" data-arg="${p}">${escapeHtml(periodLabel(p))}</button>`;
+      }).join('');
+      bannerHtml = `
+        <div class="match-banner period-picker">
+          <span>Kwarta:</span>
+          <div class="period-picker-options">${btns}</div>
+          <button class="cancel" data-action="cancel-pick-period">✕</button>
         </div>
       `;
     } else if (APP.banner.type === 'delete-undo') {
@@ -82,12 +96,13 @@ function renderMatchInput(root) {
     }
   }
 
+  const pickerBtn = `<button class="btn btn-period-picker" data-action="pick-period" title="Wybierz kwartę">▾</button>`;
   let controlsHtml;
   if (isFinal) {
-    controlsHtml = `<button class="btn btn-primary" data-action="period-end-prompt">→ ${periodLabel(APP.match.period)} skończona…</button>`;
+    controlsHtml = `<div class="period-nav-group"><button class="btn btn-primary" data-action="period-end-prompt">→ ${periodLabel(APP.match.period)} skończona…</button>${pickerBtn}</div>`;
   } else {
     const np = nextPeriod(APP.match.period);
-    controlsHtml = `<button class="btn btn-primary" data-action="next-period">→ Następny okres (${periodLabel(np)})</button>`;
+    controlsHtml = `<div class="period-nav-group"><button class="btn btn-primary" data-action="next-period">→ Następny okres (${periodLabel(np)})</button>${pickerBtn}</div>`;
   }
 
   const historyRowsHtml = events.length === 0
