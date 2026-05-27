@@ -136,7 +136,10 @@ function _accessListEmpty() {
 }
 
 function _serveNoLogin() {
-  return '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Lacrosse Stats</title></head><body style="font-family:sans-serif;max-width:420px;margin:80px auto;text-align:center;padding:0 20px"><h2>Lacrosse Stats</h2><p>Aby uzyskać dostęp, zaloguj się kontem Google przypisanym do tej aplikacji.</p><p style="color:#888;font-size:13px">Jeśli jesteś zalogowany innym kontem, wyloguj się i zaloguj właściwym.</p></body></html>';
+  var appUrl = '';
+  try { appUrl = ScriptApp.getService().getUrl(); } catch (e) {}
+  var loginUrl = 'https://accounts.google.com/AccountChooser?continue=' + encodeURIComponent(appUrl);
+  return '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Lacrosse Stats</title></head><body style="font-family:sans-serif;max-width:420px;margin:80px auto;text-align:center;padding:0 20px"><h2>Lacrosse Stats</h2><p>Aby uzyskać dostęp, zaloguj się kontem Google przypisanym do tej aplikacji.</p><a href="' + loginUrl + '" style="display:inline-block;background:#1a73e8;color:#fff;padding:10px 28px;border-radius:6px;text-decoration:none;font-size:15px;margin-top:12px">Zaloguj się przez Google</a></body></html>';
 }
 
 function _serveAccessDenied(email) {
