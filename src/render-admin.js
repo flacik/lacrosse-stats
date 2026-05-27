@@ -75,7 +75,7 @@ function renderAccessCard() {
 
   const users = APP.accessUsers || [];
   const selfEmail = APP.userEmail || '';
-  const editorCount = users.filter(u => u.role === 'editor').length;
+  const adminCount = users.filter(u => u.role === 'admin').length;
 
   let rows = '';
   if (users.length === 0) {
@@ -84,12 +84,12 @@ function renderAccessCard() {
     rows = '<ul class="admin-list">';
     users.forEach(u => {
       const isSelf = u.email === selfEmail;
-      const isLastEditor = u.role === 'editor' && editorCount === 1;
-      const cantDelete = isSelf || isLastEditor;
+      const isLastAdmin = u.role === 'admin' && adminCount === 1;
+      const cantDelete = isSelf || isLastAdmin;
       const deleteTitle = isSelf
         ? 'Nie możesz usunąć swojego konta'
-        : isLastEditor
-        ? 'Nie można usunąć ostatniego editora'
+        : isLastAdmin
+        ? 'Nie można usunąć ostatniego admina'
         : 'Usuń użytkownika';
       rows += `
         <li class="admin-row">

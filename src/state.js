@@ -84,10 +84,8 @@ let APP = {
 
 function go(screen, opts) {
   opts = opts || {};
-  if (!IS_EDITOR && (screen === 'match-input' || screen === 'admin')) {
-    screen = 'home';
-    opts = {};
-  }
+  if (!IS_EDITOR && screen === 'match-input') { screen = 'home'; opts = {}; }
+  if (!IS_ADMIN  && screen === 'admin')       { screen = 'home'; opts = {}; }
   if (APP.refreshInterval) {
     clearInterval(APP.refreshInterval);
     APP.refreshInterval = null;

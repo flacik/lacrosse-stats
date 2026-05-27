@@ -12,7 +12,7 @@ function renderHome(root) {
       <div class="app-header">
         <h1>Lacrosse Stats</h1>
         <span class="meta">${today}</span>
-        ${IS_EDITOR ? '<button class="btn" data-action="open-admin">📋 Turnieje</button>' : ''}
+        ${IS_ADMIN ? '<button class="btn" data-action="open-admin">📋 Turnieje</button>' : ''}
         <button class="btn" data-action="open-analytics">📊 Analityka</button>
         <button class="btn" data-action="open-standings">🏆 Tabela</button>
         <button class="btn" data-action="toggle-dark-mode" id="theme-toggle" title="Przełącz tryb ciemny">🌙</button>
@@ -33,7 +33,7 @@ function renderHome(root) {
       <div class="app-header">
         <h1>Lacrosse Stats</h1>
         <span class="meta">${today}</span>
-        ${IS_EDITOR ? '<button class="btn" data-action="open-admin">📋 Turnieje</button>' : ''}
+        ${IS_ADMIN ? '<button class="btn" data-action="open-admin">📋 Turnieje</button>' : ''}
         <button class="btn" data-action="open-analytics">📊 Analityka</button>
         <button class="btn" data-action="open-standings">🏆 Tabela</button>
         <button class="btn" data-action="toggle-dark-mode" id="theme-toggle" title="Przełącz tryb ciemny">🌙</button>
@@ -105,7 +105,7 @@ function renderHome(root) {
     <div class="app-header">
       <h1>Lacrosse Stats</h1>
       <span class="meta">${today}</span>
-      ${IS_EDITOR ? '<button class="btn" data-action="open-admin">📋 Turnieje</button>' : ''}
+      ${IS_ADMIN ? '<button class="btn" data-action="open-admin">📋 Turnieje</button>' : ''}
       <button class="btn" data-action="open-analytics">📊 Analityka</button>
       <button class="btn" data-action="open-standings">🏆 Tabela</button>
       ${USER_EMAIL ? `<span class="user-email-tag" title="Zalogowany jako ${escapeHtml(USER_EMAIL)}">${escapeHtml(USER_EMAIL)}</span>` : ''}
@@ -119,7 +119,7 @@ function renderHome(root) {
 
   if (todayMatches.length === 0) {
     html += '<div class="empty">Brak meczy zaplanowanych na dziś.' +
-      (IS_EDITOR ? '<br>Dodaj mecze w panelu Turniejów lub utwórz mecz ad-hoc.' : '') +
+      (IS_ADMIN ? '<br>Dodaj mecze w panelu Turniejów lub utwórz mecz ad-hoc.' : '') +
       '</div>';
   } else {
     html += '<div class="match-list">';
@@ -134,6 +134,6 @@ function renderHome(root) {
     html += '</div>';
   }
 
-  html += (IS_EDITOR ? '<button class="add-match" data-action="ad-hoc">+ Nowy mecz ad-hoc</button>' : '') + '</div>';
+  html += (IS_ADMIN ? '<button class="add-match" data-action="ad-hoc">+ Nowy mecz ad-hoc</button>' : '') + '</div>';
   root.innerHTML = html;
 }

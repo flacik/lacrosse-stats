@@ -207,8 +207,9 @@ function renderAccessUserModal(user) {
       <label class="field">
         <span class="field-label">Rola</span>
         <select id="access-role">
-          <option value="editor"  ${(!isEdit || user.role === 'editor')  ? 'selected' : ''}>editor</option>
-          <option value="viewer"  ${(isEdit  && user.role === 'viewer')  ? 'selected' : ''}>viewer</option>
+          <option value="admin"  ${(isEdit && user.role === 'admin')  ? 'selected' : ''}>admin (zarządza dostępem + turnieje)</option>
+          <option value="editor" ${(!isEdit || user.role === 'editor') ? 'selected' : ''}>editor (wpisuje statystyki)</option>
+          <option value="viewer" ${(isEdit  && user.role === 'viewer') ? 'selected' : ''}>viewer (tylko podgląd)</option>
         </select>
       </label>
       <div class="modal-actions">

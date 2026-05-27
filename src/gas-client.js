@@ -31,6 +31,7 @@ const IS_EDITOR = (
 // Email i rola zalogowanego użytkownika (wstrzykiwane przez doGet w Code.gs)
 const USER_EMAIL = (typeof window !== 'undefined' && window.APP_CONFIG && window.APP_CONFIG.userEmail) || '';
 const USER_ROLE  = (typeof window !== 'undefined' && window.APP_CONFIG && window.APP_CONFIG.userRole)  || 'viewer';
+const IS_ADMIN   = (typeof window !== 'undefined' && window.APP_CONFIG && window.APP_CONFIG.isAdmin === true);
 
 // Unikalny identyfikator tej karty przeglądarki (per-tab, wygasa po zamknięciu).
 const SESSION_ID = (function () {

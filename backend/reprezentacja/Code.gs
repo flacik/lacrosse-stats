@@ -66,7 +66,7 @@ var TOURNAMENT_COLS = ['id', 'name', 'created_at'];
 
 var SHEET_ACCESS  = 'access_list';
 var ACCESS_COLS   = ['id', 'email', 'role', 'created_at'];
-var VALID_ROLES   = ['editor', 'viewer'];
+var VALID_ROLES   = ['admin', 'editor', 'viewer'];
 
 // ── ENTRY POINT ───────────────────────────────────────────────────────────────
 
@@ -98,8 +98,9 @@ function doGet(e) {
       .setTitle('Lacrosse Stats — Brak dostępu');
   }
 
-  var isEditor = (user.role === 'editor');
-  var configScript = '<script>window.APP_CONFIG={isEditor:' + isEditor + ',userEmail:' + JSON.stringify(userEmail) + ',userRole:' + JSON.stringify(user.role) + '};</script>';
+  var isEditor = (user.role === 'admin' || user.role === 'editor');
+  var isAdmin  = (user.role === 'admin');
+  var configScript = '<script>window.APP_CONFIG={isEditor:' + isEditor + ',isAdmin:' + isAdmin + ',userEmail:' + JSON.stringify(userEmail) + ',userRole:' + JSON.stringify(user.role) + '};</script>';
 
   var html = HtmlService.createHtmlOutputFromFile('index').getContent();
   html = html.replace('</head>', configScript + '</head>');
@@ -531,13 +532,13 @@ function deleteAccessUser(id) {
     if (!sheet || sheet.getLastRow() < 2) return err('NOT_FOUND', 'Użytkownik nie istnieje');
     var rowNum = findRowById(sheet, id);
     if (rowNum < 0) return err('NOT_FOUND', 'Użytkownik nie istnieje: ' + id);
-    // Blokuj usunięcie ostatniego editora
+    // Blokuj usunięcie ostatniego admina
     var allUsers = listAccessUsers().data || [];
-    var editors = allUsers.filter(function(u) { return u.role === 'editor' && u.id !== id; });
-    if (editors.length === 0) {
+    var admins = allUsers.filter(function(u) { return u.role === 'admin' && u.id !== id; });
+    if (admins.length === 0) {
       var thisUser = allUsers.find(function(u) { return u.id === id; });
-      if (thisUser && thisUser.role === 'editor') {
-        return err('FORBIDDEN', 'Nie można usunąć ostatniego editora');
+      if (thisUser && thisUser.role === 'admin') {
+        return err('FORBIDDEN', 'Nie można usunąć ostatniego admina');
       }
     }
     sheet.deleteRow(rowNum);
@@ -557,7 +558,7 @@ function bootstrapFirstAdmin(email) {
       sheet.getRange(1, 1, 1, ACCESS_COLS.length).setValues([ACCESS_COLS]);
     }
     var newId = 'acc_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6);
-    sheet.appendRow([newId, email, 'editor', new Date().toISOString()]);
+    sheet.appendRow([newId, email, 'admin', new Date().toISOString()]);
     return ok({ id: newId });
   } catch (e) { return err('INTERNAL_ERROR', e.message); }
 }
