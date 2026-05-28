@@ -73,8 +73,8 @@ All data is stored in Google Sheets, so the club always has a permanent record o
 | Instance | Access | URL |
 |---|---|---|
 | Demo (sample data) | Public, view-only | https://flacik.github.io/lacrosse-stats/ |
-
-> Production deployments (Polish National Team, Polish Lacrosse League) are internal — available on request.
+| Reprezentacja (Polish National Team) | Anyone with the link — full editor access | internal |
+| Liga (Polish Lacrosse League) | Viewer: anyone with the link · Editor: `?token=TOKEN` | internal |
 
 ---
 
@@ -160,7 +160,7 @@ cd src/
 
 ## Status
 
-**Current: v2.1.2 — deployed 2026-05-27**
+**Current: v2.2.0 — deployed 2026-05-28**
 
 ### Versioning rules
 
@@ -172,27 +172,12 @@ cd src/
 
 ### Changelog
 
-**v2.1.2 (2026-05-27)** — fix Google login flow:
+**v2.2.0 (2026-05-28)** — revert Google auth, back to token/open access model:
 
-- **Root cause fixed** — `appsscript.json` had `access: ANYONE_ANONYMOUS`; GAS never authenticated users so `getActiveUser().getEmail()` always returned `""`. Changed to `ANYONE` + added `userinfo.email` OAuth scope. GAS now automatically redirects unauthenticated users to Google login.
-
-**v2.1.1 (2026-05-27)** — login button on no-access screen (superseded by v2.1.2)
-
-**v2.1.0 (2026-05-27)** — three-tier role system:
-
-- **admin/editor/viewer roles** — `admin` manages access list and tournaments/matches; `editor` enters stats only; `viewer` is read-only. Previously only `editor` and `viewer` existed.
-- **Admin panel button** (`📋 Turnieje`) and ad-hoc match creation now restricted to `admin` role
-- Delete guard now protects the last `admin` (previously guarded last `editor`)
-- Bootstrap flow creates the first user as `admin`
-
-**v2.0.0 (2026-05-27)** — Google login + RBAC access control (MAJOR — new sheet tab + column):
-
-- **Replaced token auth** — `?token=` URL parameter removed; access now requires a Google account login via `Session.getActiveUser().getEmail()`
-- **Access list** — new `access_list` tab in Google Sheets (`id`, `email`, `role`, `created_at`); users not on the list see a "Brak dostępu" screen with their email
-- **Bootstrap flow** — first visit with empty list shows a setup screen to create the first admin account
-- **Logged-in email** shown in the app header for all authenticated users
-- **Admin panel — user management** — new "Dostęp — Użytkownicy" section in the admin screen: add, edit, delete users; cannot delete self or the last admin
-- **`added_by` column in events** — each recorded event stores the email of the user who added it
+- **Removed Google login** — `getActiveUser()` in `USER_DEPLOYING` mode never reliably returned the visitor's email; all OAuth approaches (GIS, Authorization Code flow) failed due to `*.googleusercontent.com` domain restrictions or GAS execution context limitations
+- **Reprezentacja** — open access for anyone with the link (`ANYONE_ANONYMOUS`); no token required, everyone has editor access
+- **Liga** — `EDITOR_TOKEN` model restored: viewer access without token, editor access with `?token=TOKEN` in the URL
+- **Removed**: `access_list` sheet, RBAC roles (admin/editor/viewer), user management admin panel, `added_by` event column, OAuth scopes from `appsscript.json`
 
 **v1.13.1 (2026-05-27)** — presence mode distinction (input vs viewer):
 
