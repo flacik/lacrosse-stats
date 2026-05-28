@@ -57,63 +57,9 @@ function renderAdmin(root) {
 
   root.innerHTML = header + `
     <div class="admin-content">
-      ${renderAccessCard()}
       ${renderTournamentsCard()}
       ${renderMatchesCard(filter)}
       ${renderCsvImportCard()}
-    </div>
-  `;
-}
-
-function renderAccessCard() {
-  if (APP.accessLoading) {
-    return `<div class="admin-card"><h2>Dostęp — Użytkownicy</h2><p class="admin-loading">Ładowanie…</p></div>`;
-  }
-  if (APP.accessError) {
-    return `<div class="admin-card"><h2>Dostęp — Użytkownicy</h2><p class="admin-error">⚠ ${escapeHtml(APP.accessError)}</p></div>`;
-  }
-
-  const users = APP.accessUsers || [];
-  const selfEmail = APP.userEmail || '';
-  const adminCount = users.filter(u => u.role === 'admin').length;
-
-  let rows = '';
-  if (users.length === 0) {
-    rows = '<div class="admin-empty">Brak użytkowników na liście.</div>';
-  } else {
-    rows = '<ul class="admin-list">';
-    users.forEach(u => {
-      const isSelf = u.email === selfEmail;
-      const isLastAdmin = u.role === 'admin' && adminCount === 1;
-      const cantDelete = isSelf || isLastAdmin;
-      const deleteTitle = isSelf
-        ? 'Nie możesz usunąć swojego konta'
-        : isLastAdmin
-        ? 'Nie można usunąć ostatniego admina'
-        : 'Usuń użytkownika';
-      rows += `
-        <li class="admin-row">
-          <div class="admin-row-main">
-            <strong>${escapeHtml(u.email)}</strong>
-            <span class="admin-row-meta">${escapeHtml(u.role)}${isSelf ? ' (ty)' : ''}</span>
-          </div>
-          <div class="admin-row-actions">
-            <button class="btn btn-sm" data-action="access-user-edit" data-arg="${escapeHtml(u.id)}">Edytuj</button>
-            <button class="btn btn-sm btn-danger" data-action="access-user-delete" data-arg="${escapeHtml(u.id)}"
-              ${cantDelete ? 'disabled title="' + escapeHtml(deleteTitle) + '"' : ''}>Usuń</button>
-          </div>
-        </li>`;
-    });
-    rows += '</ul>';
-  }
-
-  return `
-    <div class="admin-card">
-      <div class="admin-card-header">
-        <h2>Dostęp — Użytkownicy</h2>
-        <button class="btn btn-primary btn-sm" data-action="access-user-new">+ Dodaj użytkownika</button>
-      </div>
-      ${rows}
     </div>
   `;
 }

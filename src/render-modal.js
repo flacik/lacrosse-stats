@@ -16,7 +16,6 @@ function renderModal() {
   else if (APP.modal.type === 'goalie-form')         bg.innerHTML = renderGoalieFormModal();
   else if (APP.modal.type === 'goalie-retroactive')  bg.innerHTML = renderGoalieRetroactiveModal();
   else if (APP.modal.type === 'confirm')             bg.innerHTML = renderConfirmModal();
-  else if (APP.modal.type === 'access-user-form')   bg.innerHTML = renderAccessUserModal(APP.modal.user);
 
   document.body.appendChild(bg);
 }
@@ -190,33 +189,6 @@ function renderGoalieFormModal() {
       <div class="modal-actions">
         <button class="btn" data-action="cancel-modal">Anuluj</button>
         <button class="btn btn-primary" data-action="save-goalie" data-arg="${slot}">Zapisz</button>
-      </div>
-    </div>
-  `;
-}
-
-function renderAccessUserModal(user) {
-  const isEdit = !!user;
-  return `
-    <div class="modal" data-stop-propagation="true" style="max-width:380px">
-      <h2>${isEdit ? 'Edytuj użytkownika' : 'Dodaj użytkownika'}</h2>
-      <label class="field">
-        <span class="field-label">Email</span>
-        <input type="email" id="access-email" value="${isEdit ? escapeHtml(user.email) : ''}" placeholder="np. jan@example.com">
-      </label>
-      <label class="field">
-        <span class="field-label">Rola</span>
-        <select id="access-role">
-          <option value="admin"  ${(isEdit && user.role === 'admin')  ? 'selected' : ''}>admin (zarządza dostępem + turnieje)</option>
-          <option value="editor" ${(!isEdit || user.role === 'editor') ? 'selected' : ''}>editor (wpisuje statystyki)</option>
-          <option value="viewer" ${(isEdit  && user.role === 'viewer') ? 'selected' : ''}>viewer (tylko podgląd)</option>
-        </select>
-      </label>
-      <div class="modal-actions">
-        <button class="btn" data-action="cancel-modal">Anuluj</button>
-        <button class="btn btn-primary" data-action="submit-access-user" data-arg="${isEdit ? escapeHtml(user.id) : ''}">
-          ${isEdit ? 'Zapisz zmiany' : 'Dodaj'}
-        </button>
       </div>
     </div>
   `;

@@ -55,7 +55,6 @@ var EVENT_COLS = [
   'result', 'man_up', 'man_down',
   'created_at', 'assisted',
   'event_type', 'goalie_number',
-  'added_by',
 ];
 
 var MATCH_COLS = [
@@ -64,10 +63,6 @@ var MATCH_COLS = [
 
 var TOURNAMENT_COLS = ['id', 'name', 'created_at'];
 
-var SHEET_ACCESS  = 'access_list';
-var ACCESS_COLS   = ['id', 'email', 'role', 'created_at'];
-var VALID_ROLES   = ['admin', 'editor', 'viewer'];
-
 // ── ENTRY POINT ───────────────────────────────────────────────────────────────
 
 /**
@@ -75,32 +70,16 @@ var VALID_ROLES   = ['admin', 'editor', 'viewer'];
  * Plik `index.html` musi być dodany do projektu GAS (zawiera dist.html z build.sh).
  */
 function doGet(e) {
-  var userEmail = '';
-  try { userEmail = Session.getActiveUser().getEmail() || ''; } catch (ex) {}
+  var urlToken = (e && e.parameter && e.parameter.token) ? e.parameter.token : '';
+  var editorToken = '';
+  try {
+    editorToken = PropertiesService.getScriptProperties().getProperty('EDITOR_TOKEN') || '';
+  } catch (ex) {}
 
-  if (!userEmail) {
-    return HtmlService.createHtmlOutput(_serveNoLogin())
-      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
-      .setTitle('Lacrosse Stats — Zaloguj się');
-  }
-
-  var user = _findAccessUser(userEmail);
-
-  if (!user && _accessListEmpty()) {
-    return HtmlService.createHtmlOutput(_serveBootstrap(userEmail))
-      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
-      .setTitle('Lacrosse Stats — Konfiguracja');
-  }
-
-  if (!user) {
-    return HtmlService.createHtmlOutput(_serveAccessDenied(userEmail))
-      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
-      .setTitle('Lacrosse Stats — Brak dostępu');
-  }
-
-  var isEditor = (user.role === 'admin' || user.role === 'editor');
-  var isAdmin  = (user.role === 'admin');
-  var configScript = '<script>window.APP_CONFIG={isEditor:' + isEditor + ',isAdmin:' + isAdmin + ',userEmail:' + JSON.stringify(userEmail) + ',userRole:' + JSON.stringify(user.role) + '};</script>';
+  // Jeśli EDITOR_TOKEN nie ustawiony w Script Properties → pełny dostęp dla wszystkich
+  // Jeśli ustawiony → wymagany token w URL (?token=...)
+  var isEditor = (editorToken === '') ? true : (urlToken === editorToken);
+  var configScript = '<script>window.APP_CONFIG={isEditor:' + isEditor + '};</script>';
 
   var html = HtmlService.createHtmlOutputFromFile('index').getContent();
   html = html.replace('</head>', configScript + '</head>');
@@ -110,41 +89,6 @@ function doGet(e) {
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
     .setSandboxMode(HtmlService.SandboxMode.IFRAME)
     .setTitle('Lacrosse Stats');
-}
-
-function _findAccessUser(email) {
-  try {
-    var sheet = getSpreadsheet().getSheetByName(SHEET_ACCESS);
-    if (!sheet || sheet.getLastRow() < 2) return null;
-    var data = sheet.getRange(2, 1, sheet.getLastRow() - 1, ACCESS_COLS.length).getValues();
-    var emailIdx = ACCESS_COLS.indexOf('email');
-    var roleIdx  = ACCESS_COLS.indexOf('role');
-    for (var i = 0; i < data.length; i++) {
-      if (String(data[i][emailIdx]).toLowerCase().trim() === email.toLowerCase().trim()) {
-        return { id: String(data[i][0]), email: String(data[i][emailIdx]), role: String(data[i][roleIdx]) };
-      }
-    }
-    return null;
-  } catch (e) { return null; }
-}
-
-function _accessListEmpty() {
-  try {
-    var sheet = getSpreadsheet().getSheetByName(SHEET_ACCESS);
-    return !sheet || sheet.getLastRow() < 2;
-  } catch (e) { return true; }
-}
-
-function _serveNoLogin() {
-  return '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Lacrosse Stats</title></head><body style="font-family:sans-serif;max-width:420px;margin:80px auto;text-align:center;padding:0 20px"><h2>Lacrosse Stats</h2><p>Aby uzyskać dostęp, zaloguj się kontem Google przypisanym do tej aplikacji.</p><p style="color:#888;font-size:13px">Odśwież stronę lub otwórz link ponownie — Google powinno przekierować do logowania.</p></body></html>';
-}
-
-function _serveAccessDenied(email) {
-  return '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Brak dostępu</title></head><body style="font-family:sans-serif;max-width:420px;margin:80px auto;text-align:center;padding:0 20px"><h2>Brak dostępu</h2><p>Twój email: <strong>' + email + '</strong></p><p>Nie masz dostępu do tej aplikacji. Skontaktuj się z administratorem, aby zostać dodanym.</p></body></html>';
-}
-
-function _serveBootstrap(email) {
-  return '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Lacrosse Stats — Setup</title></head><body style="font-family:sans-serif;max-width:420px;margin:80px auto;text-align:center;padding:0 20px"><h2>Pierwsze uruchomienie</h2><p>Lista użytkowników jest pusta. Utwórz pierwsze konto administratora.</p><p>Email: <strong>' + email + '</strong></p><button id="btn" style="background:#1d4ed8;color:#fff;border:none;padding:10px 24px;border-radius:6px;font-size:15px;cursor:pointer" onclick="setup()">Utwórz konto admina</button><p id="msg" style="color:#888;margin-top:16px"></p><script>function setup(){document.getElementById("btn").disabled=true;document.getElementById("msg").textContent="Tworzenie…";google.script.run.withSuccessHandler(function(){document.getElementById("msg").textContent="Gotowe! Odśwież stronę.";}).withFailureHandler(function(e){document.getElementById("msg").textContent="Błąd: "+(e.message||e);document.getElementById("btn").disabled=false;}).bootstrapFirstAdmin("' + email + '");}<\/script></body></html>';
 }
 
 /**
@@ -208,12 +152,6 @@ function doPost(e) {
     if (action === 'presenceHeartbeat')         return jsonResponse(presenceHeartbeat(body.matchId, body.sessionId));
     if (action === 'presenceLeave')             return jsonResponse(presenceLeave(body.matchId, body.sessionId));
     if (action === 'presenceGetCounts')         return jsonResponse(presenceGetCounts(body.matchIds));
-
-    if (action === 'listAccessUsers')           return jsonResponse(listAccessUsers());
-    if (action === 'createAccessUser')          return jsonResponse(createAccessUser(body.email, body.role));
-    if (action === 'updateAccessUser')          return jsonResponse(updateAccessUser(body.id, body.email, body.role));
-    if (action === 'deleteAccessUser')          return jsonResponse(deleteAccessUser(body.id));
-    if (action === 'bootstrapFirstAdmin')       return jsonResponse(bootstrapFirstAdmin(body.email));
 
     return jsonResponse(err('UNKNOWN_ACTION', 'Nieznana akcja: ' + action));
   } catch (ex) {
@@ -476,93 +414,6 @@ function checkRateLimit(sessionKey) {
   }
 }
 
-// ── ACCESS LIST ───────────────────────────────────────────────────────────────
-
-function listAccessUsers() {
-  try {
-    var sheet = getSpreadsheet().getSheetByName(SHEET_ACCESS);
-    if (!sheet || sheet.getLastRow() < 2) return ok([]);
-    var data = sheet.getRange(2, 1, sheet.getLastRow() - 1, ACCESS_COLS.length).getValues();
-    var result = data.map(function(row) {
-      var obj = {};
-      ACCESS_COLS.forEach(function(col, i) { obj[col] = String(row[i] !== undefined ? row[i] : ''); });
-      return obj;
-    }).filter(function(u) { return u.id && u.email; });
-    return ok(result);
-  } catch (e) { return err('INTERNAL_ERROR', e.message); }
-}
-
-function createAccessUser(email, role) {
-  try {
-    if (!email || typeof email !== 'string') return err('BAD_REQUEST', 'Nieprawidłowy email');
-    email = email.trim().toLowerCase();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return err('BAD_REQUEST', 'Nieprawidłowy format email');
-    if (VALID_ROLES.indexOf(role) === -1) return err('BAD_REQUEST', 'Rola musi być: editor lub viewer');
-    var existing = _findAccessUser(email);
-    if (existing) return err('DUPLICATE', 'Użytkownik już istnieje: ' + email);
-    var sheet = getSpreadsheet().getSheetByName(SHEET_ACCESS);
-    if (!sheet) return err('INTERNAL_ERROR', 'Brak zakładki access_list. Uruchom setupSheets().');
-    var newId = 'acc_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6);
-    sheet.appendRow([newId, email, role, new Date().toISOString()]);
-    return ok({ id: newId });
-  } catch (e) { return err('INTERNAL_ERROR', e.message); }
-}
-
-function updateAccessUser(id, email, role) {
-  try {
-    if (!id) return err('BAD_REQUEST', 'Brak id');
-    if (!email || typeof email !== 'string') return err('BAD_REQUEST', 'Nieprawidłowy email');
-    email = email.trim().toLowerCase();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return err('BAD_REQUEST', 'Nieprawidłowy format email');
-    if (VALID_ROLES.indexOf(role) === -1) return err('BAD_REQUEST', 'Rola musi być: editor lub viewer');
-    var sheet = getSpreadsheet().getSheetByName(SHEET_ACCESS);
-    if (!sheet || sheet.getLastRow() < 2) return err('NOT_FOUND', 'Użytkownik nie istnieje');
-    var rowNum = findRowById(sheet, id);
-    if (rowNum < 0) return err('NOT_FOUND', 'Użytkownik nie istnieje: ' + id);
-    sheet.getRange(rowNum, ACCESS_COLS.indexOf('email') + 1).setValue(email);
-    sheet.getRange(rowNum, ACCESS_COLS.indexOf('role') + 1).setValue(role);
-    return ok(null);
-  } catch (e) { return err('INTERNAL_ERROR', e.message); }
-}
-
-function deleteAccessUser(id) {
-  try {
-    if (!id) return err('BAD_REQUEST', 'Brak id');
-    var sheet = getSpreadsheet().getSheetByName(SHEET_ACCESS);
-    if (!sheet || sheet.getLastRow() < 2) return err('NOT_FOUND', 'Użytkownik nie istnieje');
-    var rowNum = findRowById(sheet, id);
-    if (rowNum < 0) return err('NOT_FOUND', 'Użytkownik nie istnieje: ' + id);
-    // Blokuj usunięcie ostatniego admina
-    var allUsers = listAccessUsers().data || [];
-    var admins = allUsers.filter(function(u) { return u.role === 'admin' && u.id !== id; });
-    if (admins.length === 0) {
-      var thisUser = allUsers.find(function(u) { return u.id === id; });
-      if (thisUser && thisUser.role === 'admin') {
-        return err('FORBIDDEN', 'Nie można usunąć ostatniego admina');
-      }
-    }
-    sheet.deleteRow(rowNum);
-    return ok(null);
-  } catch (e) { return err('INTERNAL_ERROR', e.message); }
-}
-
-function bootstrapFirstAdmin(email) {
-  try {
-    if (!_accessListEmpty()) return err('FORBIDDEN', 'Lista użytkowników nie jest pusta');
-    if (!email || typeof email !== 'string') return err('BAD_REQUEST', 'Nieprawidłowy email');
-    email = email.trim().toLowerCase();
-    var sheet = getSpreadsheet().getSheetByName(SHEET_ACCESS);
-    if (!sheet) {
-      var ss = getSpreadsheet();
-      sheet = ss.insertSheet(SHEET_ACCESS);
-      sheet.getRange(1, 1, 1, ACCESS_COLS.length).setValues([ACCESS_COLS]);
-    }
-    var newId = 'acc_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6);
-    sheet.appendRow([newId, email, 'admin', new Date().toISOString()]);
-    return ok({ id: newId });
-  } catch (e) { return err('INTERNAL_ERROR', e.message); }
-}
-
 // ── PRESENCE ──────────────────────────────────────────────────────────────────
 
 function presenceHeartbeat(matchId, sessionId, mode) {
@@ -684,21 +535,8 @@ function setupSheets() {
     ensureSheet(CONFIG.SHEET_EVENTS, EVENT_COLS);
     ensureSheet(CONFIG.SHEET_MATCHES, MATCH_COLS);
     ensureSheet(CONFIG.SHEET_TOURNAMENTS, TOURNAMENT_COLS);
-    ensureSheet(SHEET_ACCESS, ACCESS_COLS);
 
-    // Migracja: dodaj kolumnę added_by do events jeśli brakuje
-    var evSheet = ss.getSheetByName(CONFIG.SHEET_EVENTS);
-    if (evSheet && evSheet.getLastRow() >= 1) {
-      var evHeaders = evSheet.getRange(1, 1, 1, evSheet.getLastColumn()).getValues()[0];
-      if (evHeaders.indexOf('added_by') === -1) {
-        var newCol = evSheet.getLastColumn() + 1;
-        evSheet.getRange(1, newCol).setValue('added_by');
-        evSheet.getRange(1, newCol).setFontWeight('bold');
-        Logger.log('Dodano kolumnę added_by do zakładki events');
-      }
-    }
-
-    return ok({ message: 'Zakładki gotowe: events, scheduled_matches, tournaments, access_list' });
+    return ok({ message: 'Zakładki gotowe: events, scheduled_matches, tournaments' });
   } catch (e) {
     return err('SETUP_ERROR', e.message);
   }
