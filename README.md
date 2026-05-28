@@ -160,7 +160,7 @@ cd src/
 
 ## Status
 
-**Current: v2.2.0 — deployed 2026-05-28**
+**Current: v1.13.1 — deployed 2026-05-27**
 
 ### Versioning rules
 
@@ -171,13 +171,6 @@ cd src/
 | **PATCH** | Bug fix, UI tweak, performance improvement |
 
 ### Changelog
-
-**v2.2.0 (2026-05-28)** — revert Google auth, back to token/open access model:
-
-- **Removed Google login** — `getActiveUser()` in `USER_DEPLOYING` mode never reliably returned the visitor's email; all OAuth approaches (GIS, Authorization Code flow) failed due to `*.googleusercontent.com` domain restrictions or GAS execution context limitations
-- **Reprezentacja** — open access for anyone with the link (`ANYONE_ANONYMOUS`); no token required, everyone has editor access
-- **Liga** — `EDITOR_TOKEN` model restored: viewer access without token, editor access with `?token=TOKEN` in the URL
-- **Removed**: `access_list` sheet, RBAC roles (admin/editor/viewer), user management admin panel, `added_by` event column, OAuth scopes from `appsscript.json`
 
 **v1.13.1 (2026-05-27)** — presence mode distinction (input vs viewer):
 
