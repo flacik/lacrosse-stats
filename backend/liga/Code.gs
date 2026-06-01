@@ -21,7 +21,7 @@ var CONFIG = {
   DEV_SPREADSHEET_ID:  '1ah9GhGJYby_lZxyG4VzNGN7GRkykiMm2fwe16arON_Q',
 
   // Ustaw IS_DEV: false przed deployem produkcyjnym
-  IS_DEV: false,
+  IS_DEV: true,
 
   SHEET_EVENTS:      'events',
   SHEET_MATCHES:     'scheduled_matches',
