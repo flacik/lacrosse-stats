@@ -60,6 +60,7 @@ function renderAdmin(root) {
       ${renderTournamentsCard()}
       ${renderMatchesCard(filter)}
       ${renderCsvImportCard()}
+      ${renderEmbedCard()}
     </div>
   `;
 }
@@ -240,6 +241,45 @@ function renderCsvImportCard() {
       </header>
       <div class="admin-card-hint">Format: <code>turniej,data,druzyna_a,druzyna_b,link</code> (link opcjonalny). Data: <code>RRRR-MM-DD</code>. Separator: przecinek lub średnik.</div>
       ${previewHtml}
+    </section>
+  `;
+}
+
+function renderEmbedCard() {
+  const baseUrl = window.location.href.split('?')[0];
+  const selectedId = APP.embedSelectedMatch || '';
+  const url = selectedId ? baseUrl + '?match=' + encodeURIComponent(selectedId) : baseUrl;
+  const snippet = `<iframe src="${url}" width="100%" height="700" frameborder="0" style="border:none; border-radius:8px;"></iframe>`;
+
+  const matchOpts = ['<option value="">— Cała aplikacja (podgląd kibica) —</option>']
+    .concat(
+      DATA.scheduledMatches.slice()
+        .sort((a, b) => b.match_date.localeCompare(a.match_date))
+        .map(m => {
+          const label = `${m.match_date} — ${escapeHtml(m.team_A)} vs ${escapeHtml(m.team_B)}${m.tournament ? ' (' + escapeHtml(m.tournament) + ')' : ''}`;
+          return `<option value="${escapeHtml(String(m.id))}" ${selectedId === String(m.id) ? 'selected' : ''}>${label}</option>`;
+        })
+    ).join('');
+
+  return `
+    <section class="admin-card">
+      <header class="admin-card-header">
+        <h2>Osadź na stronie</h2>
+      </header>
+      <div class="embed-card-body">
+        <p class="embed-hint">Wklej poniższy kod HTML na swojej stronie, żeby osadzić podgląd ligi.</p>
+        <div class="embed-select-wrap">
+          <label class="embed-select-label">Co osadzić:</label>
+          <select id="embed-match-select" class="embed-select" data-action="embed-select-match">
+            ${matchOpts}
+          </select>
+        </div>
+        <textarea id="embed-snippet" readonly class="embed-textarea">${escapeHtml(snippet)}</textarea>
+        <div class="embed-actions">
+          <button class="btn btn-primary" data-action="embed-copy">Kopiuj kod</button>
+          <span id="embed-copy-feedback" class="embed-feedback" style="display:none">✓ Skopiowano!</span>
+        </div>
+      </div>
     </section>
   `;
 }

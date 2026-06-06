@@ -279,6 +279,20 @@ const HANDLERS = {
     reader.readAsText(file, 'UTF-8');
     el.value = '';
   },
+  'embed-select-match': (val) => {
+    APP.embedSelectedMatch = val || '';
+    render();
+  },
+  'embed-copy': () => {
+    const ta = document.getElementById('embed-snippet');
+    if (!ta) return;
+    navigator.clipboard.writeText(ta.value).then(() => {
+      const fb = document.getElementById('embed-copy-feedback');
+      if (!fb) return;
+      fb.style.display = 'inline';
+      setTimeout(() => { fb.style.display = 'none'; }, 2000);
+    });
+  },
   'csv-import-cancel': () => {
     APP.csvImport = null;
     render();
@@ -732,7 +746,7 @@ document.addEventListener('change', (e) => {
   const action = target.dataset.action;
   const handler = HANDLERS[action];
   if (!handler) return;
-  if (action === 'analytics-filter-change' || action === 'csv-import-file' || action === 'standings-set-tournament') {
+  if (action === 'analytics-filter-change' || action === 'csv-import-file' || action === 'standings-set-tournament' || action === 'embed-select-match') {
     handler(target.value, target);
   } else {
     handler(target.dataset.arg);

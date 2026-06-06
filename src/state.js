@@ -47,6 +47,9 @@ let APP = {
   // CSV bulk import (panel admin)
   csvImport: null,  // null | { rows: [], importing: bool }
 
+  // Embed card (panel admin)
+  embedSelectedMatch: '',
+
   // Offline buffer recovery
   offlineBanner: null,  // number | null — liczba eventów w offline bufferze przy starcie
 

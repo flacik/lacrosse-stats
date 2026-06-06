@@ -662,6 +662,15 @@ table.stats-table td.num {
 .csv-actions { display: flex; gap: 8px; align-items: center; }
 .csv-importing { font-size: 13px; color: #888; }
 
+.embed-card-body { padding: 16px; }
+.embed-hint { font-size: 13px; color: #666; margin: 0 0 12px; }
+.embed-select-wrap { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.embed-select-label { font-size: 13px; color: #444; white-space: nowrap; }
+.embed-select { flex: 1; font-size: 13px; padding: 6px 8px; border: 1px solid #ddd; border-radius: 6px; background: #fff; }
+.embed-textarea { width: 100%; height: 80px; font-family: monospace; font-size: 12px; padding: 8px; border: 1px solid #ddd; border-radius: 6px; resize: vertical; background: #f9fafb; box-sizing: border-box; }
+.embed-actions { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+.embed-feedback { font-size: 13px; color: #15803d; }
+
 /* ===== DARK MODE — Night Blue ===== */
 
 [data-theme="dark"] { color-scheme: dark; }
@@ -2310,6 +2319,9 @@ let APP = {
 
   // CSV bulk import (panel admin)
   csvImport: null,  // null | { rows: [], importing: bool }
+
+  // Embed card (panel admin)
+  embedSelectedMatch: '',
 
   // Offline buffer recovery
   offlineBanner: null,  // number | null — liczba eventów w offline bufferze przy starcie
@@ -5045,6 +5057,7 @@ function renderAdmin(root) {
       ${renderTournamentsCard()}
       ${renderMatchesCard(filter)}
       ${renderCsvImportCard()}
+      ${renderEmbedCard()}
     </div>
   `;
 }
@@ -5225,6 +5238,45 @@ function renderCsvImportCard() {
       </header>
       <div class="admin-card-hint">Format: <code>turniej,data,druzyna_a,druzyna_b,link</code> (link opcjonalny). Data: <code>RRRR-MM-DD</code>. Separator: przecinek lub średnik.</div>
       ${previewHtml}
+    </section>
+  `;
+}
+
+function renderEmbedCard() {
+  const baseUrl = window.location.href.split('?')[0];
+  const selectedId = APP.embedSelectedMatch || '';
+  const url = selectedId ? baseUrl + '?match=' + encodeURIComponent(selectedId) : baseUrl;
+  const snippet = `<iframe src="${url}" width="100%" height="700" frameborder="0" style="border:none; border-radius:8px;"></iframe>`;
+
+  const matchOpts = ['<option value="">— Cała aplikacja (podgląd kibica) —</option>']
+    .concat(
+      DATA.scheduledMatches.slice()
+        .sort((a, b) => b.match_date.localeCompare(a.match_date))
+        .map(m => {
+          const label = `${m.match_date} — ${escapeHtml(m.team_A)} vs ${escapeHtml(m.team_B)}${m.tournament ? ' (' + escapeHtml(m.tournament) + ')' : ''}`;
+          return `<option value="${escapeHtml(String(m.id))}" ${selectedId === String(m.id) ? 'selected' : ''}>${label}</option>`;
+        })
+    ).join('');
+
+  return `
+    <section class="admin-card">
+      <header class="admin-card-header">
+        <h2>Osadź na stronie</h2>
+      </header>
+      <div class="embed-card-body">
+        <p class="embed-hint">Wklej poniższy kod HTML na swojej stronie, żeby osadzić podgląd ligi.</p>
+        <div class="embed-select-wrap">
+          <label class="embed-select-label">Co osadzić:</label>
+          <select id="embed-match-select" class="embed-select" data-action="embed-select-match">
+            ${matchOpts}
+          </select>
+        </div>
+        <textarea id="embed-snippet" readonly class="embed-textarea">${escapeHtml(snippet)}</textarea>
+        <div class="embed-actions">
+          <button class="btn btn-primary" data-action="embed-copy">Kopiuj kod</button>
+          <span id="embed-copy-feedback" class="embed-feedback" style="display:none">✓ Skopiowano!</span>
+        </div>
+      </div>
     </section>
   `;
 }
@@ -6012,6 +6064,20 @@ const HANDLERS = {
     reader.readAsText(file, 'UTF-8');
     el.value = '';
   },
+  'embed-select-match': (val) => {
+    APP.embedSelectedMatch = val || '';
+    render();
+  },
+  'embed-copy': () => {
+    const ta = document.getElementById('embed-snippet');
+    if (!ta) return;
+    navigator.clipboard.writeText(ta.value).then(() => {
+      const fb = document.getElementById('embed-copy-feedback');
+      if (!fb) return;
+      fb.style.display = 'inline';
+      setTimeout(() => { fb.style.display = 'none'; }, 2000);
+    });
+  },
   'csv-import-cancel': () => {
     APP.csvImport = null;
     render();
@@ -6465,7 +6531,7 @@ document.addEventListener('change', (e) => {
   const action = target.dataset.action;
   const handler = HANDLERS[action];
   if (!handler) return;
-  if (action === 'analytics-filter-change' || action === 'csv-import-file' || action === 'standings-set-tournament') {
+  if (action === 'analytics-filter-change' || action === 'csv-import-file' || action === 'standings-set-tournament' || action === 'embed-select-match') {
     handler(target.value, target);
   } else {
     handler(target.dataset.arg);
