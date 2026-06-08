@@ -441,6 +441,7 @@ function computeAnalyticsStats(events) {
   const offTarget = events.filter(e => e.result === 'niecelny').length;
   const manUp     = events.filter(e => e.man_up).length;
   const manDown   = events.filter(e => e.man_down).length;
+  const fastBreak = events.filter(e => e.fast_break).length;
 
   const pct   = total > 0 ? Math.round((goals / total) * 100) : 0;
   const onPct = total > 0 ? Math.round((onTarget / total) * 100) : 0;
@@ -461,12 +462,14 @@ function computeAnalyticsStats(events) {
   });
 
   const situations = {
-    manUp:    { events: events.filter(e => e.man_up),
-                label: 'Man-up (przewaga)', icon: '▲' },
-    manDown:  { events: events.filter(e => e.man_down),
-                label: 'Man-down (osłabienie)', icon: '▼' },
-    even:     { events: events.filter(e => !e.man_up && !e.man_down),
-                label: 'Wyrównana', icon: '=' },
+    manUp:     { events: events.filter(e => e.man_up),
+                 label: 'Man-up (przewaga)', icon: '▲' },
+    manDown:   { events: events.filter(e => e.man_down),
+                 label: 'Man-down (osłabienie)', icon: '▼' },
+    even:      { events: events.filter(e => !e.man_up && !e.man_down),
+                 label: 'Wyrównana', icon: '=' },
+    fastBreak: { events: events.filter(e => e.fast_break),
+                 label: 'Fast break', icon: '→' },
   };
   Object.values(situations).forEach(sit => {
     const t = sit.events.length;
@@ -476,7 +479,7 @@ function computeAnalyticsStats(events) {
     sit.pct   = t > 0 ? Math.round((g / t) * 100) : 0;
   });
 
-  return { total, goals, onTarget, offTarget, manUp, manDown, pct, onPct, zones, periods, situations };
+  return { total, goals, onTarget, offTarget, manUp, manDown, fastBreak, pct, onPct, zones, periods, situations };
 }
 
 // ── V5-01: Donut chart wyników strzałów ──────────────────────────────────────
@@ -538,10 +541,10 @@ function _renderShotResultDonut(s) {
 
 function _renderSituationStats(s) {
   const { situations } = s;
-  const hasSpecial = situations.manUp.total > 0 || situations.manDown.total > 0;
+  const hasSpecial = situations.manUp.total > 0 || situations.manDown.total > 0 || situations.fastBreak.total > 0;
   if (!hasSpecial) return '';
 
-  const cards = [situations.manUp, situations.even, situations.manDown].map(sit => `
+  const cards = [situations.manUp, situations.even, situations.manDown, situations.fastBreak].filter(s => s.total > 0 || s === situations.even).map(sit => `
     <div class="stat-box sit-card">
       <div class="sit-icon">${sit.icon}</div>
       <div class="stat-lbl">${sit.label}</div>
@@ -643,8 +646,9 @@ function _renderAnalyticsStats(filtered, f) {
         <div class="stat-box"><div class="stat-val">${s.onTarget}</div><div class="stat-lbl">Celnych</div></div>
         <div class="stat-box"><div class="stat-val">${s.pct}%</div><div class="stat-lbl">Skuteczność</div></div>
         <div class="stat-box"><div class="stat-val">${s.onPct}%</div><div class="stat-lbl">% celnych</div></div>
-        ${s.manUp   ? `<div class="stat-box"><div class="stat-val">${s.manUp}</div><div class="stat-lbl">Man-up</div></div>` : ''}
-        ${s.manDown ? `<div class="stat-box"><div class="stat-val">${s.manDown}</div><div class="stat-lbl">Man-down</div></div>` : ''}
+        ${s.manUp     ? `<div class="stat-box"><div class="stat-val">${s.manUp}</div><div class="stat-lbl">Man-up</div></div>` : ''}
+        ${s.manDown   ? `<div class="stat-box"><div class="stat-val">${s.manDown}</div><div class="stat-lbl">Man-down</div></div>` : ''}
+        ${s.fastBreak ? `<div class="stat-box"><div class="stat-val">${s.fastBreak}</div><div class="stat-lbl">Fast break</div></div>` : ''}
       </div>
       ${zoneRows ? `
         <h3>Rozkład po strefach</h3>

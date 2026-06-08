@@ -155,14 +155,16 @@ function computeSituationStats(matchId, match, allEvents) {
     return { shots, goals, rate };
   }
 
-  const manUpEvents   = allEvents.filter(e => e.man_up   === true);
-  const manDownEvents = allEvents.filter(e => e.man_down === true);
-  const equalEvents   = allEvents.filter(e => !e.man_up && !e.man_down);
+  const manUpEvents     = allEvents.filter(e => e.man_up   === true);
+  const manDownEvents   = allEvents.filter(e => e.man_down === true);
+  const equalEvents     = allEvents.filter(e => !e.man_up && !e.man_down);
+  const fastBreakEvents = allEvents.filter(e => e.fast_break === true);
 
   return {
-    manUp:   { A: statsForSituation(manUpEvents,   match.team_A), B: statsForSituation(manUpEvents,   match.team_B) },
-    equal:   { A: statsForSituation(equalEvents,   match.team_A), B: statsForSituation(equalEvents,   match.team_B) },
-    manDown: { A: statsForSituation(manDownEvents, match.team_A), B: statsForSituation(manDownEvents, match.team_B) },
+    manUp:      { A: statsForSituation(manUpEvents,     match.team_A), B: statsForSituation(manUpEvents,     match.team_B) },
+    equal:      { A: statsForSituation(equalEvents,     match.team_A), B: statsForSituation(equalEvents,     match.team_B) },
+    manDown:    { A: statsForSituation(manDownEvents,   match.team_A), B: statsForSituation(manDownEvents,   match.team_B) },
+    fastBreak:  { A: statsForSituation(fastBreakEvents, match.team_A), B: statsForSituation(fastBreakEvents, match.team_B) },
   };
 }
 

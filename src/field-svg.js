@@ -119,6 +119,17 @@ function buildFieldSvg(match) {
     } else {
       markersG.appendChild(dot);
     }
+
+    if (e.fast_break) {
+      const ax = sx + dotR + 7;
+      const tip = ax + 16;
+      markersG.appendChild(svgEl('line', { x1: ax, y1: sy, x2: tip, y2: sy, stroke: 'white', 'stroke-width': 5, 'stroke-linecap': 'round' }));
+      markersG.appendChild(svgEl('line', { x1: tip - 7, y1: sy - 7, x2: tip, y2: sy, stroke: 'white', 'stroke-width': 5, 'stroke-linecap': 'round' }));
+      markersG.appendChild(svgEl('line', { x1: tip - 7, y1: sy + 7, x2: tip, y2: sy, stroke: 'white', 'stroke-width': 5, 'stroke-linecap': 'round' }));
+      markersG.appendChild(svgEl('line', { x1: ax, y1: sy, x2: tip, y2: sy, stroke: '#10b981', 'stroke-width': 3, 'stroke-linecap': 'round' }));
+      markersG.appendChild(svgEl('line', { x1: tip - 7, y1: sy - 7, x2: tip, y2: sy, stroke: '#10b981', 'stroke-width': 3, 'stroke-linecap': 'round' }));
+      markersG.appendChild(svgEl('line', { x1: tip - 7, y1: sy + 7, x2: tip, y2: sy, stroke: '#10b981', 'stroke-width': 3, 'stroke-linecap': 'round' }));
+    }
   });
   fieldG.appendChild(markersG);
 
@@ -254,7 +265,7 @@ function drawHalfFieldChart(svg, match, filtered, viewer) {
     const cx = e.shot_y * 540;
     const cy = (1 - e.shot_x) * 600;
     if (viewer.display_mode === 'heatmap') drawHeatBlob(fieldG, cx, cy, teamColor);
-    else                                    drawShotMarker(fieldG, cx, cy, teamColor, e.result, false, e.man_up, e.man_down, e.assisted);
+    else                                    drawShotMarker(fieldG, cx, cy, teamColor, e.result, false, e.man_up, e.man_down, e.assisted, e.fast_break);
   });
 
   svg.appendChild(fieldG);
@@ -285,11 +296,11 @@ function drawShotsFullField(g, events, match, displayMode) {
     const cx = physical_x * 1100;
     const cy = physical_y * 600;
     if (displayMode === 'heatmap') drawHeatBlob(g, cx, cy, color);
-    else                            drawShotMarker(g, cx, cy, color, e.result, e.zone_name === 'own-half', e.man_up, e.man_down, e.assisted);
+    else                            drawShotMarker(g, cx, cy, color, e.result, e.zone_name === 'own-half', e.man_up, e.man_down, e.assisted, e.fast_break);
   });
 }
 
-function drawShotMarker(g, cx, cy, color, result, isOwnHalf, manUp, manDown, hasAssist) {
+function drawShotMarker(g, cx, cy, color, result, isOwnHalf, manUp, manDown, hasAssist, fastBreak) {
   const isGoal   = result === 'gol';
   const isMissed = result === 'niecelny';
   const strokeColor = isOwnHalf ? '#ca8a04' : color;
@@ -328,6 +339,19 @@ function drawShotMarker(g, cx, cy, color, result, isOwnHalf, manUp, manDown, has
     });
     t.textContent = 'A';
     g.appendChild(t);
+  }
+
+  if (fastBreak) {
+    const ax = cx + 10;
+    const tip = ax + 16;
+    // white outline for contrast on green field
+    g.appendChild(svgEl('line', { x1: ax, y1: cy, x2: tip, y2: cy, stroke: 'white', 'stroke-width': 5, 'stroke-linecap': 'round' }));
+    g.appendChild(svgEl('line', { x1: tip - 7, y1: cy - 7, x2: tip, y2: cy, stroke: 'white', 'stroke-width': 5, 'stroke-linecap': 'round' }));
+    g.appendChild(svgEl('line', { x1: tip - 7, y1: cy + 7, x2: tip, y2: cy, stroke: 'white', 'stroke-width': 5, 'stroke-linecap': 'round' }));
+    // teal fill on top
+    g.appendChild(svgEl('line', { x1: ax, y1: cy, x2: tip, y2: cy, stroke: '#10b981', 'stroke-width': 3, 'stroke-linecap': 'round' }));
+    g.appendChild(svgEl('line', { x1: tip - 7, y1: cy - 7, x2: tip, y2: cy, stroke: '#10b981', 'stroke-width': 3, 'stroke-linecap': 'round' }));
+    g.appendChild(svgEl('line', { x1: tip - 7, y1: cy + 7, x2: tip, y2: cy, stroke: '#10b981', 'stroke-width': 3, 'stroke-linecap': 'round' }));
   }
 }
 
@@ -424,6 +448,14 @@ function buildFieldLegend(match, opts) {
         <text x="17" y="3.5" text-anchor="middle" dominant-baseline="middle" font-size="5" font-weight="bold" fill="white">A</text>
       </svg>
       Asysta
+    </span>
+    <span class="leg-item">
+      <svg width="24" height="14" viewBox="0 0 24 14">
+        <circle cx="6" cy="7" r="5" fill="none" stroke="#10b981" stroke-width="2"/>
+        <line x1="12" y1="7" x2="19" y2="7" stroke="#10b981" stroke-width="2" stroke-linecap="round"/>
+        <polyline points="16,4 19,7 16,10" fill="none" stroke="#10b981" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+      </svg>
+      Fast break
     </span>
   `;
   return div;

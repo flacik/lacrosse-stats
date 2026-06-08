@@ -35,7 +35,7 @@ All data is stored in Google Sheets, so the club always has a permanent record o
 - Preference persisted in `localStorage` — survives page reload and navigation between screens
 
 **Shot recording (input mode)**
-- Tap the SVG field map to place a shot; a modal confirms result (goal / missed / saved / post) and other details (man-up, man-down, period, assist)
+- Tap the SVG field map to place a shot; a modal confirms result (goal / missed / saved / post) and other details (man-up, man-down, period, assist, **fast break**)
 - Full shot history with inline edit and delete; newest events at the top
 - Sync badge on each event shows whether it's been saved to the backend (✓ synced / ⚠ error / retrying)
 - Offline buffer — if the network drops, shots are queued locally and auto-retried with exponential backoff (1 s → 3 s → 9 s)
@@ -55,7 +55,7 @@ All data is stored in Google Sheets, so the club always has a permanent record o
 - Tournament / team / date / period filters; team dropdown scoped to selected tournament
 - Stats grid: **match count**, shots, goals, accuracy %, man-up/down, zone breakdown, per-period breakdown; all values update with active filters
 - Donut chart of shot results; bar chart of accuracy per period
-- Man-up / man-down / even-strength situation cards (hidden when no relevant events)
+- Man-up / man-down / even-strength / **fast break** situation cards (hidden when no relevant events)
 - Shot chart with three modes: fired shots, conceded shots, zone efficiency heatmap
 - **Goalie ranking** — cross-match save% per goalkeeper, with per-quarter breakdown; visible for all teams (no filter) or scoped to a selected team
 
@@ -160,7 +160,7 @@ cd src/
 
 ## Status
 
-**Current: v1.13.1 — deployed 2026-05-27**
+**Current: v2.0.0 — deployed 2026-06-08**
 
 ### Versioning rules
 
@@ -171,6 +171,16 @@ cd src/
 | **PATCH** | Bug fix, UI tweak, performance improvement |
 
 ### Changelog
+
+**v2.0.0 (2026-06-08)** — fast break tracking (Sheets schema change):
+
+- New `fast_break` boolean flag on every shot event — checkbox in both the shot modal and the edit-event modal
+- Fast break arrow indicator (`→`) on the field map in all views (input, viewer, analytics); white outline ensures visibility on the green field background
+- `FB` badge in the shot history list
+- Fast break situation card added to the "Special situations" section in the viewer and analytics screens
+- Fast break stat box in the analytics summary (shots, accuracy)
+- `fast_break` column added to the Sheets event schema (position 18, after `assisted`)
+- Fast break legend entry on every field map
 
 **v1.13.1 (2026-05-27)** — presence mode distinction (input vs viewer):
 

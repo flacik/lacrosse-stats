@@ -185,6 +185,7 @@ function renderViewerSituationCard(situation, match) {
         ${sitBlock('przewaga',     'sit-badge-up', 'man-up ↑',   situation.manUp.A,   situation.manUp.B)}
         ${sitBlock('równa liczba', 'sit-badge-eq', '5v5 ·',      situation.equal.A,   situation.equal.B)}
         ${sitBlock('osłabienie',   'sit-badge-dn', 'man-down ↓', situation.manDown.A, situation.manDown.B)}
+        ${(situation.fastBreak.A.shots > 0 || situation.fastBreak.B.shots > 0) ? sitBlock('fast break', 'sit-badge-fb', 'fast break →', situation.fastBreak.A, situation.fastBreak.B) : ''}
       </div>
     </div>
   `;

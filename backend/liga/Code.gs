@@ -21,7 +21,7 @@ var CONFIG = {
   DEV_SPREADSHEET_ID:  '1ah9GhGJYby_lZxyG4VzNGN7GRkykiMm2fwe16arON_Q',
 
   // Ustaw IS_DEV: false przed deployem produkcyjnym
-  IS_DEV: false,
+  IS_DEV: true,
 
   SHEET_EVENTS:      'events',
   SHEET_MATCHES:     'scheduled_matches',
@@ -53,7 +53,7 @@ var EVENT_COLS = [
   'period', 'team_event',
   'shot_x', 'shot_y', 'zone_name',
   'result', 'man_up', 'man_down',
-  'created_at', 'assisted',
+  'created_at', 'assisted', 'fast_break',
   'event_type', 'goalie_number',
 ];
 
@@ -584,9 +584,10 @@ function saveEvent(eventObj) {
     var row = EVENT_COLS.map(function(col) {
       if (col === 'id')         return newId;
       if (col === 'created_at') return createdAt;
-      if (col === 'man_up')     return eventObj.man_up   ? true : false;
-      if (col === 'man_down')   return eventObj.man_down ? true : false;
-      if (col === 'assisted')   return eventObj.assisted ? true : false;
+      if (col === 'man_up')     return eventObj.man_up     ? true : false;
+      if (col === 'man_down')   return eventObj.man_down   ? true : false;
+      if (col === 'assisted')   return eventObj.assisted   ? true : false;
+      if (col === 'fast_break') return eventObj.fast_break ? true : false;
       if (col === 'shot_x')     return eventObj.event_type === 'goalie_set' ? '' : parseFloat(eventObj.shot_x);
       if (col === 'shot_y')     return eventObj.event_type === 'goalie_set' ? '' : parseFloat(eventObj.shot_y);
       var val = eventObj[col];
@@ -625,9 +626,10 @@ function updateEvent(id, eventObj) {
     var row = EVENT_COLS.map(function(col) {
       if (col === 'id')         return id;
       if (col === 'created_at') return origCreatedAt;
-      if (col === 'man_up')     return eventObj.man_up   ? true : false;
-      if (col === 'man_down')   return eventObj.man_down ? true : false;
-      if (col === 'assisted')   return eventObj.assisted ? true : false;
+      if (col === 'man_up')     return eventObj.man_up     ? true : false;
+      if (col === 'man_down')   return eventObj.man_down   ? true : false;
+      if (col === 'assisted')   return eventObj.assisted   ? true : false;
+      if (col === 'fast_break') return eventObj.fast_break ? true : false;
       if (col === 'shot_x')     return eventObj.event_type === 'goalie_set' ? '' : parseFloat(eventObj.shot_x);
       if (col === 'shot_y')     return eventObj.event_type === 'goalie_set' ? '' : parseFloat(eventObj.shot_y);
       var val = eventObj[col];
