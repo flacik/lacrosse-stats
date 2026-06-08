@@ -160,7 +160,7 @@ cd src/
 
 ## Status
 
-**Current: v2.0.0 — deployed 2026-06-08**
+**Current: v2.1.0 — deployed 2026-06-08**
 
 ### Versioning rules
 
@@ -171,6 +171,13 @@ cd src/
 | **PATCH** | Bug fix, UI tweak, performance improvement |
 
 ### Changelog
+
+**v2.1.0 (2026-06-08)** — PDF reports:
+
+- New **⬇ PDF** button in the match viewer and analytics screens
+- Match report: shot chart section shows two heatmaps side by side per team — shots taken (blue) and shots conceded (red = opponent color)
+- Analytics report: when a team is filtered, shows the same two-heatmap layout — shots taken and shots conceded aggregated across all filtered matches
+- Report includes shot stats, special situations, goalies, per-period breakdown, and match history (analytics only)
 
 **v2.0.0 (2026-06-08)** — fast break tracking (Sheets schema change):
 
