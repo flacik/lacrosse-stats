@@ -23,6 +23,7 @@ JS_FILES=(
   render-analytics.js
   render-admin.js
   render-standings.js
+  render-report.js
   render-modal.js
   handlers.js
   app.js

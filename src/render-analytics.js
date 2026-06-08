@@ -49,6 +49,7 @@ function renderAnalytics(root) {
       <h1>Analityka historyczna</h1>
       <button class="btn" data-action="go-home-from-analytics">← Home</button>
       <button class="btn" data-action="toggle-dark-mode" id="theme-toggle" title="Przełącz tryb ciemny">🌙</button>
+      <button class="btn" data-action="open-analytics-report" title="Pobierz raport PDF">⬇ PDF</button>
     </div>
     <div class="analytics-content">
       ${_renderAnalyticsFilters(f, tournaments, allTeams, allPeriods)}

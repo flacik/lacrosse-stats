@@ -29,6 +29,8 @@ const HANDLERS = {
 
   // Analytics
   'analytics-retry':  () => loadAnalyticsData(),
+  'open-match-report':    (matchId) => openMatchReport(matchId),
+  'open-analytics-report': ()       => openAnalyticsReport(),
   'analytics-filter-change': (val, el) => {
     const field = el.dataset.field;
     if (field && field in APP.analyticsFilters) {

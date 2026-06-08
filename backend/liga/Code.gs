@@ -542,6 +542,37 @@ function setupSheets() {
   }
 }
 
+/**
+ * Jednorazowa migracja: wstawia kolumnę fast_break po assisted w arkuszu events.
+ * Bezpieczna dla pustego i niepustego arkusza — przesuwa istniejące dane.
+ * Uruchom raz z edytora GAS po deploymencie v2.0.0.
+ */
+function migrateAddFastBreak() {
+  try {
+    var ss = getSpreadsheet();
+    var sheet = ss.getSheetByName(CONFIG.SHEET_EVENTS);
+    if (!sheet) throw new Error('Brak zakładki events');
+
+    var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    var assistedIdx = headers.indexOf('assisted'); // 0-based
+    if (assistedIdx === -1) throw new Error('Nie znaleziono kolumny "assisted"');
+
+    if (headers.indexOf('fast_break') !== -1) {
+      Logger.log('Kolumna fast_break już istnieje — migracja nie jest potrzebna.');
+      return;
+    }
+
+    // Wstaw kolumnę PO assisted (1-based: assistedIdx + 2)
+    var insertAt = assistedIdx + 2; // 1-based position
+    sheet.insertColumnBefore(insertAt);
+    sheet.getRange(1, insertAt).setValue('fast_break').setFontWeight('bold');
+    Logger.log('Dodano kolumnę fast_break na pozycji ' + insertAt);
+  } catch (e) {
+    Logger.log('BŁĄD migrateAddFastBreak: ' + e.message);
+    throw e;
+  }
+}
+
 // ── EVENTY ────────────────────────────────────────────────────────────────────
 
 /**
