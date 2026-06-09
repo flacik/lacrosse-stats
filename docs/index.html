@@ -620,6 +620,16 @@ table.stats-table td.num {
 .cmp-val { text-align: center; font-weight: 600; font-size: 15px; }
 .cmp-better { color: #16a34a; }
 
+/* ── Compare mode ────────────────────────────────────────────────────────────── */
+.analytics-mode-tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+.compare-heatmaps { display: flex; gap: 20px; flex-wrap: wrap; }
+.compare-heatmap-col { flex: 1; min-width: 260px; }
+.compare-col-header { font-size: 14px; font-weight: 600; text-align: center; padding: 6px 0 10px; color: #374151; border-bottom: 2px solid #e5e7eb; margin-bottom: 12px; }
+.cmp-h2h-summary { display: flex; gap: 0; align-items: center; justify-content: center; padding: 16px; background: #f9fafb; border-radius: 8px; margin-bottom: 12px; }
+.cmp-h2h-team { flex: 1; text-align: center; }
+.cmp-h2h-mid  { flex: 0 0 80px; text-align: center; }
+.cmp-h2h-label { font-size: 11px; color: #6b7280; margin-top: 2px; }
+
 /* ── Video link ─────────────────────────────────────────────────────────────── */
 .btn-video {
   font-size: 12px; padding: 5px 10px; text-decoration: none;
@@ -864,6 +874,9 @@ table.stats-table td.num {
 [data-theme="dark"] .sit-numbers { color: #8b949e; }
 [data-theme="dark"] .cmp-label { color: #8b949e; }
 [data-theme="dark"] .cmp-better { color: #3fb950; }
+[data-theme="dark"] .compare-col-header { color: #e6edf3; border-bottom-color: #30363d; }
+[data-theme="dark"] .cmp-h2h-summary { background: #1c2128; }
+[data-theme="dark"] .cmp-h2h-label { color: #8b949e; }
 [data-theme="dark"] .match-history-row.won  td:first-child { border-left-color: #3fb950; }
 [data-theme="dark"] .match-history-row.lost td:first-child { border-left-color: #f85149; }
 [data-theme="dark"] .match-history-row.drew td:first-child { border-left-color: #6e7681; }
@@ -2317,9 +2330,11 @@ let APP = {
   analyticsLoading:     false,
   analyticsError:       null,
   analyticsData:        null,   // { events: [], matches: [], tournaments: [] }
+  analyticsMode:        'single', // 'single' | 'compare'
   analyticsFilters:     {
     tournament: '',
     team:       '',
+    team2:      '',
     dateFrom:   '',
     dateTo:     '',
     period:     '',
@@ -4220,12 +4235,34 @@ function renderAnalytics(root) {
 
   // ── Loaded ───────────────────────────────────────────────────────────────────
   const { events, matches, tournaments } = APP.analyticsData;
-  const f = APP.analyticsFilters;
+  const f    = APP.analyticsFilters;
+  const mode = APP.analyticsMode || 'single';
 
-  const filtered  = _analyticsApplyFilters(events, f);
-  const allTeams  = _analyticsAllTeams(matches, f.tournament);
+  const allTeams   = _analyticsAllTeams(matches, f.tournament);
   const allPeriods = _analyticsAllPeriods(events);
 
+  const modeTabs = `
+    <div class="analytics-mode-tabs">
+      <button class="btn ${mode === 'single'  ? 'btn-primary' : ''}" data-action="analytics-mode-toggle" data-arg="single">Analiza drużyny</button>
+      <button class="btn ${mode === 'compare' ? 'btn-primary' : ''}" data-action="analytics-mode-toggle" data-arg="compare">Porównanie drużyn</button>
+    </div>`;
+
+  if (mode === 'compare') {
+    root.innerHTML = `
+      <div class="app-header">
+        <h1>Analityka historyczna</h1>
+        <button class="btn" data-action="go-home-from-analytics">← Home</button>
+        <button class="btn" data-action="toggle-dark-mode" id="theme-toggle" title="Przełącz tryb ciemny">🌙</button>
+      </div>
+      <div class="analytics-content">
+        ${modeTabs}
+        ${_renderAnalyticsFilters(f, tournaments, allTeams, allPeriods, 'compare')}
+        ${_renderAnalyticsCompareBody(f, events, matches)}
+      </div>`;
+    return;
+  }
+
+  const filtered = _analyticsApplyFilters(events, f);
   root.innerHTML = `
     <div class="app-header">
       <h1>Analityka historyczna</h1>
@@ -4234,7 +4271,8 @@ function renderAnalytics(root) {
       <button class="btn" data-action="open-analytics-report" title="Pobierz raport PDF">⬇ PDF</button>
     </div>
     <div class="analytics-content">
-      ${_renderAnalyticsFilters(f, tournaments, allTeams, allPeriods)}
+      ${modeTabs}
+      ${_renderAnalyticsFilters(f, tournaments, allTeams, allPeriods, 'single')}
       ${filtered.length === 0
         ? '<div class="empty">Brak danych dla wybranych filtrów.</div>'
         : _renderAnalyticsBody(filtered, matches, f)
@@ -4244,7 +4282,7 @@ function renderAnalytics(root) {
 
 // ── Filtry ───────────────────────────────────────────────────────────────────
 
-function _renderAnalyticsFilters(f, tournaments, allTeams, allPeriods) {
+function _renderAnalyticsFilters(f, tournaments, allTeams, allPeriods, mode) {
   const tourOptions = ['<option value="">Wszystkie turnieje</option>',
     ...tournaments.map(t => `<option value="${escapeHtml(t.name)}" ${f.tournament === t.name ? 'selected' : ''}>${escapeHtml(t.name)}</option>`)
   ].join('');
@@ -4253,9 +4291,28 @@ function _renderAnalyticsFilters(f, tournaments, allTeams, allPeriods) {
     ...allTeams.map(t => `<option value="${escapeHtml(t)}" ${f.team === t ? 'selected' : ''}>${escapeHtml(t)}</option>`)
   ].join('');
 
+  const team1Options = ['<option value="">-- Drużyna 1 --</option>',
+    ...allTeams.map(t => `<option value="${escapeHtml(t)}" ${f.team === t ? 'selected' : ''}>${escapeHtml(t)}</option>`)
+  ].join('');
+
+  const team2Options = ['<option value="">-- Drużyna 2 --</option>',
+    ...allTeams.map(t => `<option value="${escapeHtml(t)}" ${f.team2 === t ? 'selected' : ''}>${escapeHtml(t)}</option>`)
+  ].join('');
+
   const periodOptions = ['<option value="">Wszystkie okresy</option>',
     ...allPeriods.map(p => `<option value="${escapeHtml(p)}" ${f.period === p ? 'selected' : ''}>${periodLabel(p)}</option>`)
   ].join('');
+
+  const teamSelectors = mode === 'compare' ? `
+    <label>Drużyna 1
+      <select data-action="analytics-filter-change" data-field="team">${team1Options}</select>
+    </label>
+    <label>Drużyna 2
+      <select data-action="analytics-filter-change" data-field="team2">${team2Options}</select>
+    </label>` : `
+    <label>Drużyna
+      <select data-action="analytics-filter-change" data-field="team">${teamOptions}</select>
+    </label>`;
 
   return `
     <div class="analytics-filters">
@@ -4263,9 +4320,7 @@ function _renderAnalyticsFilters(f, tournaments, allTeams, allPeriods) {
         <label>Turniej
           <select data-action="analytics-filter-change" data-field="tournament">${tourOptions}</select>
         </label>
-        <label>Drużyna
-          <select data-action="analytics-filter-change" data-field="team">${teamOptions}</select>
-        </label>
+        ${teamSelectors}
         <label>Okres (kwarta)
           <select data-action="analytics-filter-change" data-field="period">${periodOptions}</select>
         </label>
@@ -5038,6 +5093,314 @@ function _renderAnalyticsMatchHistory(filtered, allEvents, allMatches, f) {
         <thead><tr><th>Data</th><th>Turniej</th><th>Rywal</th><th>Wynik</th><th></th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
+    </section>`;
+}
+
+// ── Porównanie drużyn ─────────────────────────────────────────────────────────
+
+function _renderAnalyticsCompareBody(f, events, matches) {
+  if (!f.team || !f.team2) {
+    return `<div class="empty" style="padding:32px;text-align:center">
+      ${!f.team ? 'Wybierz Drużynę 1 żeby zobaczyć porównanie.' : 'Wybierz Drużynę 2 żeby zobaczyć porównanie.'}
+    </div>`;
+  }
+  if (f.team === f.team2) {
+    return '<div class="empty" style="padding:32px;text-align:center">Wybierz dwie różne drużyny.</div>';
+  }
+
+  const f2 = Object.assign({}, f, { team: f.team2 });
+  const e1 = _analyticsApplyFilters(events, f);
+  const e2 = _analyticsApplyFilters(events, f2);
+
+  const m1count = new Set(e1.map(e => String(e.match_id))).size;
+  const m2count = new Set(e2.map(e => String(e.match_id))).size;
+
+  const h2hMatches = matches.filter(m => {
+    if (f.tournament && m.tournament !== f.tournament) return false;
+    if (f.dateFrom   && m.match_date < f.dateFrom)     return false;
+    if (f.dateTo     && m.match_date > f.dateTo)       return false;
+    return (m.team_A === f.team && m.team_B === f.team2) ||
+           (m.team_A === f.team2 && m.team_B === f.team);
+  });
+  const h2hIds = new Set(h2hMatches.map(m => String(m.id)));
+
+  let h2hE1 = events.filter(e => h2hIds.has(String(e.match_id)) && e.team_event === f.team);
+  let h2hE2 = events.filter(e => h2hIds.has(String(e.match_id)) && e.team_event === f.team2);
+  if (f.period)   { h2hE1 = h2hE1.filter(e => String(e.period) === f.period);  h2hE2 = h2hE2.filter(e => String(e.period) === f.period); }
+  if (f.dateFrom) { h2hE1 = h2hE1.filter(e => e.match_date >= f.dateFrom);     h2hE2 = h2hE2.filter(e => e.match_date >= f.dateFrom); }
+  if (f.dateTo)   { h2hE1 = h2hE1.filter(e => e.match_date <= f.dateTo);       h2hE2 = h2hE2.filter(e => e.match_date <= f.dateTo); }
+
+  const t1MatchIds = new Set(e1.map(e => String(e.match_id)));
+  const t2MatchIds = new Set(e2.map(e => String(e.match_id)));
+  let conc1 = events.filter(e => t1MatchIds.has(String(e.match_id)) && e.team_event !== f.team);
+  let conc2 = events.filter(e => t2MatchIds.has(String(e.match_id)) && e.team_event !== f.team2);
+  if (f.period)   { conc1 = conc1.filter(e => String(e.period) === f.period);  conc2 = conc2.filter(e => String(e.period) === f.period); }
+  if (f.dateFrom) { conc1 = conc1.filter(e => e.match_date >= f.dateFrom);     conc2 = conc2.filter(e => e.match_date >= f.dateFrom); }
+  if (f.dateTo)   { conc1 = conc1.filter(e => e.match_date <= f.dateTo);       conc2 = conc2.filter(e => e.match_date <= f.dateTo); }
+
+  const s1   = computeAnalyticsStats(e1);
+  const s2   = computeAnalyticsStats(e2);
+  const def1 = computeAnalyticsStats(conc1);
+  const def2 = computeAnalyticsStats(conc2);
+
+  return `
+    ${_renderCmpStatsSection(s1, s2, def1, def2, m1count, m2count, f)}
+    ${_renderCmpHeatmaps(e1, e2, conc1, conc2, f)}
+    ${h2hMatches.length > 0 ? _renderCmpH2H(h2hMatches, h2hE1, h2hE2, f, events) : _renderCmpH2HEmpty(f)}
+    ${_renderCmpGoalies(e1, e2, f, events, matches)}
+    ${_renderCmpPeriods(s1, s2, f)}`;
+}
+
+function _cmpRow(label, v1, v2, lowerIsBetter) {
+  const n1 = parseFloat(String(v1).replace('%', ''));
+  const n2 = parseFloat(String(v2).replace('%', ''));
+  const eq   = isNaN(n1) || isNaN(n2) || n1 === n2;
+  const win1 = !eq && (lowerIsBetter ? n1 < n2 : n1 > n2);
+  const win2 = !eq && (lowerIsBetter ? n2 < n1 : n2 > n1);
+  return `<tr>
+    <td class="cmp-val ${win1 ? 'cmp-better' : ''}" style="text-align:right;padding-right:14px">${v1}</td>
+    <td class="cmp-label" style="text-align:center;min-width:140px">${label}</td>
+    <td class="cmp-val ${win2 ? 'cmp-better' : ''}" style="padding-left:14px">${v2}</td>
+  </tr>`;
+}
+
+function _cmpThead(t1, t2, label) {
+  return `<thead><tr>
+    <th style="text-align:right;padding-right:14px;font-size:14px">${t1}</th>
+    <th style="text-align:center;color:#6b7280;font-size:12px;font-weight:500;min-width:140px">${label || 'Statystyki'}</th>
+    <th style="padding-left:14px;font-size:14px">${t2}</th>
+  </tr></thead>`;
+}
+
+function _renderCmpStatsSection(s1, s2, def1, def2, m1count, m2count, f) {
+  const t1 = escapeHtml(f.team);
+  const t2 = escapeHtml(f.team2);
+  return `
+    <section class="analytics-section">
+      <h2>Porównanie ogólne</h2>
+      <table class="cmp-table" style="width:100%;max-width:580px">
+        ${_cmpThead(t1, t2, 'Atak')}
+        <tbody>
+          ${_cmpRow('Meczy', m1count, m2count, false)}
+          ${_cmpRow('Strzałów', s1.total, s2.total, false)}
+          ${_cmpRow('Bramek', s1.goals, s2.goals, false)}
+          ${_cmpRow('Celnych', s1.onTarget, s2.onTarget, false)}
+          ${_cmpRow('Skuteczność', s1.pct + '%', s2.pct + '%', false)}
+          ${_cmpRow('% celnych', s1.onPct + '%', s2.onPct + '%', false)}
+          ${(s1.manUp > 0 || s2.manUp > 0) ? _cmpRow('Man-up', s1.manUp, s2.manUp, false) : ''}
+          ${(s1.manDown > 0 || s2.manDown > 0) ? _cmpRow('Man-down', s1.manDown, s2.manDown, false) : ''}
+          ${(s1.fastBreak > 0 || s2.fastBreak > 0) ? _cmpRow('Fast break', s1.fastBreak, s2.fastBreak, false) : ''}
+        </tbody>
+      </table>
+      <h3 style="margin-top:20px">Obrona (strzały stracone)</h3>
+      <table class="cmp-table" style="width:100%;max-width:580px">
+        ${_cmpThead(t1, t2, 'Obrona')}
+        <tbody>
+          ${_cmpRow('Strzałów straconych', def1.total, def2.total, true)}
+          ${_cmpRow('Bramek straconych', def1.goals, def2.goals, true)}
+          ${_cmpRow('Celnych straconych', def1.onTarget, def2.onTarget, true)}
+          ${_cmpRow('Skuteczność rywali', def1.pct + '%', def2.pct + '%', true)}
+        </tbody>
+      </table>
+    </section>`;
+}
+
+function _renderCmpHeatmaps(e1, e2, conc1, conc2, f) {
+  const t1   = escapeHtml(f.team);
+  const t2   = escapeHtml(f.team2);
+  const mode = APP.analyticsHeatmapMode || 'fired';
+
+  let svg1, svg2;
+  if (mode === 'efficiency') {
+    svg1 = _buildZoneEfficiencySvg(e1);
+    svg2 = _buildZoneEfficiencySvg(e2);
+  } else if (mode === 'conceded') {
+    svg1 = _buildAnalyticsHalfFieldSvg(conc1, f.team);
+    svg2 = _buildAnalyticsHalfFieldSvg(conc2, f.team2);
+  } else {
+    svg1 = _buildAnalyticsHalfFieldSvg(e1, f.team);
+    svg2 = _buildAnalyticsHalfFieldSvg(e2, f.team2);
+  }
+
+  return `
+    <section class="analytics-section">
+      <h2>Shot chart</h2>
+      <div class="heatmap-toggle">
+        <button class="btn ${mode === 'fired'      ? 'btn-primary' : ''}" data-action="analytics-heatmap-toggle" data-arg="fired">Strzały oddane</button>
+        <button class="btn ${mode === 'conceded'   ? 'btn-primary' : ''}" data-action="analytics-heatmap-toggle" data-arg="conceded">Strzały stracone</button>
+        <button class="btn ${mode === 'efficiency' ? 'btn-primary' : ''}" data-action="analytics-heatmap-toggle" data-arg="efficiency">Skuteczność stref</button>
+      </div>
+      <div class="compare-heatmaps">
+        <div class="compare-heatmap-col">
+          <div class="compare-col-header">${t1}</div>
+          <div class="field-half">${svg1}</div>
+        </div>
+        <div class="compare-heatmap-col">
+          <div class="compare-col-header">${t2}</div>
+          <div class="field-half">${svg2}</div>
+        </div>
+      </div>
+    </section>`;
+}
+
+function _renderCmpH2HEmpty(f) {
+  return `
+    <section class="analytics-section">
+      <h2>Mecze bezpośrednie</h2>
+      <p class="empty">Brak bezpośrednich meczów między ${escapeHtml(f.team)} a ${escapeHtml(f.team2)} w wybranych filtrach.</p>
+    </section>`;
+}
+
+function _renderCmpH2H(h2hMatches, h2hE1, h2hE2, f, allEvents) {
+  const t1 = escapeHtml(f.team);
+  const t2 = escapeHtml(f.team2);
+
+  let t1wins = 0, t2wins = 0, draws = 0, t1totalG = 0, t2totalG = 0;
+
+  const rows = [...h2hMatches]
+    .sort((a, b) => String(b.match_date).localeCompare(String(a.match_date)))
+    .map(m => {
+      const mE    = allEvents.filter(e => String(e.match_id) === String(m.id));
+      const gA    = mE.filter(e => e.team_event === m.team_A && e.result === 'gol').length;
+      const gB    = mE.filter(e => e.team_event === m.team_B && e.result === 'gol').length;
+      const t1g   = m.team_A === f.team ? gA : gB;
+      const t2g   = m.team_A === f.team ? gB : gA;
+      const hasEv = mE.length > 0;
+      if (hasEv) { t1totalG += t1g; t2totalG += t2g; }
+      if (hasEv && t1g > t2g) t1wins++;
+      else if (hasEv && t2g > t1g) t2wins++;
+      else if (hasEv) draws++;
+      const result = hasEv ? `${t1g} : ${t2g}` : '— : —';
+      const won    = hasEv && t1g > t2g;
+      const drew   = hasEv && t1g === t2g;
+      return `<tr class="match-history-row ${won ? 'won' : drew ? 'drew' : hasEv ? 'lost' : ''}">
+        <td>${escapeHtml(String(m.match_date))}</td>
+        <td>${escapeHtml(m.tournament || '—')}</td>
+        <td class="match-result">${result}</td>
+        <td><button class="btn btn-sm" data-action="open-viewer-from-analytics" data-arg="${escapeHtml(String(m.id))}">Podgląd</button></td>
+      </tr>`;
+    }).join('');
+
+  const s1    = computeAnalyticsStats(h2hE1);
+  const s2    = computeAnalyticsStats(h2hE2);
+  const total = t1wins + t2wins + draws;
+  const c1    = t1wins >= t2wins && total > 0 ? '#16a34a' : '#374151';
+  const c2    = t2wins >= t1wins && total > 0 ? '#16a34a' : '#374151';
+
+  return `
+    <section class="analytics-section">
+      <h2>Mecze bezpośrednie (${h2hMatches.length})</h2>
+      <div class="cmp-h2h-summary">
+        <div class="cmp-h2h-team">
+          <div style="font-size:12px;color:#6b7280;margin-bottom:4px">${t1}</div>
+          <div style="font-size:32px;font-weight:700;color:${c1}">${t1wins}</div>
+          <div class="cmp-h2h-label">wygranych</div>
+        </div>
+        <div class="cmp-h2h-mid">
+          <div style="font-size:22px;font-weight:700;color:#6b7280">${draws}</div>
+          <div class="cmp-h2h-label">remisów</div>
+        </div>
+        <div class="cmp-h2h-team">
+          <div style="font-size:12px;color:#6b7280;margin-bottom:4px">${t2}</div>
+          <div style="font-size:32px;font-weight:700;color:${c2}">${t2wins}</div>
+          <div class="cmp-h2h-label">wygranych</div>
+        </div>
+      </div>
+      <table class="stats-table match-history-table" style="margin:16px 0">
+        <thead><tr><th>Data</th><th>Turniej</th><th>${t1} : ${t2}</th><th></th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      ${(h2hE1.length > 0 || h2hE2.length > 0) ? `
+      <h3>Statystyki w meczach bezpośrednich</h3>
+      <table class="cmp-table" style="width:100%;max-width:580px">
+        ${_cmpThead(t1, t2, 'H2H')}
+        <tbody>
+          ${_cmpRow('Bramek zdobytych', t1totalG, t2totalG, false)}
+          ${_cmpRow('Strzałów', s1.total, s2.total, false)}
+          ${_cmpRow('Skuteczność', s1.pct + '%', s2.pct + '%', false)}
+          ${_cmpRow('% celnych', s1.onPct + '%', s2.onPct + '%', false)}
+        </tbody>
+      </table>` : ''}
+    </section>`;
+}
+
+function _renderCmpGoalies(e1, e2, f, allEvents, allMatches) {
+  const t1   = escapeHtml(f.team);
+  const t2   = escapeHtml(f.team2);
+  const f2   = Object.assign({}, f, { team: f.team2 });
+  const data1 = _computeGoalieAnalytics(e1, allEvents, allMatches, f,  { col: 'savePct', dir: 'desc' });
+  const data2 = _computeGoalieAnalytics(e2, allEvents, allMatches, f2, { col: 'savePct', dir: 'desc' });
+
+  if (data1.totalShotsOnGoal === 0 && data2.totalShotsOnGoal === 0) return '';
+
+  function goalieCol(data, teamLabel) {
+    if (data.totalShotsOnGoal === 0) {
+      return `<div class="compare-heatmap-col">
+        <div class="compare-col-header">${teamLabel}</div>
+        <p class="empty">Brak danych bramkarskich.</p>
+      </div>`;
+    }
+    const pctColor = data.avgSavePct >= 70 ? '#15803d' : data.avgSavePct >= 55 ? '#1d4ed8' : '#b91c1c';
+    const goalieRows = data.list.slice(0, 4).map(g => {
+      const nl  = g.number !== null ? `#${escapeHtml(g.number)}` : '—';
+      const pct = g.savePct !== null ? g.savePct + '%' : '—';
+      const col = g.savePct >= 70 ? '#15803d' : g.savePct >= 55 ? '#1d4ed8' : '#b91c1c';
+      return `<tr>
+        <td style="font-weight:600">${nl}</td>
+        <td class="num">${g.matchCount}</td>
+        <td class="num">${g.shotsOnGoal}</td>
+        <td class="num">${g.saves}</td>
+        <td class="num" style="font-weight:700;color:${col}">${pct}</td>
+      </tr>`;
+    }).join('');
+    return `<div class="compare-heatmap-col">
+      <div class="compare-col-header">${teamLabel}</div>
+      <div class="stat-box" style="display:inline-block;margin-bottom:12px;min-width:180px;text-align:center">
+        <div style="font-size:28px;font-weight:700;color:${pctColor}">${data.avgSavePct !== null ? data.avgSavePct + '%' : '—'}</div>
+        <div style="font-size:12px;color:#6b7280">Avg save%</div>
+        <div style="font-size:12px;color:#6b7280">${data.totalShotsOnGoal} strzałów na br. · ${data.matchCount} meczów</div>
+      </div>
+      <table class="stats-table" style="width:100%;font-size:13px">
+        <thead><tr><th>Nr</th><th>Mecze</th><th>Na br.</th><th>Obron.</th><th>Save%</th></tr></thead>
+        <tbody>${goalieRows}</tbody>
+      </table>
+    </div>`;
+  }
+
+  return `
+    <section class="analytics-section">
+      <h2>Bramkarze</h2>
+      <div class="compare-heatmaps">
+        ${goalieCol(data1, t1)}
+        ${goalieCol(data2, t2)}
+      </div>
+    </section>`;
+}
+
+function _renderCmpPeriods(s1, s2, f) {
+  const t1 = escapeHtml(f.team);
+  const t2 = escapeHtml(f.team2);
+
+  const allPeriodKeys = new Set([...Object.keys(s1.periods), ...Object.keys(s2.periods)]);
+  if (allPeriodKeys.size === 0) return '';
+
+  const chart1 = _renderPeriodBarChart(s1.periods);
+  const chart2 = _renderPeriodBarChart(s2.periods);
+  if (!chart1 && !chart2) return '';
+
+  return `
+    <section class="analytics-section">
+      <h2>Skuteczność per kwarta</h2>
+      <div class="compare-heatmaps">
+        <div class="compare-heatmap-col">
+          <div class="compare-col-header">${t1}</div>
+          ${chart1 || '<p class="empty" style="font-size:13px">Brak danych.</p>'}
+        </div>
+        <div class="compare-heatmap-col">
+          <div class="compare-col-header">${t2}</div>
+          ${chart2 || '<p class="empty" style="font-size:13px">Brak danych.</p>'}
+        </div>
+      </div>
     </section>`;
 }
 
@@ -6329,9 +6692,17 @@ const HANDLERS = {
     const field = el.dataset.field;
     if (field && field in APP.analyticsFilters) {
       APP.analyticsFilters[field] = val;
-      if (field === 'tournament') APP.analyticsFilters.team = '';
+      if (field === 'tournament') {
+        APP.analyticsFilters.team  = '';
+        APP.analyticsFilters.team2 = '';
+      }
       render();
     }
+  },
+  'analytics-mode-toggle': (mode) => {
+    APP.analyticsMode = mode;
+    if (mode === 'single') APP.analyticsFilters.team2 = '';
+    render();
   },
   'go-home-from-analytics': () => goHome(),
   'analytics-heatmap-toggle': (mode) => {
