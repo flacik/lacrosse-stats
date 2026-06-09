@@ -35,9 +35,11 @@ let APP = {
   analyticsLoading:     false,
   analyticsError:       null,
   analyticsData:        null,   // { events: [], matches: [], tournaments: [] }
+  analyticsMode:        'single', // 'single' | 'compare'
   analyticsFilters:     {
     tournament: '',
     team:       '',
+    team2:      '',
     dateFrom:   '',
     dateTo:     '',
     period:     '',

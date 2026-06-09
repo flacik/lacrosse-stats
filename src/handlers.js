@@ -35,9 +35,17 @@ const HANDLERS = {
     const field = el.dataset.field;
     if (field && field in APP.analyticsFilters) {
       APP.analyticsFilters[field] = val;
-      if (field === 'tournament') APP.analyticsFilters.team = '';
+      if (field === 'tournament') {
+        APP.analyticsFilters.team  = '';
+        APP.analyticsFilters.team2 = '';
+      }
       render();
     }
+  },
+  'analytics-mode-toggle': (mode) => {
+    APP.analyticsMode = mode;
+    if (mode === 'single') APP.analyticsFilters.team2 = '';
+    render();
   },
   'go-home-from-analytics': () => goHome(),
   'analytics-heatmap-toggle': (mode) => {

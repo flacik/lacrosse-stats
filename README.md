@@ -58,6 +58,7 @@ All data is stored in Google Sheets, so the club always has a permanent record o
 - Man-up / man-down / even-strength / **fast break** situation cards (hidden when no relevant events)
 - Shot chart with three modes: fired shots, conceded shots, zone efficiency heatmap
 - **Goalie ranking** — cross-match save% per goalkeeper, with per-quarter breakdown; visible for all teams (no filter) or scoped to a selected team
+- **Team comparison mode** — select two teams side by side; shows attack/defense comparison table (with best-value highlighting), dual shot charts, head-to-head match history with W/D/L summary and H2H stats, goalie cards per team, and per-quarter accuracy charts
 
 **Admin panel**
 - Create and manage tournaments
@@ -160,7 +161,7 @@ cd src/
 
 ## Status
 
-**Current: v2.1.0 — deployed 2026-06-08**
+**Current: v2.2.0 — deployed 2026-06-09**
 
 ### Versioning rules
 
@@ -171,6 +172,16 @@ cd src/
 | **PATCH** | Bug fix, UI tweak, performance improvement |
 
 ### Changelog
+
+**v2.2.0 (2026-06-09)** — team comparison in analytics:
+
+- New **"Porównanie drużyn"** tab in the analytics screen; mode toggle switches between single-team analysis and two-team comparison without losing filter state
+- Filter bar switches to "Drużyna 1" / "Drużyna 2" selectors in comparison mode; tournament / period / date filters apply to both teams equally
+- **Overall comparison table** — three-column layout (team1 | metric | team2) with green highlighting on the better value; covers attack (shots, goals, accuracy, on-target %, man-up, man-down, fast break) and defense (shots conceded, goals conceded, opponent accuracy)
+- **Dual shot charts** — both teams' heatmaps rendered side by side; toggle between fired shots, conceded shots, and zone efficiency heatmap applies to both simultaneously
+- **Head-to-head section** — W/D/L summary with large counters, full match history table for their mutual matches, and a separate H2H stats comparison (goals, shots, accuracy)
+- **Goalie comparison** — avg save% card + top-4 goalie table for each team rendered in two columns
+- **Per-quarter accuracy charts** — both teams' period bar charts side by side
 
 **v2.1.0 (2026-06-08)** — PDF reports:
 
