@@ -2,41 +2,40 @@
 
 function renderAnalytics(root) {
 
-  // ── Loading ──────────────────────────────────────────────────────────────────
   if (APP.analyticsLoading) {
     root.innerHTML = `
       <div class="app-header">
         <h1>Lacrosse Stats</h1>
-        <button class="btn" data-action="go-home-from-analytics">← Home</button>
-        <button class="btn" data-action="toggle-dark-mode" id="theme-toggle" title="Przełącz tryb ciemny">🌙</button>
+        <button class="btn" data-action="go-home-from-analytics">${T('nav.home')}</button>
+        ${_langToggleBtn()}
+        <button class="btn" data-action="toggle-dark-mode" id="theme-toggle" title="${T('nav.theme')}">🌙</button>
       </div>
       <div class="home-content">
         <div class="loading-state">
           <div class="spinner">⏳</div>
-          <p>Ładowanie danych…</p>
+          <p>${T('loading.data')}</p>
         </div>
       </div>`;
     return;
   }
 
-  // ── Error ────────────────────────────────────────────────────────────────────
   if (APP.analyticsError) {
     root.innerHTML = `
       <div class="app-header">
         <h1>Lacrosse Stats</h1>
-        <button class="btn" data-action="go-home-from-analytics">← Home</button>
-        <button class="btn" data-action="toggle-dark-mode" id="theme-toggle" title="Przełącz tryb ciemny">🌙</button>
+        <button class="btn" data-action="go-home-from-analytics">${T('nav.home')}</button>
+        ${_langToggleBtn()}
+        <button class="btn" data-action="toggle-dark-mode" id="theme-toggle" title="${T('nav.theme')}">🌙</button>
       </div>
       <div class="home-content">
         <div class="error-state">
-          <p>⚠ Błąd ładowania: ${escapeHtml(APP.analyticsError)}</p>
-          <button class="btn btn-primary" data-action="analytics-retry">↺ Spróbuj ponownie</button>
+          <p>⚠ ${T('error.loading')}: ${escapeHtml(APP.analyticsError)}</p>
+          <button class="btn btn-primary" data-action="analytics-retry">${T('btn.retry')}</button>
         </div>
       </div>`;
     return;
   }
 
-  // ── Loaded ───────────────────────────────────────────────────────────────────
   const { events, matches, tournaments } = APP.analyticsData;
   const f    = APP.analyticsFilters;
   const mode = APP.analyticsMode || 'single';
@@ -46,16 +45,17 @@ function renderAnalytics(root) {
 
   const modeTabs = `
     <div class="analytics-mode-tabs">
-      <button class="btn ${mode === 'single'  ? 'btn-primary' : ''}" data-action="analytics-mode-toggle" data-arg="single">Analiza drużyny</button>
-      <button class="btn ${mode === 'compare' ? 'btn-primary' : ''}" data-action="analytics-mode-toggle" data-arg="compare">Porównanie drużyn</button>
+      <button class="btn ${mode === 'single'  ? 'btn-primary' : ''}" data-action="analytics-mode-toggle" data-arg="single">${T('analytics.mode.single')}</button>
+      <button class="btn ${mode === 'compare' ? 'btn-primary' : ''}" data-action="analytics-mode-toggle" data-arg="compare">${T('analytics.mode.compare')}</button>
     </div>`;
 
   if (mode === 'compare') {
     root.innerHTML = `
       <div class="app-header">
-        <h1>Analityka historyczna</h1>
-        <button class="btn" data-action="go-home-from-analytics">← Home</button>
-        <button class="btn" data-action="toggle-dark-mode" id="theme-toggle" title="Przełącz tryb ciemny">🌙</button>
+        <h1>${T('analytics.title')}</h1>
+        <button class="btn" data-action="go-home-from-analytics">${T('nav.home')}</button>
+        ${_langToggleBtn()}
+        <button class="btn" data-action="toggle-dark-mode" id="theme-toggle" title="${T('nav.theme')}">🌙</button>
       </div>
       <div class="analytics-content">
         ${modeTabs}
@@ -68,76 +68,77 @@ function renderAnalytics(root) {
   const filtered = _analyticsApplyFilters(events, f);
   root.innerHTML = `
     <div class="app-header">
-      <h1>Analityka historyczna</h1>
-      <button class="btn" data-action="go-home-from-analytics">← Home</button>
-      <button class="btn" data-action="toggle-dark-mode" id="theme-toggle" title="Przełącz tryb ciemny">🌙</button>
-      <button class="btn" data-action="open-analytics-report" title="Pobierz raport PDF">⬇ PDF</button>
+      <h1>${T('analytics.title')}</h1>
+      <button class="btn" data-action="go-home-from-analytics">${T('nav.home')}</button>
+      ${_langToggleBtn()}
+      <button class="btn" data-action="toggle-dark-mode" id="theme-toggle" title="${T('nav.theme')}">🌙</button>
+      <button class="btn" data-action="open-analytics-report" title="${T('nav.pdf')}">${T('nav.pdf')}</button>
     </div>
     <div class="analytics-content">
       ${modeTabs}
       ${_renderAnalyticsFilters(f, tournaments, allTeams, allPeriods, 'single')}
       ${filtered.length === 0
-        ? '<div class="empty">Brak danych dla wybranych filtrów.</div>'
+        ? `<div class="empty">${T('analytics.empty')}</div>`
         : _renderAnalyticsBody(filtered, matches, f)
       }
     </div>`;
 }
 
-// ── Filtry ───────────────────────────────────────────────────────────────────
+// ── Filters ──────────────────────────────────────────────────────────────────
 
 function _renderAnalyticsFilters(f, tournaments, allTeams, allPeriods, mode) {
-  const tourOptions = ['<option value="">Wszystkie turnieje</option>',
+  const tourOptions = [`<option value="">${T('select.all_tournaments')}</option>`,
     ...tournaments.map(t => `<option value="${escapeHtml(t.name)}" ${f.tournament === t.name ? 'selected' : ''}>${escapeHtml(t.name)}</option>`)
   ].join('');
 
-  const teamOptions = ['<option value="">Wszystkie drużyny</option>',
+  const teamOptions = [`<option value="">${T('select.all_teams')}</option>`,
     ...allTeams.map(t => `<option value="${escapeHtml(t)}" ${f.team === t ? 'selected' : ''}>${escapeHtml(t)}</option>`)
   ].join('');
 
-  const team1Options = ['<option value="">-- Drużyna 1 --</option>',
+  const team1Options = [`<option value="">${T('analytics.team1_ph')}</option>`,
     ...allTeams.map(t => `<option value="${escapeHtml(t)}" ${f.team === t ? 'selected' : ''}>${escapeHtml(t)}</option>`)
   ].join('');
 
-  const team2Options = ['<option value="">-- Drużyna 2 --</option>',
+  const team2Options = [`<option value="">${T('analytics.team2_ph')}</option>`,
     ...allTeams.map(t => `<option value="${escapeHtml(t)}" ${f.team2 === t ? 'selected' : ''}>${escapeHtml(t)}</option>`)
   ].join('');
 
-  const periodOptions = ['<option value="">Wszystkie okresy</option>',
+  const periodOptions = [`<option value="">${T('select.all_periods')}</option>`,
     ...allPeriods.map(p => `<option value="${escapeHtml(p)}" ${f.period === p ? 'selected' : ''}>${periodLabel(p)}</option>`)
   ].join('');
 
   const teamSelectors = mode === 'compare' ? `
-    <label>Drużyna 1
+    <label>${T('analytics.team1')}
       <select data-action="analytics-filter-change" data-field="team">${team1Options}</select>
     </label>
-    <label>Drużyna 2
+    <label>${T('analytics.team2')}
       <select data-action="analytics-filter-change" data-field="team2">${team2Options}</select>
     </label>` : `
-    <label>Drużyna
+    <label>${T('field.team')}
       <select data-action="analytics-filter-change" data-field="team">${teamOptions}</select>
     </label>`;
 
   return `
     <div class="analytics-filters">
       <div class="filter-row">
-        <label>Turniej
+        <label>${T('field.tournament')}
           <select data-action="analytics-filter-change" data-field="tournament">${tourOptions}</select>
         </label>
         ${teamSelectors}
-        <label>Okres (kwarta)
+        <label>${T('analytics.period_filter')}
           <select data-action="analytics-filter-change" data-field="period">${periodOptions}</select>
         </label>
-        <label>Data od
+        <label>${T('field.date_from')}
           <input type="date" data-action="analytics-filter-change" data-field="dateFrom" value="${f.dateFrom}">
         </label>
-        <label>Data do
+        <label>${T('field.date_to')}
           <input type="date" data-action="analytics-filter-change" data-field="dateTo" value="${f.dateTo}">
         </label>
       </div>
     </div>`;
 }
 
-// ── Logika filtrów ────────────────────────────────────────────────────────────
+// ── Filter logic ─────────────────────────────────────────────────────────────
 
 function _analyticsApplyFilters(events, f) {
   return events.filter(e => {
@@ -172,7 +173,7 @@ function _analyticsAllPeriods(events) {
   });
 }
 
-// ── Sekcje wynikowe ───────────────────────────────────────────────────────────
+// ── Result sections ───────────────────────────────────────────────────────────
 
 function _renderAnalyticsBody(filtered, matches, f) {
   return `
@@ -184,16 +185,14 @@ function _renderAnalyticsBody(filtered, matches, f) {
     </div>`;
 }
 
-// ── Bramkarze w analityce historycznej ───────────────────────────────────────
+// ── Goalkeepers ───────────────────────────────────────────────────────────────
 
 function _computeGoalieAnalytics(filteredShots, allEvents, allMatches, f, sort) {
   const matchIds = new Set(filteredShots.map(e => String(e.match_id)));
 
-  // matchMap: matchId -> { team_A, team_B } — do identyfikacji broniącej drużyny
   const matchMap = {};
   allMatches.forEach(m => { matchMap[String(m.id)] = m; });
 
-  // Wszystkie strzały na bramkę w objętych meczach (oba kierunki)
   let shotsOnGoal = allEvents.filter(e =>
     e.event_type !== 'goalie_set' &&
     matchIds.has(String(e.match_id)) &&
@@ -227,7 +226,7 @@ function _computeGoalieAnalytics(filteredShots, allEvents, allMatches, f, sort) 
     return number;
   }
 
-  const byKey = {};       // key: `${team}::${num}`
+  const byKey = {};
   const matchesPerKey = {};
 
   for (const shot of shotsOnGoal) {
@@ -373,39 +372,41 @@ function _renderAnalyticsGoalies(filtered, allEvents, allMatches, f) {
         return `<tr><td style="line-height:1.3"><span style="font-weight:600">${numLabel}</span><span style="font-size:11px;color:#6b7280;display:block;margin-top:1px">${escapeHtml(g.team)}</span></td>${cells}</tr>`;
       }).join('');
       periodTable = `
-        <h3>Save% per kwarta</h3>
+        <h3>${T('analytics.save_pct_period')}</h3>
         <table class="stats-table">
-          <thead><tr>${sortTh('Bramkarz', 'number')}${periodHeaders}</tr></thead>
+          <thead><tr>${sortTh(T('analytics.goalies.goalie'), 'number')}${periodHeaders}</tr></thead>
           <tbody>${periodRows}</tbody>
         </table>`;
     }
   }
 
   const avgLabel   = data.avgSavePct !== null ? `${data.avgSavePct}%` : '—';
-  const matchBadge = `<span style="display:inline-block;font-size:11px;font-weight:600;background:#dbeafe;color:#1e40af;padding:2px 8px;border-radius:4px;margin-left:8px;vertical-align:middle">${data.matchCount} meczów</span>`;
-  const heading    = teamLabel ? `Bramkarze: ${teamLabel}` : 'Bramkarze';
+  const matchBadge = `<span style="display:inline-block;font-size:11px;font-weight:600;background:#dbeafe;color:#1e40af;padding:2px 8px;border-radius:4px;margin-left:8px;vertical-align:middle">${data.matchCount} ${T('analytics.goalies.matches_badge')}</span>`;
+  const heading    = teamLabel
+    ? `${T('analytics.goalies.title')}: ${teamLabel}`
+    : T('analytics.goalies.title');
 
   return `
     <section class="analytics-section">
       <h2>${heading}${matchBadge}</h2>
       <div class="stats-grid">
-        <div class="stat-box"><div class="stat-val">${data.list.length}</div><div class="stat-lbl">Bramkarzy</div></div>
-        <div class="stat-box"><div class="stat-val">${data.totalShotsOnGoal}</div><div class="stat-lbl">Strzałów na bramkę</div></div>
-        <div class="stat-box"><div class="stat-val">${data.totalSaves}</div><div class="stat-lbl">Obrony</div></div>
-        <div class="stat-box"><div class="stat-val">${data.totalGoals}</div><div class="stat-lbl">Bramek straconych</div></div>
-        <div class="stat-box"><div class="stat-val">${avgLabel}</div><div class="stat-lbl">Avg save%</div></div>
+        <div class="stat-box"><div class="stat-val">${data.list.length}</div><div class="stat-lbl">${T('analytics.goalies.count')}</div></div>
+        <div class="stat-box"><div class="stat-val">${data.totalShotsOnGoal}</div><div class="stat-lbl">${T('analytics.goalies.shots_on')}</div></div>
+        <div class="stat-box"><div class="stat-val">${data.totalSaves}</div><div class="stat-lbl">${T('analytics.goalies.saves')}</div></div>
+        <div class="stat-box"><div class="stat-val">${data.totalGoals}</div><div class="stat-lbl">${T('analytics.goalies.goals_ag')}</div></div>
+        <div class="stat-box"><div class="stat-val">${avgLabel}</div><div class="stat-lbl">${T('analytics.goalies.avg_save')}</div></div>
       </div>
-      <h3>Per bramkarz</h3>
+      <h3>${T('analytics.goalies.per')}</h3>
       <table class="stats-table">
         <thead>
           <tr>
             <th style="width:28px">#</th>
-            ${sortTh('Bramkarz', 'number')}
-            ${sortTh('Mecze', 'matchCount')}
-            ${sortTh('Strzały na br.', 'shotsOnGoal')}
-            ${sortTh('Obrony', 'saves')}
-            ${sortTh('Bramki str.', 'goalsAgainst')}
-            ${sortTh('Save%', 'savePct')}
+            ${sortTh(T('analytics.goalies.goalie'), 'number')}
+            ${sortTh(T('analytics.goalies.matches'), 'matchCount')}
+            ${sortTh(T('analytics.goalies.shots_th'), 'shotsOnGoal')}
+            ${sortTh(T('analytics.goalies.saves_th'), 'saves')}
+            ${sortTh(T('analytics.goalies.goals_th'), 'goalsAgainst')}
+            ${sortTh(T('analytics.goalies.save_pct'), 'savePct')}
           </tr>
         </thead>
         <tbody>${mainRows}</tbody>
@@ -414,7 +415,7 @@ function _renderAnalyticsGoalies(filtered, allEvents, allMatches, f) {
     </section>`;
 }
 
-// ── V5-03: Porównanie ofensywa vs defensywa ───────────────────────────────────
+// ── Offense vs Defense ────────────────────────────────────────────────────────
 
 function _buildConcededEvents(filteredTeamEvents, allEvents, f) {
   const matchIds = new Set(filteredTeamEvents.map(e => String(e.match_id)));
@@ -447,33 +448,33 @@ function _renderOffenseDefenseComparison(filteredTeamEvents, allEvents, f) {
   }
 
   const rows = [
-    statRow('Strzałów',      off.total,        def.total,        false),
-    statRow('Bramek',        off.goals,         def.goals,        true),
-    statRow('Celnych',       off.onTarget,      def.onTarget,     false),
-    statRow('Skuteczność %', `${off.pct}%`,     `${def.pct}%`,   false),
-    statRow('% celnych',     `${off.onPct}%`,   `${def.onPct}%`, false),
+    statRow(T('analytics.stats.shots'),    off.total,        def.total,        false),
+    statRow(T('analytics.stats.goals'),    off.goals,        def.goals,        true),
+    statRow(T('analytics.stats.on_target'),off.onTarget,     def.onTarget,     false),
+    statRow(T('analytics.stats.rate') + ' %', `${off.pct}%`, `${def.pct}%`,   false),
+    statRow(T('analytics.stats.on_pct'),   `${off.onPct}%`,  `${def.onPct}%`, false),
   ].join('');
 
   return `
     <section class="analytics-section">
-      <h2>Atak vs obrona — ${escapeHtml(f.team)}</h2>
+      <h2>${T('analytics.atk_def.title')} — ${escapeHtml(f.team)}</h2>
       <table class="stats-table cmp-table">
         <thead>
           <tr>
             <th></th>
-            <th>⚔ Atak (oddane)</th>
-            <th>🛡 Obrona (stracone)</th>
+            <th>${T('analytics.atk')}</th>
+            <th>${T('analytics.def')}</th>
           </tr>
         </thead>
         <tbody>${rows}</tbody>
       </table>
       ${def.total === 0
-        ? '<p class="empty" style="font-size:13px">Brak danych o strzałach straconych dla wybranych filtrów.</p>'
+        ? `<p class="empty" style="font-size:13px">${T('analytics.def_no_data')}</p>`
         : ''}
     </section>`;
 }
 
-// ── Statystyki (H-05) ─────────────────────────────────────────────────────────
+// ── Stats computation ─────────────────────────────────────────────────────────
 
 function computeAnalyticsStats(events) {
   const total     = events.length;
@@ -504,13 +505,13 @@ function computeAnalyticsStats(events) {
 
   const situations = {
     manUp:     { events: events.filter(e => e.man_up),
-                 label: 'Man-up (przewaga)', icon: '▲' },
+                 label: T('analytics.sit.man_up'), icon: '▲' },
     manDown:   { events: events.filter(e => e.man_down),
-                 label: 'Man-down (osłabienie)', icon: '▼' },
+                 label: T('analytics.sit.man_down'), icon: '▼' },
     even:      { events: events.filter(e => !e.man_up && !e.man_down),
-                 label: 'Wyrównana', icon: '=' },
+                 label: T('analytics.sit.even'), icon: '=' },
     fastBreak: { events: events.filter(e => e.fast_break),
-                 label: 'Fast break', icon: '→' },
+                 label: T('analytics.sit.fast_break'), icon: '→' },
   };
   Object.values(situations).forEach(sit => {
     const t = sit.events.length;
@@ -523,15 +524,15 @@ function computeAnalyticsStats(events) {
   return { total, goals, onTarget, offTarget, manUp, manDown, fastBreak, pct, onPct, zones, periods, situations };
 }
 
-// ── V5-01: Donut chart wyników strzałów ──────────────────────────────────────
+// ── Shot result donut ─────────────────────────────────────────────────────────
 
 function _renderShotResultDonut(s) {
   if (s.total === 0) return '';
 
   const segments = [
-    { count: s.goals,                 color: '#16a34a', label: 'Gole' },
-    { count: s.onTarget - s.goals,    color: '#3b82f6', label: 'Celne' },
-    { count: s.offTarget,             color: '#9ca3af', label: 'Niecelne' },
+    { count: s.goals,                 color: '#16a34a', label: T('analytics.donut.goals') },
+    { count: s.onTarget - s.goals,    color: '#3b82f6', label: T('analytics.donut.on_target') },
+    { count: s.offTarget,             color: '#9ca3af', label: T('analytics.donut.off_target') },
   ].filter(seg => seg.count > 0);
 
   const cx = 80, cy = 80, r = 60, innerR = 38;
@@ -572,13 +573,13 @@ function _renderShotResultDonut(s) {
       <svg width="160" height="160" viewBox="0 0 160 160">
         ${arcs}
         <text x="${cx}" y="${cy - 6}" text-anchor="middle" font-size="18" font-weight="700" fill="#111">${s.total}</text>
-        <text x="${cx}" y="${cy + 12}" text-anchor="middle" font-size="10" fill="#6b7280">strzałów</text>
+        <text x="${cx}" y="${cy + 12}" text-anchor="middle" font-size="10" fill="#6b7280">${T('analytics.donut.shots')}</text>
       </svg>
       <div class="donut-legend">${legendItems}</div>
     </div>`;
 }
 
-// ── V5-04: Sytuacje man-up / man-down ────────────────────────────────────────
+// ── Situation stats ───────────────────────────────────────────────────────────
 
 function _renderSituationStats(s) {
   const { situations } = s;
@@ -590,20 +591,20 @@ function _renderSituationStats(s) {
       <div class="sit-icon">${sit.icon}</div>
       <div class="stat-lbl">${sit.label}</div>
       <div class="sit-numbers">
-        <span class="sit-goals">${sit.goals} bramek</span>
-        <span class="sit-total">/ ${sit.total} strzałów</span>
+        <span class="sit-goals">${sit.goals} ${T('analytics.sit.goals')}</span>
+        <span class="sit-total">/ ${sit.total} ${T('analytics.donut.shots')}</span>
       </div>
       <div class="stat-val sit-pct">${sit.pct}%</div>
     </div>`).join('');
 
   return `
     <div style="margin-bottom: 16px;">
-      <h3 style="font-size:14px;color:#6b7280;margin:0 0 8px">Skuteczność per sytuacja</h3>
+      <h3 style="font-size:14px;color:#6b7280;margin:0 0 8px">${T('analytics.sit.title')}</h3>
       <div class="stats-grid">${cards}</div>
     </div>`;
 }
 
-// ── V5-02: Słupki skuteczności per kwarta ────────────────────────────────────
+// ── Period bar chart ──────────────────────────────────────────────────────────
 
 function _renderPeriodBarChart(periods) {
   const entries = Object.entries(periods)
@@ -644,19 +645,19 @@ function _renderPeriodBarChart(periods) {
 function _renderAnalyticsStats(filtered, f) {
   if (filtered.length === 0) return '';
   const s = computeAnalyticsStats(filtered);
-  const teamLabel = f.team || 'Wszystkie drużyny';
+  const teamLabel = f.team || T('select.all_teams');
   const matchCount = new Set(filtered.map(e => String(e.match_id))).size;
 
   const zoneOrder = ['attack-center','attack-left','attack-right',
                      'midfield-center','midfield-left','midfield-right','own-half'];
   const zoneLabels = {
-    'attack-center':   'Atak środek',
-    'attack-left':     'Atak lewo',
-    'attack-right':    'Atak prawo',
-    'midfield-center': 'Midfield środek',
-    'midfield-left':   'Midfield lewo',
-    'midfield-right':  'Midfield prawo',
-    'own-half':        'Własna połowa',
+    'attack-center':   T('zone.attack_center'),
+    'attack-left':     T('zone.attack_left'),
+    'attack-right':    T('zone.attack_right'),
+    'midfield-center': T('zone.midfield_center'),
+    'midfield-left':   T('zone.midfield_left'),
+    'midfield-right':  T('zone.midfield_right'),
+    'own-half':        T('zone.own_half'),
   };
 
   const zoneRows = zoneOrder
@@ -679,45 +680,45 @@ function _renderAnalyticsStats(filtered, f) {
 
   return `
     <section class="analytics-section">
-      <h2>Statystyki: ${escapeHtml(teamLabel)}</h2>
+      <h2>${T('analytics.stats.title')}: ${escapeHtml(teamLabel)}</h2>
       <div class="stats-grid">
-        <div class="stat-box"><div class="stat-val">${matchCount}</div><div class="stat-lbl">Meczy</div></div>
-        <div class="stat-box"><div class="stat-val">${s.total}</div><div class="stat-lbl">Strzałów</div></div>
-        <div class="stat-box"><div class="stat-val">${s.goals}</div><div class="stat-lbl">Bramek</div></div>
-        <div class="stat-box"><div class="stat-val">${s.onTarget}</div><div class="stat-lbl">Celnych</div></div>
-        <div class="stat-box"><div class="stat-val">${s.pct}%</div><div class="stat-lbl">Skuteczność</div></div>
-        <div class="stat-box"><div class="stat-val">${s.onPct}%</div><div class="stat-lbl">% celnych</div></div>
+        <div class="stat-box"><div class="stat-val">${matchCount}</div><div class="stat-lbl">${T('analytics.stats.matches')}</div></div>
+        <div class="stat-box"><div class="stat-val">${s.total}</div><div class="stat-lbl">${T('analytics.stats.shots')}</div></div>
+        <div class="stat-box"><div class="stat-val">${s.goals}</div><div class="stat-lbl">${T('analytics.stats.goals')}</div></div>
+        <div class="stat-box"><div class="stat-val">${s.onTarget}</div><div class="stat-lbl">${T('analytics.stats.on_target')}</div></div>
+        <div class="stat-box"><div class="stat-val">${s.pct}%</div><div class="stat-lbl">${T('analytics.stats.rate')}</div></div>
+        <div class="stat-box"><div class="stat-val">${s.onPct}%</div><div class="stat-lbl">${T('analytics.stats.on_pct')}</div></div>
         ${s.manUp     ? `<div class="stat-box"><div class="stat-val">${s.manUp}</div><div class="stat-lbl">Man-up</div></div>` : ''}
         ${s.manDown   ? `<div class="stat-box"><div class="stat-val">${s.manDown}</div><div class="stat-lbl">Man-down</div></div>` : ''}
         ${s.fastBreak ? `<div class="stat-box"><div class="stat-val">${s.fastBreak}</div><div class="stat-lbl">Fast break</div></div>` : ''}
       </div>
       ${zoneRows ? `
-        <h3>Rozkład po strefach</h3>
+        <h3>${T('analytics.zones.title')}</h3>
         <table class="stats-table">
-          <thead><tr><th>Strefa</th><th>Strzałów</th><th>%</th></tr></thead>
+          <thead><tr><th>${T('analytics.zones.zone')}</th><th>${T('analytics.stats.shots')}</th><th>%</th></tr></thead>
           <tbody>${zoneRows}</tbody>
         </table>` : ''}
       ${periodRows ? `
-        <h3>Rozkład po kwartach</h3>
+        <h3>${T('analytics.periods.title')}</h3>
         <table class="stats-table">
-          <thead><tr><th>Kwarta</th><th>Strzałów</th><th>Bramek</th><th>%</th></tr></thead>
+          <thead><tr><th>${T('analytics.periods.quarter')}</th><th>${T('analytics.stats.shots')}</th><th>${T('analytics.stats.goals')}</th><th>%</th></tr></thead>
           <tbody>${periodRows}</tbody>
         </table>` : ''}
       ${_renderShotResultDonut(s)}
       ${_renderSituationStats(s)}
       ${Object.keys(s.periods).length > 0 ? `
-        <h3>Skuteczność per kwarta</h3>
+        <h3>${T('analytics.eff_period')}</h3>
         ${_renderPeriodBarChart(s.periods)}` : ''}
     </section>`;
 }
 
-// ── Heatmapa (H-06) ───────────────────────────────────────────────────────────
+// ── Heatmap ───────────────────────────────────────────────────────────────────
 
 function _renderAnalyticsHeatmap(filteredTeamEvents, allMatchEvents, f) {
   if (!f.team) {
     return `<section class="analytics-section">
       <h2>Shot chart</h2>
-      <p class="empty">Wybierz drużynę żeby zobaczyć shot chart.</p>
+      <p class="empty">${T('analytics.no_heatmap')}</p>
     </section>`;
   }
 
@@ -747,25 +748,22 @@ function _renderAnalyticsHeatmap(filteredTeamEvents, allMatchEvents, f) {
     <section class="analytics-section">
       <h2>Shot chart — ${escapeHtml(f.team)}</h2>
       <div class="heatmap-toggle">
-        <button class="btn ${mode === 'fired'      ? 'btn-primary' : ''}" data-action="analytics-heatmap-toggle" data-arg="fired">Strzały oddane</button>
-        <button class="btn ${mode === 'conceded'   ? 'btn-primary' : ''}" data-action="analytics-heatmap-toggle" data-arg="conceded">Strzały stracone</button>
-        <button class="btn ${mode === 'efficiency' ? 'btn-primary' : ''}" data-action="analytics-heatmap-toggle" data-arg="efficiency">Skuteczność stref</button>
+        <button class="btn ${mode === 'fired'      ? 'btn-primary' : ''}" data-action="analytics-heatmap-toggle" data-arg="fired">${T('heatmap.fired')}</button>
+        <button class="btn ${mode === 'conceded'   ? 'btn-primary' : ''}" data-action="analytics-heatmap-toggle" data-arg="conceded">${T('heatmap.conceded')}</button>
+        <button class="btn ${mode === 'efficiency' ? 'btn-primary' : ''}" data-action="analytics-heatmap-toggle" data-arg="efficiency">${T('heatmap.efficiency')}</button>
       </div>
       <div class="field-half">${svgContent}</div>
     </section>`;
 }
 
 function _buildAnalyticsHalfFieldSvg(events, teamName) {
-  // Reużywa drawHalfFieldChart z field-svg.js.
-  // Eventy mają attacker-relative coords — drawHalfFieldChart mapuje je bezpośrednio
-  // (cx = shot_y * 540, cy = (1 - shot_x) * 600) bez przeliczania team_A_side.
   const ns = 'http://www.w3.org/2000/svg';
   const svg = document.createElementNS(ns, 'svg');
   svg.setAttribute('viewBox', '0 0 540 660');
   svg.setAttribute('class', 'field field-half');
   svg.setAttribute('xmlns', ns);
 
-  const name = teamName || 'Drużyna';
+  const name = teamName || T('field.team');
   const mockMatch  = { id: '__analytics__', team_A: name, team_B: '__other__', team_A_side: 'left' };
   const mockEvents = events.map(e => Object.assign({}, e, { team_event: name }));
   const mockViewer = { view_mode: 'half-A', display_mode: 'heatmap' };
@@ -774,11 +772,9 @@ function _buildAnalyticsHalfFieldSvg(events, teamName) {
   return svg.outerHTML;
 }
 
-// ── V5-05: Zone efficiency overlay ───────────────────────────────────────────
+// ── Zone efficiency overlay ───────────────────────────────────────────────────
 
 function _buildZoneEfficiencySvg(events) {
-  // SVG attacker-relative: cx = shot_y * 540, cy = (1 - shot_x) * 600
-  // Boundaries match algorithms.js: ATTACK_THRESHOLD=0.4368, left/center/right at 1/3 and 2/3
   const ZONE_RECTS = {
     'attack-left':     { x: 0,   y: 0,      w: 180, h: 337.92 },
     'attack-center':   { x: 180, y: 0,      w: 180, h: 337.92 },
@@ -788,8 +784,12 @@ function _buildZoneEfficiencySvg(events) {
     'midfield-right':  { x: 360, y: 337.92, w: 180, h: 262.08 },
   };
   const ZONE_LABELS = {
-    'attack-left':     'Atak L',   'attack-center':   'Atak Ś',  'attack-right':    'Atak P',
-    'midfield-left':   'Mid L',    'midfield-center': 'Mid Ś',   'midfield-right':  'Mid P',
+    'attack-left':     T('zone.attack_left_short'),
+    'attack-center':   T('zone.attack_center_short'),
+    'attack-right':    T('zone.attack_right_short'),
+    'midfield-left':   T('zone.midfield_left_short'),
+    'midfield-center': T('zone.midfield_center_short'),
+    'midfield-right':  T('zone.midfield_right_short'),
   };
 
   const stats = {};
@@ -825,7 +825,7 @@ function _buildZoneEfficiencySvg(events) {
   svg.setAttribute('class', 'field field-half');
   svg.setAttribute('xmlns', ns);
   svg.innerHTML = `
-    <text x="270" y="28" text-anchor="middle" font-size="16" font-weight="700" fill="#6b7280">Skuteczność per strefa</text>
+    <text x="270" y="28" text-anchor="middle" font-size="16" font-weight="700" fill="#6b7280">${T('zone.eff_title')}</text>
     <g transform="translate(0, 50)">
       <rect x="0" y="0" width="540" height="600" fill="#9bbf85"/>
       <line x1="0" y1="600" x2="540" y2="600" stroke="white" stroke-width="3"/>
@@ -851,7 +851,7 @@ function _buildZoneEfficiencySvg(events) {
   return svg.outerHTML;
 }
 
-// ── Historia meczów (H-07) ────────────────────────────────────────────────────
+// ── Match history ─────────────────────────────────────────────────────────────
 
 function _renderAnalyticsMatchHistory(filtered, allEvents, allMatches, f) {
   if (!f.team) return '';
@@ -885,30 +885,30 @@ function _renderAnalyticsMatchHistory(filtered, allEvents, allMatches, f) {
         <td>${escapeHtml(m.tournament || '—')}</td>
         <td>${escapeHtml(opponent)}</td>
         <td class="match-result">${result}</td>
-        <td><button class="btn btn-sm" data-action="open-viewer-from-analytics" data-arg="${escapeHtml(String(m.id))}">Podgląd</button></td>
+        <td><button class="btn btn-sm" data-action="open-viewer-from-analytics" data-arg="${escapeHtml(String(m.id))}">${T('btn.view')}</button></td>
       </tr>`;
   }).join('');
 
   return `
     <section class="analytics-section">
-      <h2>Historia meczów — ${escapeHtml(f.team)}</h2>
+      <h2>${T('analytics.history.title')} — ${escapeHtml(f.team)}</h2>
       <table class="stats-table match-history-table">
-        <thead><tr><th>Data</th><th>Turniej</th><th>Rywal</th><th>Wynik</th><th></th></tr></thead>
+        <thead><tr><th>${T('analytics.history.date')}</th><th>${T('analytics.history.tournament')}</th><th>${T('analytics.history.opponent')}</th><th>${T('analytics.history.result')}</th><th></th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
     </section>`;
 }
 
-// ── Porównanie drużyn ─────────────────────────────────────────────────────────
+// ── Team comparison ───────────────────────────────────────────────────────────
 
 function _renderAnalyticsCompareBody(f, events, matches) {
   if (!f.team || !f.team2) {
     return `<div class="empty" style="padding:32px;text-align:center">
-      ${!f.team ? 'Wybierz Drużynę 1 żeby zobaczyć porównanie.' : 'Wybierz Drużynę 2 żeby zobaczyć porównanie.'}
+      ${!f.team ? T('compare.choose_t1') : T('compare.choose_t2')}
     </div>`;
   }
   if (f.team === f.team2) {
-    return '<div class="empty" style="padding:32px;text-align:center">Wybierz dwie różne drużyny.</div>';
+    return `<div class="empty" style="padding:32px;text-align:center">${T('compare.different_teams')}</div>`;
   }
 
   const f2 = Object.assign({}, f, { team: f.team2 });
@@ -970,7 +970,7 @@ function _cmpRow(label, v1, v2, lowerIsBetter) {
 function _cmpThead(t1, t2, label) {
   return `<thead><tr>
     <th style="text-align:right;padding-right:14px;font-size:14px">${t1}</th>
-    <th style="text-align:center;color:#6b7280;font-size:12px;font-weight:500;min-width:140px">${label || 'Statystyki'}</th>
+    <th style="text-align:center;color:#6b7280;font-size:12px;font-weight:500;min-width:140px">${label || T('analytics.stats.title')}</th>
     <th style="padding-left:14px;font-size:14px">${t2}</th>
   </tr></thead>`;
 }
@@ -980,29 +980,29 @@ function _renderCmpStatsSection(s1, s2, def1, def2, m1count, m2count, f) {
   const t2 = escapeHtml(f.team2);
   return `
     <section class="analytics-section">
-      <h2>Porównanie ogólne</h2>
+      <h2>${T('compare.general.title')}</h2>
       <table class="cmp-table" style="width:100%;max-width:580px">
-        ${_cmpThead(t1, t2, 'Atak')}
+        ${_cmpThead(t1, t2, T('compare.atk'))}
         <tbody>
-          ${_cmpRow('Meczy', m1count, m2count, false)}
-          ${_cmpRow('Strzałów', s1.total, s2.total, false)}
-          ${_cmpRow('Bramek', s1.goals, s2.goals, false)}
-          ${_cmpRow('Celnych', s1.onTarget, s2.onTarget, false)}
-          ${_cmpRow('Skuteczność', s1.pct + '%', s2.pct + '%', false)}
-          ${_cmpRow('% celnych', s1.onPct + '%', s2.onPct + '%', false)}
+          ${_cmpRow(T('analytics.stats.matches'),  m1count, m2count, false)}
+          ${_cmpRow(T('analytics.stats.shots'),    s1.total, s2.total, false)}
+          ${_cmpRow(T('analytics.stats.goals'),    s1.goals, s2.goals, false)}
+          ${_cmpRow(T('analytics.stats.on_target'),s1.onTarget, s2.onTarget, false)}
+          ${_cmpRow(T('analytics.stats.rate'),     s1.pct + '%', s2.pct + '%', false)}
+          ${_cmpRow(T('analytics.stats.on_pct'),   s1.onPct + '%', s2.onPct + '%', false)}
           ${(s1.manUp > 0 || s2.manUp > 0) ? _cmpRow('Man-up', s1.manUp, s2.manUp, false) : ''}
           ${(s1.manDown > 0 || s2.manDown > 0) ? _cmpRow('Man-down', s1.manDown, s2.manDown, false) : ''}
           ${(s1.fastBreak > 0 || s2.fastBreak > 0) ? _cmpRow('Fast break', s1.fastBreak, s2.fastBreak, false) : ''}
         </tbody>
       </table>
-      <h3 style="margin-top:20px">Obrona (strzały stracone)</h3>
+      <h3 style="margin-top:20px">${T('compare.def.title')}</h3>
       <table class="cmp-table" style="width:100%;max-width:580px">
-        ${_cmpThead(t1, t2, 'Obrona')}
+        ${_cmpThead(t1, t2, T('compare.def'))}
         <tbody>
-          ${_cmpRow('Strzałów straconych', def1.total, def2.total, true)}
-          ${_cmpRow('Bramek straconych', def1.goals, def2.goals, true)}
-          ${_cmpRow('Celnych straconych', def1.onTarget, def2.onTarget, true)}
-          ${_cmpRow('Skuteczność rywali', def1.pct + '%', def2.pct + '%', true)}
+          ${_cmpRow(T('compare.shots_conceded'),   def1.total, def2.total, true)}
+          ${_cmpRow(T('compare.goals_conceded'),   def1.goals, def2.goals, true)}
+          ${_cmpRow(T('compare.on_target_conceded'),def1.onTarget, def2.onTarget, true)}
+          ${_cmpRow(T('compare.rival_rate'),       def1.pct + '%', def2.pct + '%', true)}
         </tbody>
       </table>
     </section>`;
@@ -1029,9 +1029,9 @@ function _renderCmpHeatmaps(e1, e2, conc1, conc2, f) {
     <section class="analytics-section">
       <h2>Shot chart</h2>
       <div class="heatmap-toggle">
-        <button class="btn ${mode === 'fired'      ? 'btn-primary' : ''}" data-action="analytics-heatmap-toggle" data-arg="fired">Strzały oddane</button>
-        <button class="btn ${mode === 'conceded'   ? 'btn-primary' : ''}" data-action="analytics-heatmap-toggle" data-arg="conceded">Strzały stracone</button>
-        <button class="btn ${mode === 'efficiency' ? 'btn-primary' : ''}" data-action="analytics-heatmap-toggle" data-arg="efficiency">Skuteczność stref</button>
+        <button class="btn ${mode === 'fired'      ? 'btn-primary' : ''}" data-action="analytics-heatmap-toggle" data-arg="fired">${T('heatmap.fired')}</button>
+        <button class="btn ${mode === 'conceded'   ? 'btn-primary' : ''}" data-action="analytics-heatmap-toggle" data-arg="conceded">${T('heatmap.conceded')}</button>
+        <button class="btn ${mode === 'efficiency' ? 'btn-primary' : ''}" data-action="analytics-heatmap-toggle" data-arg="efficiency">${T('heatmap.efficiency')}</button>
       </div>
       <div class="compare-heatmaps">
         <div class="compare-heatmap-col">
@@ -1049,8 +1049,8 @@ function _renderCmpHeatmaps(e1, e2, conc1, conc2, f) {
 function _renderCmpH2HEmpty(f) {
   return `
     <section class="analytics-section">
-      <h2>Mecze bezpośrednie</h2>
-      <p class="empty">Brak bezpośrednich meczów między ${escapeHtml(f.team)} a ${escapeHtml(f.team2)} w wybranych filtrach.</p>
+      <h2>${T('compare.h2h.title')}</h2>
+      <p class="empty">${T('compare.h2h.empty_pre')} ${escapeHtml(f.team)} ${T('compare.h2h.empty_and')} ${escapeHtml(f.team2)} ${T('compare.h2h.empty_suf')}</p>
     </section>`;
 }
 
@@ -1080,7 +1080,7 @@ function _renderCmpH2H(h2hMatches, h2hE1, h2hE2, f, allEvents) {
         <td>${escapeHtml(String(m.match_date))}</td>
         <td>${escapeHtml(m.tournament || '—')}</td>
         <td class="match-result">${result}</td>
-        <td><button class="btn btn-sm" data-action="open-viewer-from-analytics" data-arg="${escapeHtml(String(m.id))}">Podgląd</button></td>
+        <td><button class="btn btn-sm" data-action="open-viewer-from-analytics" data-arg="${escapeHtml(String(m.id))}">${T('btn.view')}</button></td>
       </tr>`;
     }).join('');
 
@@ -1092,36 +1092,36 @@ function _renderCmpH2H(h2hMatches, h2hE1, h2hE2, f, allEvents) {
 
   return `
     <section class="analytics-section">
-      <h2>Mecze bezpośrednie (${h2hMatches.length})</h2>
+      <h2>${T('compare.h2h.title')} (${h2hMatches.length})</h2>
       <div class="cmp-h2h-summary">
         <div class="cmp-h2h-team">
           <div style="font-size:12px;color:#6b7280;margin-bottom:4px">${t1}</div>
           <div style="font-size:32px;font-weight:700;color:${c1}">${t1wins}</div>
-          <div class="cmp-h2h-label">wygranych</div>
+          <div class="cmp-h2h-label">${T('compare.h2h.wins')}</div>
         </div>
         <div class="cmp-h2h-mid">
           <div style="font-size:22px;font-weight:700;color:#6b7280">${draws}</div>
-          <div class="cmp-h2h-label">remisów</div>
+          <div class="cmp-h2h-label">${T('compare.h2h.draws')}</div>
         </div>
         <div class="cmp-h2h-team">
           <div style="font-size:12px;color:#6b7280;margin-bottom:4px">${t2}</div>
           <div style="font-size:32px;font-weight:700;color:${c2}">${t2wins}</div>
-          <div class="cmp-h2h-label">wygranych</div>
+          <div class="cmp-h2h-label">${T('compare.h2h.wins')}</div>
         </div>
       </div>
       <table class="stats-table match-history-table" style="margin:16px 0">
-        <thead><tr><th>Data</th><th>Turniej</th><th>${t1} : ${t2}</th><th></th></tr></thead>
+        <thead><tr><th>${T('analytics.history.date')}</th><th>${T('analytics.history.tournament')}</th><th>${t1} : ${t2}</th><th></th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
       ${(h2hE1.length > 0 || h2hE2.length > 0) ? `
-      <h3>Statystyki w meczach bezpośrednich</h3>
+      <h3>${T('compare.h2h.stats')}</h3>
       <table class="cmp-table" style="width:100%;max-width:580px">
         ${_cmpThead(t1, t2, 'H2H')}
         <tbody>
-          ${_cmpRow('Bramek zdobytych', t1totalG, t2totalG, false)}
-          ${_cmpRow('Strzałów', s1.total, s2.total, false)}
-          ${_cmpRow('Skuteczność', s1.pct + '%', s2.pct + '%', false)}
-          ${_cmpRow('% celnych', s1.onPct + '%', s2.onPct + '%', false)}
+          ${_cmpRow(T('compare.h2h.goals_scored'),  t1totalG, t2totalG, false)}
+          ${_cmpRow(T('analytics.stats.shots'),     s1.total, s2.total, false)}
+          ${_cmpRow(T('analytics.stats.rate'),      s1.pct + '%', s2.pct + '%', false)}
+          ${_cmpRow(T('analytics.stats.on_pct'),    s1.onPct + '%', s2.onPct + '%', false)}
         </tbody>
       </table>` : ''}
     </section>`;
@@ -1140,7 +1140,7 @@ function _renderCmpGoalies(e1, e2, f, allEvents, allMatches) {
     if (data.totalShotsOnGoal === 0) {
       return `<div class="compare-heatmap-col">
         <div class="compare-col-header">${teamLabel}</div>
-        <p class="empty">Brak danych bramkarskich.</p>
+        <p class="empty">${T('compare.goalies.no_data')}</p>
       </div>`;
     }
     const pctColor = data.avgSavePct >= 70 ? '#15803d' : data.avgSavePct >= 55 ? '#1d4ed8' : '#b91c1c';
@@ -1160,11 +1160,11 @@ function _renderCmpGoalies(e1, e2, f, allEvents, allMatches) {
       <div class="compare-col-header">${teamLabel}</div>
       <div class="stat-box" style="display:inline-block;margin-bottom:12px;min-width:180px;text-align:center">
         <div style="font-size:28px;font-weight:700;color:${pctColor}">${data.avgSavePct !== null ? data.avgSavePct + '%' : '—'}</div>
-        <div style="font-size:12px;color:#6b7280">Avg save%</div>
-        <div style="font-size:12px;color:#6b7280">${data.totalShotsOnGoal} strzałów na br. · ${data.matchCount} meczów</div>
+        <div style="font-size:12px;color:#6b7280">${T('analytics.goalies.avg_save')}</div>
+        <div style="font-size:12px;color:#6b7280">${data.totalShotsOnGoal} ${T('compare.goalies.shots_st')} · ${data.matchCount} ${T('compare.goalies.matches_st')}</div>
       </div>
       <table class="stats-table" style="width:100%;font-size:13px">
-        <thead><tr><th>Nr</th><th>Mecze</th><th>Na br.</th><th>Obron.</th><th>Save%</th></tr></thead>
+        <thead><tr><th>${T('compare.goalies.nr')}</th><th>${T('analytics.goalies.matches')}</th><th>${T('compare.goalies.shots_on')}</th><th>${T('compare.goalies.saves')}</th><th>${T('analytics.goalies.save_pct')}</th></tr></thead>
         <tbody>${goalieRows}</tbody>
       </table>
     </div>`;
@@ -1172,7 +1172,7 @@ function _renderCmpGoalies(e1, e2, f, allEvents, allMatches) {
 
   return `
     <section class="analytics-section">
-      <h2>Bramkarze</h2>
+      <h2>${T('analytics.goalies.title')}</h2>
       <div class="compare-heatmaps">
         ${goalieCol(data1, t1)}
         ${goalieCol(data2, t2)}
@@ -1193,15 +1193,15 @@ function _renderCmpPeriods(s1, s2, f) {
 
   return `
     <section class="analytics-section">
-      <h2>Skuteczność per kwarta</h2>
+      <h2>${T('compare.periods.title')}</h2>
       <div class="compare-heatmaps">
         <div class="compare-heatmap-col">
           <div class="compare-col-header">${t1}</div>
-          ${chart1 || '<p class="empty" style="font-size:13px">Brak danych.</p>'}
+          ${chart1 || `<p class="empty" style="font-size:13px">${T('compare.no_data')}</p>`}
         </div>
         <div class="compare-heatmap-col">
           <div class="compare-col-header">${t2}</div>
-          ${chart2 || '<p class="empty" style="font-size:13px">Brak danych.</p>'}
+          ${chart2 || `<p class="empty" style="font-size:13px">${T('compare.no_data')}</p>`}
         </div>
       </div>
     </section>`;

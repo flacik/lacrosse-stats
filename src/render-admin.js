@@ -1,16 +1,5 @@
 'use strict';
 
-// Admin screen — manage tournaments and scheduled matches (etap C).
-//
-// Two stacked sections in one screen:
-//   1. Turnieje — global list, used as the dropdown source in match forms.
-//   2. Mecze — schedule of past, today and upcoming matches; filterable.
-//
-// CRUD on both lists. Tournament names are denormalized into matches as plain
-// strings (matching the production model in architektura-v2.md sekcja 11), so
-// renaming a tournament does NOT cascade to existing matches — admin sees a
-// warning if they try.
-
 function uniqueTeamNames() {
   const names = new Set();
   (DATA.scheduledMatches || []).forEach(m => {
@@ -23,23 +12,24 @@ function uniqueTeamNames() {
 function renderAdmin(root) {
   if (!APP.adminFilter) {
     APP.adminFilter = {
-      range: 'upcoming',          // 'upcoming' | 'today' | 'past' | 'all'
-      tournament: 'all',          // 'all' | <tournament name>
-      status: 'all'               // 'all' | 'scheduled' | 'live' | 'finished'
+      range: 'upcoming',
+      tournament: 'all',
+      status: 'all'
     };
   }
 
   const header = `
     <div class="app-header">
-      <button class="btn" data-action="back-home">← Wróć</button>
-      <h1>Panel admin — turnieje i harmonogram</h1>
+      <button class="btn" data-action="back-home">${T('nav.back')}</button>
+      <h1>${T('admin.title')}</h1>
       <span class="meta">${todayISO()}</span>
-      <button class="btn" data-action="toggle-dark-mode" id="theme-toggle" title="Przełącz tryb ciemny">🌙</button>
+      ${_langToggleBtn()}
+      <button class="btn" data-action="toggle-dark-mode" id="theme-toggle" title="${T('nav.theme')}">🌙</button>
     </div>
   `;
 
   if (APP.adminLoading) {
-    root.innerHTML = header + `<div class="home-loading"><div class="spinner"></div><p>Ładowanie danych…</p></div>`;
+    root.innerHTML = header + `<div class="home-loading"><div class="spinner"></div><p>${T('loading.data')}</p></div>`;
     return;
   }
 
@@ -47,7 +37,7 @@ function renderAdmin(root) {
     root.innerHTML = header + `
       <div class="home-error">
         <p>⚠ ${escapeHtml(APP.adminError)}</p>
-        <button class="btn btn-primary" data-action="admin-retry">Spróbuj ponownie</button>
+        <button class="btn btn-primary" data-action="admin-retry">${T('btn.retry_short')}</button>
       </div>
     `;
     return;
@@ -69,7 +59,7 @@ function renderTournamentsCard() {
   const tournaments = DATA.tournaments;
   let rows = '';
   if (tournaments.length === 0) {
-    rows = '<div class="admin-empty">Brak turniejów. Dodaj pierwszy.</div>';
+    rows = `<div class="admin-empty">${T('admin.no_tournaments')}</div>`;
   } else {
     rows = '<ul class="admin-list">';
     tournaments.forEach(t => {
@@ -78,11 +68,11 @@ function renderTournamentsCard() {
         <li class="admin-row">
           <div class="admin-row-main">
             <strong>${escapeHtml(t.name)}</strong>
-            <span class="admin-row-meta">${matchCount} ${matchCount === 1 ? 'mecz' : (matchCount >= 2 && matchCount <= 4 ? 'mecze' : 'meczy')}</span>
+            <span class="admin-row-meta">${matchCount} ${T_match(matchCount)}</span>
           </div>
           <div class="admin-row-actions">
-            <button class="btn" data-action="tournament-edit" data-arg="${t.id}">Edytuj</button>
-            <button class="btn btn-danger" data-action="tournament-delete" data-arg="${t.id}">Usuń</button>
+            <button class="btn" data-action="tournament-edit" data-arg="${t.id}">${T('btn.edit')}</button>
+            <button class="btn btn-danger" data-action="tournament-delete" data-arg="${t.id}">${T('btn.delete')}</button>
           </div>
         </li>
       `;
@@ -93,8 +83,8 @@ function renderTournamentsCard() {
   return `
     <section class="admin-card">
       <header class="admin-card-header">
-        <h2>Turnieje</h2>
-        <button class="btn btn-primary" data-action="tournament-new">+ Dodaj turniej</button>
+        <h2>${T('admin.tournaments.title')}</h2>
+        <button class="btn btn-primary" data-action="tournament-new">${T('btn.add_tournament')}</button>
       </header>
       ${rows}
     </section>
@@ -117,18 +107,25 @@ function renderMatchesCard(filter) {
     return true;
   });
 
-  const tournamentOpts = ['<option value="all">— wszystkie —</option>']
+  const tournamentOpts = [`<option value="all">${T('admin.status.all')}</option>`]
     .concat(DATA.tournaments.map(t => `<option value="${escapeHtml(t.name)}" ${filter.tournament === t.name ? 'selected' : ''}>${escapeHtml(t.name)}</option>`))
     .join('');
 
+  const statusLabels = {
+    scheduled: T('status.scheduled_short'),
+    live:      T('status.in_progress'),
+    finished:  T('status.finished'),
+  };
+
   let rows = '';
   if (filtered.length === 0) {
-    rows = '<div class="admin-empty">Brak meczy spełniających filtr.</div>';
+    rows = `<div class="admin-empty">${T('admin.no_matches')}</div>`;
   } else {
     rows = '<ul class="admin-list">';
     filtered.forEach(m => {
       const eventCount = DATA.events.filter(e => e.match_id === m.id).length;
       const isToday = m.match_date === today;
+      const statusLbl = statusLabels[m.status] || m.status;
       rows += `
         <li class="admin-row">
           <div class="admin-row-main">
@@ -140,14 +137,14 @@ function renderMatchesCard(filter) {
               <strong>${escapeHtml(m.team_A)}</strong>
               <span class="vs">vs</span>
               <strong>${escapeHtml(m.team_B)}</strong>
-              <span class="admin-status status-${m.status}">${m.status}</span>
-              ${eventCount > 0 ? `<span class="admin-event-count">${eventCount} eventów</span>` : ''}
-              ${m.video_url ? `<a class="admin-video-link" href="${escapeHtml(m.video_url)}" target="_blank" rel="noopener" title="Otwórz nagranie">▶ nagranie</a>` : ''}
+              <span class="admin-status status-${m.status}">${statusLbl}</span>
+              ${eventCount > 0 ? `<span class="admin-event-count">${eventCount} ${T('admin.events')}</span>` : ''}
+              ${m.video_url ? `<a class="admin-video-link" href="${escapeHtml(m.video_url)}" target="_blank" rel="noopener" title="${T('btn.view')}">${T('admin.video')}</a>` : ''}
             </div>
           </div>
           <div class="admin-row-actions">
-            <button class="btn" data-action="match-edit" data-arg="${m.id}">Edytuj</button>
-            <button class="btn btn-danger" data-action="match-delete" data-arg="${m.id}">Usuń</button>
+            <button class="btn" data-action="match-edit" data-arg="${m.id}">${T('btn.edit')}</button>
+            <button class="btn btn-danger" data-action="match-delete" data-arg="${m.id}">${T('btn.delete')}</button>
           </div>
         </li>
       `;
@@ -158,27 +155,27 @@ function renderMatchesCard(filter) {
   return `
     <section class="admin-card">
       <header class="admin-card-header">
-        <h2>Mecze</h2>
-        <button class="btn btn-primary" data-action="match-new">+ Zaplanuj mecz</button>
+        <h2>${T('admin.matches.title')}</h2>
+        <button class="btn btn-primary" data-action="match-new">${T('btn.plan_match')}</button>
       </header>
       <div class="admin-filters">
         <div class="toggle-group">
-          <button class="btn ${filter.range === 'upcoming' ? 'btn-active' : ''}" data-action="admin-set-range" data-arg="upcoming">Nadchodzące</button>
-          <button class="btn ${filter.range === 'today'    ? 'btn-active' : ''}" data-action="admin-set-range" data-arg="today">Dziś</button>
-          <button class="btn ${filter.range === 'past'     ? 'btn-active' : ''}" data-action="admin-set-range" data-arg="past">Przeszłe</button>
-          <button class="btn ${filter.range === 'all'      ? 'btn-active' : ''}" data-action="admin-set-range" data-arg="all">Wszystkie</button>
+          <button class="btn ${filter.range === 'upcoming' ? 'btn-active' : ''}" data-action="admin-set-range" data-arg="upcoming">${T('admin.range.upcoming')}</button>
+          <button class="btn ${filter.range === 'today'    ? 'btn-active' : ''}" data-action="admin-set-range" data-arg="today">${T('admin.range.today')}</button>
+          <button class="btn ${filter.range === 'past'     ? 'btn-active' : ''}" data-action="admin-set-range" data-arg="past">${T('admin.range.past')}</button>
+          <button class="btn ${filter.range === 'all'      ? 'btn-active' : ''}" data-action="admin-set-range" data-arg="all">${T('admin.range.all')}</button>
         </div>
         <label class="admin-filter-field">
-          <span>Turniej</span>
+          <span>${T('field.tournament')}</span>
           <select id="admin-filter-tournament" data-action="admin-set-tournament">${tournamentOpts}</select>
         </label>
         <label class="admin-filter-field">
-          <span>Status</span>
+          <span>${T('field.status')}</span>
           <select id="admin-filter-status" data-action="admin-set-status">
-            <option value="all"       ${filter.status === 'all'       ? 'selected' : ''}>— wszystkie —</option>
-            <option value="scheduled" ${filter.status === 'scheduled' ? 'selected' : ''}>Zaplanowane</option>
-            <option value="live"      ${filter.status === 'live'      ? 'selected' : ''}>W trakcie</option>
-            <option value="finished"  ${filter.status === 'finished'  ? 'selected' : ''}>Zakończone</option>
+            <option value="all"       ${filter.status === 'all'       ? 'selected' : ''}>${T('admin.status.all')}</option>
+            <option value="scheduled" ${filter.status === 'scheduled' ? 'selected' : ''}>${T('admin.status.scheduled')}</option>
+            <option value="live"      ${filter.status === 'live'      ? 'selected' : ''}>${T('admin.status.live')}</option>
+            <option value="finished"  ${filter.status === 'finished'  ? 'selected' : ''}>${T('admin.status.finished')}</option>
           </select>
         </label>
       </div>
@@ -210,23 +207,23 @@ function renderCsvImportCard() {
     previewHtml = `
       <div class="csv-preview">
         <div class="csv-stats">
-          <span class="csv-stat-ok">${validRows.length} poprawnych</span>
-          ${errorRows.length > 0 ? `<span class="csv-stat-err">${errorRows.length} z błędem</span>` : ''}
+          <span class="csv-stat-ok">${validRows.length} ${T('admin.csv.valid')}</span>
+          ${errorRows.length > 0 ? `<span class="csv-stat-err">${errorRows.length} ${T('admin.csv.errors')}</span>` : ''}
         </div>
         ${ci.rows.length > 0 ? `
           <div class="csv-table-wrap">
             <table class="csv-table">
-              <thead><tr><th>#</th><th>Turniej</th><th>Data</th><th>Drużyna A</th><th>Drużyna B</th><th>Link</th><th></th></tr></thead>
+              <thead><tr><th>${T('admin.csv.col.num')}</th><th>${T('admin.csv.col.tournament')}</th><th>${T('admin.csv.col.date')}</th><th>${T('admin.csv.col.team_a')}</th><th>${T('admin.csv.col.team_b')}</th><th>${T('admin.csv.col.link')}</th><th></th></tr></thead>
               <tbody>${tableRows}</tbody>
             </table>
           </div>
-        ` : '<div class="admin-empty">Brak wierszy danych.</div>'}
+        ` : `<div class="admin-empty">${T('admin.csv.empty')}</div>`}
         <div class="csv-actions">
           ${validRows.length > 0 && !ci.importing
-            ? `<button class="btn btn-primary" data-action="csv-import-submit">Importuj ${validRows.length} meczy</button>`
+            ? `<button class="btn btn-primary" data-action="csv-import-submit">${T('admin.csv.import_btn')} ${validRows.length} ${T_match(validRows.length)}</button>`
             : ''}
-          ${ci.importing ? '<span class="csv-importing">Importowanie…</span>' : ''}
-          <button class="btn" data-action="csv-import-cancel">Anuluj</button>
+          ${ci.importing ? `<span class="csv-importing">${T('admin.csv.importing')}</span>` : ''}
+          <button class="btn" data-action="csv-import-cancel">${T('btn.cancel')}</button>
         </div>
       </div>
     `;
@@ -235,11 +232,11 @@ function renderCsvImportCard() {
   return `
     <section class="admin-card">
       <header class="admin-card-header">
-        <h2>Import CSV</h2>
-        <label class="btn btn-primary csv-file-label" for="csv-import-input">Wgraj plik CSV</label>
+        <h2>${T('admin.csv.title')}</h2>
+        <label class="btn btn-primary csv-file-label" for="csv-import-input">${T('btn.upload_csv')}</label>
         <input type="file" id="csv-import-input" accept=".csv,.txt" style="display:none" data-action="csv-import-file">
       </header>
-      <div class="admin-card-hint">Format: <code>turniej,data,druzyna_a,druzyna_b,link</code> (link opcjonalny). Data: <code>RRRR-MM-DD</code>. Separator: przecinek lub średnik.</div>
+      <div class="admin-card-hint">${T('admin.csv.hint')}</div>
       ${previewHtml}
     </section>
   `;
@@ -251,7 +248,7 @@ function renderEmbedCard() {
   const url = selectedId ? baseUrl + '?match=' + encodeURIComponent(selectedId) : baseUrl;
   const snippet = `<iframe src="${url}" width="100%" height="700" frameborder="0" style="border:none; border-radius:8px;"></iframe>`;
 
-  const matchOpts = ['<option value="">— Cała aplikacja (podgląd kibica) —</option>']
+  const matchOpts = [`<option value="">${T('admin.embed.all')}</option>`]
     .concat(
       DATA.scheduledMatches.slice()
         .sort((a, b) => b.match_date.localeCompare(a.match_date))
@@ -264,27 +261,27 @@ function renderEmbedCard() {
   return `
     <section class="admin-card">
       <header class="admin-card-header">
-        <h2>Osadź na stronie</h2>
+        <h2>${T('admin.embed.title')}</h2>
       </header>
       <div class="embed-card-body">
-        <p class="embed-hint">Wklej poniższy kod HTML na swojej stronie, żeby osadzić podgląd ligi.</p>
+        <p class="embed-hint">${T('admin.embed.hint')}</p>
         <div class="embed-select-wrap">
-          <label class="embed-select-label">Co osadzić:</label>
+          <label class="embed-select-label">${T('admin.embed.label')}</label>
           <select id="embed-match-select" class="embed-select" data-action="embed-select-match">
             ${matchOpts}
           </select>
         </div>
         <textarea id="embed-snippet" readonly class="embed-textarea">${escapeHtml(snippet)}</textarea>
         <div class="embed-actions">
-          <button class="btn btn-primary" data-action="embed-copy">Kopiuj kod</button>
-          <span id="embed-copy-feedback" class="embed-feedback" style="display:none">✓ Skopiowano!</span>
+          <button class="btn btn-primary" data-action="embed-copy">${T('btn.copy_code')}</button>
+          <span id="embed-copy-feedback" class="embed-feedback" style="display:none">${T('btn.copied')}</span>
         </div>
       </div>
     </section>
   `;
 }
 
-// ===== Modal templates (registered in render-modal.js dispatcher) =====
+// ===== Modal templates =====
 
 function renderTournamentModal(t) {
   const isEdit = !!t;
@@ -292,19 +289,19 @@ function renderTournamentModal(t) {
     ? DATA.scheduledMatches.filter(m => m.tournament === t.name).length
     : 0;
   const warning = isEdit && matchCount > 0
-    ? `<div class="modal-subtitle" style="color:#854d0e">⚠ Zmiana nazwy nie zaktualizuje ${matchCount} przypisanych meczów (denormalizacja). W razie potrzeby zaktualizuj je ręcznie.</div>`
+    ? `<div class="modal-subtitle" style="color:#854d0e">⚠ ${T('admin.rename_warning')} ${matchCount} ${T('admin.rename_warning2')}</div>`
     : '';
   return `
     <div class="modal" data-stop-propagation="true">
-      <h2>${isEdit ? 'Edytuj turniej' : 'Nowy turniej'}</h2>
+      <h2>${isEdit ? T('modal.tournament.edit') : T('modal.tournament.new')}</h2>
       ${warning}
       <label class="field">
-        <span class="field-label">Nazwa turnieju</span>
+        <span class="field-label">${T('field.tournament_name')}</span>
         <input id="tournament-name" placeholder="np. Liga PL Wiosna 2026" value="${isEdit ? escapeHtml(t.name) : ''}">
       </label>
       <div class="modal-actions">
-        <button class="btn" data-action="cancel-modal">Anuluj</button>
-        <button class="btn btn-primary" data-action="submit-tournament" data-arg="${isEdit ? t.id : ''}">${isEdit ? 'Zapisz' : 'Dodaj'}</button>
+        <button class="btn" data-action="cancel-modal">${T('btn.cancel')}</button>
+        <button class="btn btn-primary" data-action="submit-tournament" data-arg="${isEdit ? t.id : ''}">${isEdit ? T('btn.save') : T('btn.add')}</button>
       </div>
     </div>
   `;
@@ -315,49 +312,49 @@ function renderMatchModal(m) {
   const tournaments = DATA.tournaments;
   const eventCount = isEdit ? DATA.events.filter(e => e.match_id === m.id).length : 0;
   const tournamentOpts = tournaments.length === 0
-    ? '<option value="">(brak turniejów — dodaj na liście)</option>'
+    ? `<option value="">${T('admin.no_tournaments_yet')}</option>`
     : tournaments.map(t => `<option value="${escapeHtml(t.name)}" ${isEdit && m.tournament === t.name ? 'selected' : ''}>${escapeHtml(t.name)}</option>`).join('');
   const eventWarning = isEdit && eventCount > 0
-    ? `<div class="modal-subtitle" style="color:#854d0e">⚠ Mecz ma ${eventCount} zarejestrowanych eventów. Zmiana drużyn lub turnieju nie zaktualizuje ich denormalizowanej kopii.</div>`
+    ? `<div class="modal-subtitle" style="color:#854d0e">⚠ ${T('admin.match_events_pre')} ${eventCount} ${T('admin.events')}. ${T('admin.match_event_warning')}</div>`
     : '';
   return `
     <div class="modal" data-stop-propagation="true">
-      <h2>${isEdit ? 'Edytuj mecz' : 'Zaplanuj mecz'}</h2>
+      <h2>${isEdit ? T('modal.match.edit') : T('modal.match.new')}</h2>
       ${eventWarning}
       <label class="field">
-        <span class="field-label">Turniej</span>
+        <span class="field-label">${T('field.tournament')}</span>
         <select id="match-tournament">${tournamentOpts}</select>
       </label>
       <label class="field">
-        <span class="field-label">Drużyna A</span>
+        <span class="field-label">${T('field.team_a')}</span>
         <input id="match-team-a" list="teams-datalist" placeholder="np. Hawks" value="${isEdit ? escapeHtml(m.team_A) : ''}">
       </label>
       <label class="field">
-        <span class="field-label">Drużyna B</span>
+        <span class="field-label">${T('field.team_b')}</span>
         <input id="match-team-b" list="teams-datalist" placeholder="np. Vikings" value="${isEdit ? escapeHtml(m.team_B) : ''}">
       </label>
       <datalist id="teams-datalist">
         ${uniqueTeamNames().map(n => `<option value="${escapeHtml(n)}">`).join('')}
       </datalist>
       <label class="field">
-        <span class="field-label">Data</span>
+        <span class="field-label">${T('field.date')}</span>
         <input id="match-date" type="date" value="${isEdit ? m.match_date : todayISO()}">
       </label>
       <label class="field">
-        <span class="field-label">Status</span>
+        <span class="field-label">${T('field.status')}</span>
         <select id="match-status">
-          <option value="scheduled" ${(!isEdit || m.status === 'scheduled') ? 'selected' : ''}>Zaplanowany</option>
-          <option value="live"      ${isEdit && m.status === 'live'      ? 'selected' : ''}>W trakcie</option>
-          <option value="finished"  ${isEdit && m.status === 'finished'  ? 'selected' : ''}>Zakończony</option>
+          <option value="scheduled" ${(!isEdit || m.status === 'scheduled') ? 'selected' : ''}>${T('status.scheduled_short')}</option>
+          <option value="live"      ${isEdit && m.status === 'live'      ? 'selected' : ''}>${T('status.in_progress')}</option>
+          <option value="finished"  ${isEdit && m.status === 'finished'  ? 'selected' : ''}>${T('status.finished')}</option>
         </select>
       </label>
       <label class="field">
-        <span class="field-label">Link do nagrania (opcjonalny)</span>
+        <span class="field-label">${T('field.video_url')}</span>
         <input id="match-video-url" type="url" placeholder="https://youtube.com/..." value="${isEdit && m.video_url ? escapeHtml(m.video_url) : ''}">
       </label>
       <div class="modal-actions">
-        <button class="btn" data-action="cancel-modal">Anuluj</button>
-        <button class="btn btn-primary" data-action="submit-match" data-arg="${isEdit ? m.id : ''}">${isEdit ? 'Zapisz' : 'Dodaj mecz'}</button>
+        <button class="btn" data-action="cancel-modal">${T('btn.cancel')}</button>
+        <button class="btn btn-primary" data-action="submit-match" data-arg="${isEdit ? m.id : ''}">${isEdit ? T('btn.save') : T('btn.add_match')}</button>
       </div>
     </div>
   `;

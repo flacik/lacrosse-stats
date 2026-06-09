@@ -93,10 +93,10 @@ All data is stored in Google Sheets, so the club always has a permanent record o
 
 ## Architecture
 
-The frontend is split into 16 focused modules (each under 300 lines), loaded in dependency order:
+The frontend is split into 17 focused modules (each under 300 lines), loaded in dependency order:
 
 ```
-gas-client → helpers → data → algorithms → stats → state
+gas-client → helpers → data → algorithms → stats → state → i18n
 → field-svg → render-* → handlers → app
 ```
 
@@ -161,7 +161,7 @@ cd src/
 
 ## Status
 
-**Current: v2.2.0 — deployed 2026-06-09**
+**Current: v2.3.1 — deployed 2026-06-09**
 
 ### Versioning rules
 
@@ -172,6 +172,20 @@ cd src/
 | **PATCH** | Bug fix, UI tweak, performance improvement |
 
 ### Changelog
+
+**v2.3.1 (2026-06-09)** — bug fix:
+
+- Fixed off-target shots (`niecelny`) rendering as circles instead of X markers on the live match field map; they now display consistently with the legend and the analytics view
+
+**v2.3.0 (2026-06-09)** — full bilingual PL/EN support:
+
+- Runtime language toggle button (🇬🇧 / 🇵🇱) in every screen header — switches the entire UI between Polish and English without a page reload
+- Language preference persisted in `localStorage` (`lax_lang`); default is Polish
+- New `src/i18n.js` module — ~200 translation keys per language, three helpers: `T(key)`, `T_n(n, singKey, plurKey)` (2-form plural), `T_match(n)` (3-form Polish plural for match counts)
+- All 10 render modules rewritten: `render-home`, `render-input`, `render-modal`, `render-viewer`, `render-analytics`, `render-admin`, `render-standings`, `render-report`, `helpers`, `stats`
+- Period labels locale-aware: "Dogrywka 1" in PL, "OT 1" in EN
+- PDF reports generated in whichever language is active at export time
+- Analytics computed labels (situations, zones) evaluated at runtime — language-correct when rendered
 
 **v2.2.0 (2026-06-09)** — team comparison in analytics:
 

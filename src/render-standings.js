@@ -2,36 +2,37 @@
 
 function renderStandings(root) {
 
-  // ── Loading ──────────────────────────────────────────────────────────────────
   if (APP.standingsLoading) {
     root.innerHTML = `
       <div class="app-header">
         <h1>Lacrosse Stats</h1>
-        <button class="btn" data-action="go-home-from-standings">← Home</button>
+        <button class="btn" data-action="go-home-from-standings">${T('nav.home')}</button>
+        ${_langToggleBtn()}
+        <button class="btn" data-action="toggle-dark-mode" id="theme-toggle" title="${T('nav.theme')}">🌙</button>
       </div>
       <div class="home-content">
-        <div class="loading-state"><p>⏳ Ładowanie tabeli…</p></div>
+        <div class="loading-state"><p>⏳ ${T('loading.standings')}</p></div>
       </div>`;
     return;
   }
 
-  // ── Error ────────────────────────────────────────────────────────────────────
   if (APP.standingsError) {
     root.innerHTML = `
       <div class="app-header">
         <h1>Lacrosse Stats</h1>
-        <button class="btn" data-action="go-home-from-standings">← Home</button>
+        <button class="btn" data-action="go-home-from-standings">${T('nav.home')}</button>
+        ${_langToggleBtn()}
+        <button class="btn" data-action="toggle-dark-mode" id="theme-toggle" title="${T('nav.theme')}">🌙</button>
       </div>
       <div class="home-content">
         <div class="error-state">
-          <p>⚠ Błąd: ${escapeHtml(APP.standingsError)}</p>
-          <button class="btn btn-primary" data-action="standings-retry">↺ Spróbuj ponownie</button>
+          <p>⚠ ${T('error.loading')}: ${escapeHtml(APP.standingsError)}</p>
+          <button class="btn btn-primary" data-action="standings-retry">${T('btn.retry')}</button>
         </div>
       </div>`;
     return;
   }
 
-  // ── Loaded ───────────────────────────────────────────────────────────────────
   const { events, matches, tournaments } = APP.standingsData;
   const selectedTour = APP.standingsTournament;
 
@@ -44,29 +45,28 @@ function renderStandings(root) {
 
   root.innerHTML = `
     <div class="app-header">
-      <h1>Tabela ligowa</h1>
-      <button class="btn" data-action="go-home-from-standings">← Home</button>
+      <h1>${T('standings.title')}</h1>
+      <button class="btn" data-action="go-home-from-standings">${T('nav.home')}</button>
+      ${_langToggleBtn()}
+      <button class="btn" data-action="toggle-dark-mode" id="theme-toggle" title="${T('nav.theme')}">🌙</button>
     </div>
     <div class="standings-content">
       <div class="standings-filter">
-        <label>Turniej
+        <label>${T('field.tournament')}
           <select data-action="standings-set-tournament">${tourOptions}</select>
         </label>
       </div>
       ${sorted.length === 0
-        ? '<p class="standings-empty">Brak danych dla tego turnieju.</p>'
+        ? `<p class="standings-empty">${T('standings.empty')}</p>`
         : _renderStandingsTable(sorted, APP.standingsSort)
       }
     </div>`;
 }
 
-// ── Obliczenia ────────────────────────────────────────────────────────────────
-
 function _computeStandings(events, matches, tournament) {
   const tourMatches = matches.filter(m =>
     m.tournament === tournament && m.status === 'finished'
   );
-
   if (tourMatches.length === 0) return [];
 
   const teamSet = new Set();
@@ -80,23 +80,16 @@ function _computeStandings(events, matches, tournament) {
   return [...teamSet].map(team => {
     const teamMatches = tourMatches.filter(m => m.team_A === team || m.team_B === team);
     const matchIds    = new Set(teamMatches.map(m => String(m.id)));
-
-    const teamEvents = tourEvents.filter(e =>
-      matchIds.has(String(e.match_id)) && e.team_event === team
-    );
-    const oppEvents = tourEvents.filter(e =>
-      matchIds.has(String(e.match_id)) && e.team_event !== team
-    );
-
-    const goals      = teamEvents.filter(e => e.result === 'gol').length;
-    const celne      = teamEvents.filter(e => e.result === 'celny').length;
-    const niecelne   = teamEvents.filter(e => e.result === 'niecelny').length;
-    const shots      = goals + celne + niecelne;
-    const conceded   = oppEvents.filter(e => e.result === 'gol').length;
-    const manUpGoals = teamEvents.filter(e => e.result === 'gol' && e.man_up).length;
-    const pctSkut    = shots > 0 ? Math.round(goals / shots * 100) : 0;
-    const pctCel     = shots > 0 ? Math.round((goals + celne) / shots * 100) : 0;
-
+    const teamEvents  = tourEvents.filter(e => matchIds.has(String(e.match_id)) && e.team_event === team);
+    const oppEvents   = tourEvents.filter(e => matchIds.has(String(e.match_id)) && e.team_event !== team);
+    const goals       = teamEvents.filter(e => e.result === 'gol').length;
+    const celne       = teamEvents.filter(e => e.result === 'celny').length;
+    const niecelne    = teamEvents.filter(e => e.result === 'niecelny').length;
+    const shots       = goals + celne + niecelne;
+    const conceded    = oppEvents.filter(e => e.result === 'gol').length;
+    const manUpGoals  = teamEvents.filter(e => e.result === 'gol' && e.man_up).length;
+    const pctSkut     = shots > 0 ? Math.round(goals / shots * 100) : 0;
+    const pctCel      = shots > 0 ? Math.round((goals + celne) / shots * 100) : 0;
     return { team, matches: teamMatches.length, goals, conceded, celne, niecelne, pctSkut, pctCel, manUpGoals };
   });
 }
@@ -124,25 +117,23 @@ function _sortStandings(rows, sort) {
   });
 }
 
-// ── Renderowanie ──────────────────────────────────────────────────────────────
-
 function _renderStandingsTable(rows, sort) {
   const cols = [
-    { key: 'team',       label: 'Drużyna',      align: 'left'   },
-    { key: 'matches',    label: 'Mecze',         align: 'center' },
-    { key: 'goals',      label: 'Gole+',         align: 'center' },
-    { key: 'conceded',   label: 'Gole−',         align: 'center' },
-    { key: 'celne',      label: 'Celne',         align: 'center' },
-    { key: 'niecelne',   label: 'Niecelne',      align: 'center' },
-    { key: 'pctSkut',    label: '% skuteczności', align: 'center' },
-    { key: 'pctCel',     label: '% celności',    align: 'center' },
-    { key: 'manUpGoals', label: 'Man-up gole',   align: 'center' },
+    { key: 'team',       labelKey: 'standings.col.team',       align: 'left'   },
+    { key: 'matches',    labelKey: 'standings.col.matches',     align: 'center' },
+    { key: 'goals',      labelKey: 'standings.col.goals_plus',  align: 'center' },
+    { key: 'conceded',   labelKey: 'standings.col.goals_minus', align: 'center' },
+    { key: 'celne',      labelKey: 'standings.col.on_target',   align: 'center' },
+    { key: 'niecelne',   labelKey: 'standings.col.off_target',  align: 'center' },
+    { key: 'pctSkut',    labelKey: 'standings.col.pct_skut',    align: 'center' },
+    { key: 'pctCel',     labelKey: 'standings.col.pct_cel',     align: 'center' },
+    { key: 'manUpGoals', labelKey: 'standings.col.man_up',      align: 'center' },
   ];
 
   const headers = cols.map(c => {
     const isActive = sort.col === c.key;
     const arrow    = isActive ? (sort.dir === 'desc' ? ' ▼' : ' ▲') : '';
-    return `<th class="sortable ${isActive ? 'sort-active' : ''}" data-action="standings-sort" data-arg="${c.key}" style="text-align:${c.align}">${c.label}${arrow}</th>`;
+    return `<th class="sortable ${isActive ? 'sort-active' : ''}" data-action="standings-sort" data-arg="${c.key}" style="text-align:${c.align}">${T(c.labelKey)}${arrow}</th>`;
   }).join('');
 
   const bodyRows = rows.map((r, i) => `

@@ -27,8 +27,8 @@ function nextPeriod(current) {
 function periodLabel(p) {
   if (!p) return '?';
   p = String(p);
-  if (p === 'OT1') return 'Dogrywka 1';
-  if (p.startsWith('OT')) return 'Dogrywka ' + p.slice(2);
+  if (p === 'OT1') return T('period.ot') + ' 1';
+  if (p.startsWith('OT')) return T('period.ot') + ' ' + p.slice(2);
   return 'Q' + p;
 }
 

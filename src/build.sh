@@ -16,6 +16,7 @@ JS_FILES=(
   algorithms.js
   stats.js
   state.js
+  i18n.js
   field-svg.js
   render-home.js
   render-input.js

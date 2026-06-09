@@ -1,17 +1,15 @@
 'use strict';
 
 // ── PDF Report ────────────────────────────────────────────────────────────────
-// Otwiera nowe okno z raportem zoptymalizowanym pod A4 i wywołuje window.print().
-// Dwa tryby: openMatchReport(matchId) — raport pojedynczego meczu z Viewera
-//            openAnalyticsReport()    — raport z ekranu Analityki (aktywne filtry)
-
-// ── Wejścia publiczne ─────────────────────────────────────────────────────────
+// Opens a new window with an A4-optimised report and calls window.print().
+// Two modes: openMatchReport(matchId) — single-match report from the Viewer
+//            openAnalyticsReport()    — report from Analytics (active filters)
 
 function openMatchReport(matchId) {
   var match = DATA.scheduledMatches.find(function(m) {
     return String(m.id) === String(matchId);
   });
-  if (!match) { alert('Nie znaleziono meczu.'); return; }
+  if (!match) { alert(T('error.match_not_found_alert')); return; }
 
   var allEvents  = DATA.events.filter(function(e) {
     return String(e.match_id) === String(matchId);
@@ -34,7 +32,7 @@ function openMatchReport(matchId) {
   var svgB_off = _reportHalfFieldSvg(evB, match.team_B, false);
   var svgB_def = _reportHalfFieldSvg(evA, match.team_A, true);
 
-  var title = escapeHtml(match.team_A) + ' vs ' + escapeHtml(match.team_B);
+  var title    = escapeHtml(match.team_A) + ' vs ' + escapeHtml(match.team_B);
   var subtitle = [match.tournament, match.match_date].filter(Boolean).map(escapeHtml).join(' · ');
 
   var html = _reportShell(title, subtitle, [
@@ -51,16 +49,16 @@ function openMatchReport(matchId) {
 
 function openAnalyticsReport() {
   var data = APP.analyticsData;
-  if (!data || !data.events) { alert('Brak danych analityki.'); return; }
+  if (!data || !data.events) { alert(T('error.no_analytics')); return; }
 
   var f        = APP.analyticsFilters;
   var filtered = _analyticsApplyFilters(data.events, f);
-  if (filtered.length === 0) { alert('Brak danych dla wybranych filtrów.'); return; }
+  if (filtered.length === 0) { alert(T('error.no_filtered')); return; }
 
   var s          = computeAnalyticsStats(filtered);
   var goalieData = _computeGoalieAnalytics(filtered, data.events, data.matches, f, APP.analyticsGoalieSort);
 
-  var teamLabel = f.team || 'Wszystkie drużyny';
+  var teamLabel = f.team || T('report.all_teams');
   var parts     = [f.tournament, teamLabel, f.period ? periodLabel(f.period) : '', f.dateFrom, f.dateTo].filter(Boolean);
   var subtitle  = parts.join(' · ');
 
@@ -76,7 +74,7 @@ function openAnalyticsReport() {
     svgDef = conceded.length > 0 ? _reportHalfFieldSvg(conceded, conceded[0].team_event || '__opp__', true) : '';
   }
 
-  var html = _reportShell('Analityka — ' + escapeHtml(teamLabel), subtitle, [
+  var html = _reportShell(T('report.analytics') + ' — ' + escapeHtml(teamLabel), subtitle, [
     _sectionAnalyticsSummary(s, filtered, f),
     _sectionAnalyticsZones(s),
     _sectionAnalyticsPeriods(s),
@@ -89,10 +87,10 @@ function openAnalyticsReport() {
   _openPrintWindow(html);
 }
 
-// ── Shell dokumentu ───────────────────────────────────────────────────────────
+// ── Document shell ────────────────────────────────────────────────────────────
 
 function _reportShell(title, subtitle, sections) {
-  return '<!DOCTYPE html><html lang="pl"><head>' +
+  return '<!DOCTYPE html><html lang="' + APP.lang + '"><head>' +
     '<meta charset="UTF-8">' +
     '<title>' + title + '</title>' +
     '<style>' + _reportCss() + '</style>' +
@@ -109,16 +107,17 @@ function _reportShell(title, subtitle, sections) {
 
 function _openPrintWindow(html) {
   var w = window.open('', '_blank');
-  if (!w) { alert('Zablokowano otwieranie okna. Zezwól na pop-upy dla tej strony.'); return; }
+  if (!w) { alert(T('popup.blocked')); return; }
   w.document.open();
   w.document.write(html);
   w.document.close();
 }
 
-// ── Sekcje raportu meczu ──────────────────────────────────────────────────────
+// ── Match report sections ─────────────────────────────────────────────────────
 
 function _sectionMatchHeader(match, score) {
-  var status = match.status === 'live' ? 'LIVE' : match.status === 'finished' ? 'Zakończony' : 'Planowany';
+  var statusMap = { live: T('report.status.live'), finished: T('report.status.finished'), planned: T('report.status.planned') };
+  var status = statusMap[match.status] || match.status;
   return '<div class="section match-banner">' +
     '<div class="banner-score">' +
       '<span class="team-a">' + escapeHtml(match.team_A) + '</span>' +
@@ -132,17 +131,17 @@ function _sectionMatchHeader(match, score) {
 function _sectionShotStats(sA, sB, match) {
   var fmt = function(v, isRate) { return v === '—' ? '—' : (isRate ? v + '%' : v); };
   var rows = [
-    ['Strzały łącznie',       sA.total,          sB.total,          false],
-    ['Bramki',                sA.goals,           sB.goals,          false],
-    ['Celne (z bramkami)',    sA.onTarget,        sB.onTarget,       false],
-    ['Niecelne',              sA.offTarget,       sB.offTarget,      false],
-    ['Skuteczność %',         fmt(sA.goalRate,1),  fmt(sB.goalRate,1),  false],
-    ['% strzałów celnych',    fmt(sA.onTargetRate,1), fmt(sB.onTargetRate,1), false],
+    [T('report.rows.shots'),     sA.total,              sB.total,              false],
+    [T('report.rows.goals'),     sA.goals,              sB.goals,              false],
+    [T('report.rows.on_target'), sA.onTarget,           sB.onTarget,           false],
+    [T('report.rows.off_target'),sA.offTarget,          sB.offTarget,          false],
+    [T('report.rows.rate'),      fmt(sA.goalRate,1),    fmt(sB.goalRate,1),    false],
+    [T('report.rows.on_rate'),   fmt(sA.onTargetRate,1),fmt(sB.onTargetRate,1),false],
   ];
   var tbody = rows.map(function(r) {
     return '<tr><td class="num-a">' + r[1] + '</td><td class="lbl">' + r[0] + '</td><td class="num-b">' + r[2] + '</td></tr>';
   }).join('');
-  return _section('Statystyki strzałów',
+  return _section(T('report.shot_stats'),
     '<table class="cmp-table">' +
     '<thead><tr><th class="num-a">' + escapeHtml(match.team_A) + '</th><th class="lbl"></th><th class="num-b">' + escapeHtml(match.team_B) + '</th></tr></thead>' +
     '<tbody>' + tbody + '</tbody></table>');
@@ -166,9 +165,9 @@ function _sectionSituations(situation, match) {
     '</tr>';
   }).filter(Boolean).join('');
   if (!rows) return '';
-  return _section('Sytuacje specjalne — strzały/bramki (skuteczność%)',
+  return _section(T('report.situations'),
     '<table class="cmp-table">' +
-    '<thead><tr><th class="num-a">' + escapeHtml(match.team_A) + '</th><th class="lbl">Sytuacja</th><th class="num-b">' + escapeHtml(match.team_B) + '</th></tr></thead>' +
+    '<thead><tr><th class="num-a">' + escapeHtml(match.team_A) + '</th><th class="lbl">' + T('report.situations_th') + '</th><th class="num-b">' + escapeHtml(match.team_B) + '</th></tr></thead>' +
     '<tbody>' + rows + '</tbody></table>');
 }
 
@@ -180,32 +179,32 @@ function _sectionGoalies(goalies, match) {
     if (!g) return '';
     var list = g.goalies && g.goalies.length > 0 ? g.goalies : null;
     if (!list) {
-      return '<tr><td class="lbl" colspan="2">' + escapeHtml(teamName) + ' — brak numeru</td>' +
+      return '<tr><td class="lbl" colspan="2">' + escapeHtml(teamName) + ' ' + T('report.goalies.no_number') + '</td>' +
         '<td>' + g.saves + '</td><td>' + g.goalsAgainst + '</td><td>' + g.shotsOnGoal + '</td><td>' + fmt(g.savePct) + '</td></tr>';
     }
     return list.map(function(gi) {
-      var nr = gi.number !== null ? '#' + gi.number : '(brak nr)';
+      var nr = gi.number !== null ? '#' + gi.number : T('report.goalies.no_nr');
       return '<tr><td class="lbl">' + escapeHtml(teamName) + '</td><td>' + nr + '</td>' +
         '<td>' + gi.saves + '</td><td>' + gi.goalsAgainst + '</td><td>' + gi.shotsOnGoal + '</td><td>' + fmt(gi.savePct) + '</td></tr>';
     }).join('');
   }
 
-  return _section('Bramkarze',
+  return _section(T('report.goalies'),
     '<table class="data-table">' +
-    '<thead><tr><th>Drużyna</th><th>Nr</th><th>Obrony</th><th>Bramki str.</th><th>Strzały na br.</th><th>Save%</th></tr></thead>' +
+    '<thead><tr><th>' + T('report.goalies.team') + '</th><th>' + T('report.goalies.nr') + '</th><th>' + T('report.goalies.saves') + '</th><th>' + T('report.goalies.goals_ag') + '</th><th>' + T('report.goalies.shots_on') + '</th><th>' + T('report.goalies.save_pct') + '</th></tr></thead>' +
     '<tbody>' + sideHtml('A', match.team_A) + sideHtml('B', match.team_B) + '</tbody></table>');
 }
 
 function _sectionPerPeriod(perPeriod, match) {
   var rows = perPeriod.map(function(p) {
     return '<tr><td class="lbl">' + periodLabel(p.period) + '</td>' +
-      '<td class="num-a">' + p.A_shots + ' (' + p.A_goals + ' goli)</td>' +
-      '<td class="num-b">' + p.B_shots + ' (' + p.B_goals + ' goli)</td></tr>';
+      '<td class="num-a">' + p.A_shots + ' (' + p.A_goals + ' ' + T('report.per_period.goals') + ')</td>' +
+      '<td class="num-b">' + p.B_shots + ' (' + p.B_goals + ' ' + T('report.per_period.goals') + ')</td></tr>';
   }).join('');
   if (!rows) return '';
-  return _section('Podział per kwarta',
+  return _section(T('report.per_period'),
     '<table class="cmp-table">' +
-    '<thead><tr><th class="lbl">Kwarta</th><th class="num-a">' + escapeHtml(match.team_A) + '</th><th class="num-b">' + escapeHtml(match.team_B) + '</th></tr></thead>' +
+    '<thead><tr><th class="lbl">' + T('report.per_period.period') + '</th><th class="num-a">' + escapeHtml(match.team_A) + '</th><th class="num-b">' + escapeHtml(match.team_B) + '</th></tr></thead>' +
     '<tbody>' + rows + '</tbody></table>');
 }
 
@@ -215,34 +214,34 @@ function _sectionShotCharts(svgA_off, svgA_def, svgB_off, svgB_def, match) {
       '<div class="chart-team-label ' + cls + '">' + escapeHtml(label) + '</div>' +
       '<div class="shot-charts">' +
         '<div class="chart-col">' +
-          '<div class="chart-sublabel">Strzały oddane</div>' +
+          '<div class="chart-sublabel">' + T('report.shots_fired') + '</div>' +
           '<div class="chart-svg">' + svgOff + '</div>' +
         '</div>' +
         '<div class="chart-col">' +
-          '<div class="chart-sublabel">Strzały stracone</div>' +
+          '<div class="chart-sublabel">' + T('report.shots_conceded') + '</div>' +
           '<div class="chart-svg">' + svgDef + '</div>' +
         '</div>' +
       '</div>' +
     '</div>';
   }
   return '<div class="section page-break">' +
-    '<h2>Shot chart</h2>' +
+    '<h2>' + T('report.shot_chart') + '</h2>' +
     teamRow(match.team_A, 'team-a', svgA_off, svgA_def) +
     teamRow(match.team_B, 'team-b', svgB_off, svgB_def) +
   '</div>';
 }
 
-// ── Sekcje raportu analityki ──────────────────────────────────────────────────
+// ── Analytics report sections ─────────────────────────────────────────────────
 
 function _sectionAnalyticsSummary(s, filtered, f) {
   var matchCount = new Set(filtered.map(function(e) { return String(e.match_id); })).size;
   var rows = [
-    ['Meczów',       matchCount],
-    ['Strzałów',     s.total],
-    ['Bramek',       s.goals],
-    ['Celnych',      s.onTarget],
-    ['Skuteczność',  s.pct + '%'],
-    ['% celnych',    s.onPct + '%'],
+    [T('report.rows.match_count'), matchCount],
+    [T('report.rows.shots_short'), s.total],
+    [T('report.rows.goals_short'), s.goals],
+    [T('report.rows.on_target_short'), s.onTarget],
+    [T('report.rows.eff'), s.pct + '%'],
+    [T('report.rows.on_pct'), s.onPct + '%'],
   ];
   if (s.manUp)     rows.push(['Man-up',     s.manUp]);
   if (s.manDown)   rows.push(['Man-down',   s.manDown]);
@@ -252,15 +251,19 @@ function _sectionAnalyticsSummary(s, filtered, f) {
     return '<div class="sum-cell"><div class="sum-val">' + r[1] + '</div><div class="sum-lbl">' + r[0] + '</div></div>';
   }).join('');
 
-  return _section('Podsumowanie', '<div class="summary-grid">' + cells + '</div>');
+  return _section(T('report.summary'), '<div class="summary-grid">' + cells + '</div>');
 }
 
 function _sectionAnalyticsZones(s) {
   var zoneOrder = ['attack-center','attack-left','attack-right','midfield-center','midfield-left','midfield-right','own-half'];
   var zoneLabels = {
-    'attack-center':'Atak środek','attack-left':'Atak lewo','attack-right':'Atak prawo',
-    'midfield-center':'Midfield środek','midfield-left':'Midfield lewo','midfield-right':'Midfield prawo',
-    'own-half':'Własna połowa',
+    'attack-center':   T('zone.attack_center'),
+    'attack-left':     T('zone.attack_left'),
+    'attack-right':    T('zone.attack_right'),
+    'midfield-center': T('zone.midfield_center'),
+    'midfield-left':   T('zone.midfield_left'),
+    'midfield-right':  T('zone.midfield_right'),
+    'own-half':        T('zone.own_half'),
   };
   var rows = zoneOrder.filter(function(z) { return s.zones[z]; }).map(function(z) {
     var cnt = s.zones[z];
@@ -268,9 +271,9 @@ function _sectionAnalyticsZones(s) {
     return '<tr><td>' + zoneLabels[z] + '</td><td class="num">' + cnt + '</td><td class="num">' + pct + '%</td></tr>';
   }).join('');
   if (!rows) return '';
-  return _section('Rozkład po strefach',
+  return _section(T('report.zones'),
     '<table class="data-table">' +
-    '<thead><tr><th>Strefa</th><th>Strzałów</th><th>%</th></tr></thead>' +
+    '<thead><tr><th>' + T('analytics.zones.zone') + '</th><th>' + T('report.rows.shots_short') + '</th><th>%</th></tr></thead>' +
     '<tbody>' + rows + '</tbody></table>');
 }
 
@@ -287,9 +290,9 @@ function _sectionAnalyticsPeriods(s) {
     return '<tr><td>' + periodLabel(p) + '</td><td class="num">' + v.total + '</td><td class="num">' + v.goals + '</td><td class="num">' + pct + '%</td></tr>';
   }).join('');
   if (!rows) return '';
-  return _section('Rozkład po kwartach',
+  return _section(T('report.periods'),
     '<table class="data-table">' +
-    '<thead><tr><th>Kwarta</th><th>Strzałów</th><th>Bramek</th><th>Skuteczność</th></tr></thead>' +
+    '<thead><tr><th>' + T('report.per_period.period') + '</th><th>' + T('report.rows.shots_short') + '</th><th>' + T('report.rows.goals_short') + '</th><th>' + T('report.periods.rate') + '</th></tr></thead>' +
     '<tbody>' + rows + '</tbody></table>');
 }
 
@@ -304,9 +307,9 @@ function _sectionAnalyticsSituations(s) {
   var rows = sits.map(function(sit) {
     return '<tr><td>' + sit.label + '</td><td class="num">' + sit.total + '</td><td class="num">' + sit.goals + '</td><td class="num">' + sit.pct + '%</td></tr>';
   }).join('');
-  return _section('Sytuacje specjalne',
+  return _section(T('report.situations_lbl'),
     '<table class="data-table">' +
-    '<thead><tr><th>Sytuacja</th><th>Strzałów</th><th>Bramek</th><th>Skuteczność</th></tr></thead>' +
+    '<thead><tr><th>' + T('report.situations_th') + '</th><th>' + T('report.rows.shots_short') + '</th><th>' + T('report.rows.goals_short') + '</th><th>' + T('report.periods.rate') + '</th></tr></thead>' +
     '<tbody>' + rows + '</tbody></table>');
 }
 
@@ -322,18 +325,18 @@ function _sectionAnalyticsGoalies(data) {
       '<td class="num">' + g.goalsAgainst + '</td>' +
       '<td class="num">' + pct + '</td></tr>';
   }).join('');
-  return _section('Bramkarze',
+  return _section(T('report.goalies'),
     '<table class="data-table">' +
-    '<thead><tr><th>Drużyna</th><th>Nr</th><th>Mecze</th><th>Strzały na br.</th><th>Obrony</th><th>Bramki str.</th><th>Save%</th></tr></thead>' +
+    '<thead><tr><th>' + T('report.goalies.team') + '</th><th>' + T('report.goalies.nr') + '</th><th>' + T('analytics.goalies.matches') + '</th><th>' + T('report.goalies.shots_on') + '</th><th>' + T('report.goalies.saves') + '</th><th>' + T('report.goalies.goals_ag') + '</th><th>' + T('report.goalies.save_pct') + '</th></tr></thead>' +
     '<tbody>' + rows + '</tbody></table>');
 }
 
 function _sectionAnalyticsShotCharts(svgOff, svgDef, teamName) {
   return '<div class="section">' +
-    '<h2>Shot chart — ' + escapeHtml(teamName) + '</h2>' +
+    '<h2>' + T('report.shot_chart') + ' — ' + escapeHtml(teamName) + '</h2>' +
     '<div class="shot-charts">' +
-      (svgOff ? '<div class="chart-col"><div class="chart-sublabel">Strzały oddane</div><div class="chart-svg">' + svgOff + '</div></div>' : '') +
-      (svgDef ? '<div class="chart-col"><div class="chart-sublabel">Strzały stracone</div><div class="chart-svg">' + svgDef + '</div></div>' : '') +
+      (svgOff ? '<div class="chart-col"><div class="chart-sublabel">' + T('report.shots_fired') + '</div><div class="chart-svg">' + svgOff + '</div></div>' : '') +
+      (svgDef ? '<div class="chart-col"><div class="chart-sublabel">' + T('report.shots_conceded') + '</div><div class="chart-svg">' + svgDef + '</div></div>' : '') +
     '</div>' +
   '</div>';
 }
@@ -350,20 +353,20 @@ function _sectionMatchHistory(filtered, allEvents, allMatches, f) {
     var mEvs   = allEvents.filter(function(e) { return String(e.match_id) === String(m.id); });
     var goalsA = mEvs.filter(function(e) { return e.team_event === m.team_A && e.result === 'gol'; }).length;
     var goalsB = mEvs.filter(function(e) { return e.team_event === m.team_B && e.result === 'gol'; }).length;
-    var opp     = m.team_A === f.team ? m.team_B : m.team_A;
-    var myG     = m.team_A === f.team ? goalsA   : goalsB;
-    var oppG    = m.team_A === f.team ? goalsB   : goalsA;
-    var result  = mEvs.length === 0 ? '— : —' : myG + ' : ' + oppG;
-    var cls     = mEvs.length === 0 ? '' : myG > oppG ? 'won' : myG === oppG ? 'drew' : 'lost';
+    var opp    = m.team_A === f.team ? m.team_B : m.team_A;
+    var myG    = m.team_A === f.team ? goalsA   : goalsB;
+    var oppG   = m.team_A === f.team ? goalsB   : goalsA;
+    var result = mEvs.length === 0 ? '— : —' : myG + ' : ' + oppG;
+    var cls    = mEvs.length === 0 ? '' : myG > oppG ? 'won' : myG === oppG ? 'drew' : 'lost';
     return '<tr class="' + cls + '"><td>' + escapeHtml(String(m.match_date || '')) + '</td>' +
       '<td>' + escapeHtml(m.tournament || '—') + '</td>' +
       '<td>' + escapeHtml(opp) + '</td>' +
       '<td class="num">' + result + '</td></tr>';
   }).join('');
 
-  return _section('Historia meczów — ' + escapeHtml(f.team),
+  return _section(T('report.history') + ' — ' + escapeHtml(f.team),
     '<table class="data-table">' +
-    '<thead><tr><th>Data</th><th>Turniej</th><th>Rywal</th><th>Wynik</th></tr></thead>' +
+    '<thead><tr><th>' + T('analytics.history.date') + '</th><th>' + T('analytics.history.tournament') + '</th><th>' + T('analytics.history.opponent') + '</th><th>' + T('analytics.history.result') + '</th></tr></thead>' +
     '<tbody>' + rows + '</tbody></table>');
 }
 
@@ -378,7 +381,7 @@ function _reportHalfFieldSvg(shotEvents, teamName, useSlotB) {
   var svg = document.createElementNS(ns, 'svg');
   svg.setAttribute('viewBox', '0 0 540 660');
   svg.setAttribute('xmlns', ns);
-  var slot = useSlotB ? 'B' : 'A';
+  var slot       = useSlotB ? 'B' : 'A';
   var mockMatch  = useSlotB
     ? { id: '__report__', team_A: '__other__', team_B: teamName, team_A_side: 'left' }
     : { id: '__report__', team_A: teamName,    team_B: '__other__', team_A_side: 'left' };
@@ -395,27 +398,19 @@ function _reportCss() {
     '@page{size:A4;margin:14mm 12mm}',
     '*{box-sizing:border-box;margin:0;padding:0}',
     'body{font-family:Arial,sans-serif;font-size:10pt;color:#111;background:#fff;line-height:1.4}',
-
-    /* nagłówek dokumentu */
     '.doc-header{display:flex;align-items:baseline;justify-content:space-between;border-bottom:2px solid #111;padding-bottom:4pt;margin-bottom:12pt}',
     '.doc-title{font-size:15pt;font-weight:700}',
     '.doc-subtitle{font-size:9pt;color:#555;margin-left:10pt;flex:1}',
     '.doc-brand{font-size:8pt;color:#888}',
-
-    /* baner wyniku */
     '.match-banner{text-align:center;padding:8pt 0}',
     '.banner-score{font-size:20pt;font-weight:700;margin-bottom:4pt}',
     '.banner-meta{font-size:9pt;color:#555}',
     '.team-a{color:#1d4ed8}',
     '.team-b{color:#b91c1c}',
     '.score-num{margin:0 12pt;color:#111}',
-
-    /* sekcje */
     '.section{margin-bottom:14pt;page-break-inside:avoid}',
     '.section h2{font-size:11pt;font-weight:700;border-bottom:1px solid #ccc;padding-bottom:2pt;margin-bottom:6pt}',
     '.page-break{page-break-before:always}',
-
-    /* tabele porównawcze (A vs B) */
     '.cmp-table{width:100%;border-collapse:collapse;font-size:9.5pt}',
     '.cmp-table th,.cmp-table td{padding:3pt 6pt;border:1px solid #ddd}',
     '.cmp-table .num-a{text-align:right;color:#1d4ed8;font-weight:600;width:22%}',
@@ -424,25 +419,17 @@ function _reportCss() {
     '.cmp-table thead th{background:#f3f4f6;font-weight:700;font-size:9pt}',
     '.cmp-table thead .num-a{text-align:center}',
     '.cmp-table thead .num-b{text-align:center}',
-
-    /* tabele danych */
     '.data-table{width:100%;border-collapse:collapse;font-size:9.5pt}',
     '.data-table th,.data-table td{padding:3pt 6pt;border:1px solid #ddd}',
     '.data-table thead th{background:#f3f4f6;font-weight:700;text-align:left}',
     '.data-table .num{text-align:right}',
-
-    /* historia meczów — kolorowanie */
     '.won td:last-child{font-weight:700;color:#15803d}',
     '.drew td:last-child{color:#6b7280}',
     '.lost td:last-child{font-weight:700;color:#b91c1c}',
-
-    /* summary grid */
     '.summary-grid{display:flex;flex-wrap:wrap;gap:6pt}',
     '.sum-cell{border:1px solid #e5e7eb;border-radius:4pt;padding:4pt 8pt;min-width:60pt;text-align:center}',
     '.sum-val{font-size:14pt;font-weight:700;color:#111}',
     '.sum-lbl{font-size:8pt;color:#6b7280}',
-
-    /* shot charts */
     '.shot-charts{display:flex;gap:12pt}',
     '.chart-col{flex:1;text-align:center}',
     '.chart-label{font-weight:700;font-size:10pt;margin-bottom:4pt}',
