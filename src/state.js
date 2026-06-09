@@ -75,6 +75,9 @@ let APP = {
   // Presence — kto jest w danym meczu
   presenceCounts:   {},   // { matchId: count } — home screen + viewer
   presenceInterval: null, // setInterval ID dla heartbeatu w match-input
+
+  // Language / i18n
+  lang: localStorage.getItem('lax_lang') || 'pl',
 };
 
 // ── Routing ────────────────────────────────────────────────────────────────────

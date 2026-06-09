@@ -167,9 +167,9 @@ const HANDLERS = {
     if (!t) return;
     const matchCount = DATA.scheduledMatches.filter(m => m.tournament === t.name).length;
     const msg = matchCount > 0
-      ? `Usunąć „${t.name}"? ${matchCount} meczów straci przypisany turniej.`
-      : `Usunąć turniej „${t.name}"?`;
-    APP.modal = { type: 'confirm', title: 'Usuń turniej', message: msg, _action: 'delete-tournament', _arg: id };
+      ? `${escapeHtml(t.name)}? ${matchCount} ${T_match(matchCount)} ${APP.lang === 'pl' ? 'straci przypisany turniej' : 'will lose the assigned tournament'}.`
+      : `${APP.lang === 'pl' ? 'Usunąć turniej' : 'Delete tournament'} „${escapeHtml(t.name)}"?`;
+    APP.modal = { type: 'confirm', title: T('confirm.delete_tournament'), message: msg, _action: 'delete-tournament', _arg: id };
     render();
   },
   'submit-tournament': (id) => {
@@ -221,10 +221,11 @@ const HANDLERS = {
     const m = DATA.scheduledMatches.find(x => x.id === id);
     if (!m) return;
     const eventCount = DATA.events.filter(e => e.match_id === id).length;
+    const baseMsg = `${APP.lang === 'pl' ? 'Usunąć mecz' : 'Delete match'} ${escapeHtml(m.team_A)} vs ${escapeHtml(m.team_B)} (${m.match_date})?`;
     const msg = eventCount > 0
-      ? `Usunąć mecz ${m.team_A} vs ${m.team_B} (${m.match_date})? Usuniętych zostanie też ${eventCount} eventów.`
-      : `Usunąć mecz ${m.team_A} vs ${m.team_B} (${m.match_date})?`;
-    APP.modal = { type: 'confirm', title: 'Usuń mecz', message: msg, _action: 'delete-match', _arg: id };
+      ? baseMsg + ` ${APP.lang === 'pl' ? 'Usuniętych zostanie też' : 'This will also delete'} ${eventCount} ${T_n(eventCount, 'offline.event', 'offline.events')}.`
+      : baseMsg;
+    APP.modal = { type: 'confirm', title: T('confirm.delete_match'), message: msg, _action: 'delete-match', _arg: id };
     render();
   },
   'submit-match': (id) => {
@@ -487,6 +488,11 @@ const HANDLERS = {
     html.dataset.theme = isDark ? 'light' : 'dark';
     localStorage.setItem('lax_theme', html.dataset.theme);
     _syncThemeToggle();
+  },
+  'toggle-lang': () => {
+    APP.lang = APP.lang === 'pl' ? 'en' : 'pl';
+    localStorage.setItem('lax_lang', APP.lang);
+    render();
   },
 
   'toggle-zones':   () => { APP.match.show_zones        = !APP.match.show_zones;        render(); },

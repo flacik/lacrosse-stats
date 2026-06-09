@@ -1,47 +1,44 @@
 'use strict';
 
-// Match-viewer screen (read-only, trener): score banner, stats tables, shot chart with filters.
+// Match-viewer screen (read-only).
 
 function renderMatchViewer(root) {
   const match = DATA.scheduledMatches.find(m => String(m.id) === String(APP.matchId));
   if (!match) {
-    root.innerHTML = '<div class="empty">Mecz nie znaleziony</div>';
+    root.innerHTML = `<div class="empty">${T('error.match_not_found')}</div>`;
     return;
   }
 
-  // ── Stan ładowania pierwszego fetchu ──────────────────────────────────────────
   if (APP.viewerLoading) {
     root.innerHTML = `
       <div class="app-header">
-        <button class="btn" data-action="back-home">← Wróć</button>
-        <h1>${escapeHtml(match.team_A)} vs ${escapeHtml(match.team_B)} <span style="font-size:13px;color:#888;font-weight:normal">— tryb podgląd (read-only)</span></h1>
-        <button class="btn" data-action="toggle-dark-mode" id="theme-toggle" title="Przełącz tryb ciemny">🌙</button>
+        <button class="btn" data-action="back-home">${T('nav.back')}</button>
+        <h1>${escapeHtml(match.team_A)} vs ${escapeHtml(match.team_B)} <span style="font-size:13px;color:#888;font-weight:normal">${T('viewer.readonly')}</span></h1>
+        ${_langToggleBtn()}
+        <button class="btn" data-action="toggle-dark-mode" id="theme-toggle" title="${T('nav.theme')}">🌙</button>
       </div>
       <div class="loading-state">
         <div class="spinner">⏳</div>
-        Ładowanie danych meczu…
-      </div>
-    `;
+        ${T('loading.match_data')}
+      </div>`;
     return;
   }
 
-  // ── Błąd pierwszego fetchu ────────────────────────────────────────────────────
   if (APP.viewerError) {
     root.innerHTML = `
       <div class="app-header">
-        <button class="btn" data-action="back-home">← Wróć</button>
+        <button class="btn" data-action="back-home">${T('nav.back')}</button>
         <h1>${escapeHtml(match.team_A)} vs ${escapeHtml(match.team_B)}</h1>
-        <button class="btn" data-action="toggle-dark-mode" id="theme-toggle" title="Przełącz tryb ciemny">🌙</button>
+        ${_langToggleBtn()}
+        <button class="btn" data-action="toggle-dark-mode" id="theme-toggle" title="${T('nav.theme')}">🌙</button>
       </div>
       <div class="error-state">
-        <p>⚠ Błąd ładowania danych: ${escapeHtml(APP.viewerError)}</p>
-        <button class="btn btn-primary" data-action="viewer-retry">Spróbuj ponownie</button>
-      </div>
-    `;
+        <p>⚠ ${T('error.loading_data')}: ${escapeHtml(APP.viewerError)}</p>
+        <button class="btn btn-primary" data-action="viewer-retry">${T('btn.retry_short')}</button>
+      </div>`;
     return;
   }
 
-  // Fix type mismatch: match_id z GAS może być liczbą lub stringiem
   const allEvents  = DATA.events.filter(e => String(e.match_id) === String(match.id));
   const shotEvents = allEvents.filter(e => e.event_type !== 'goalie_set');
   const filtered   = applyViewerFilters(shotEvents, APP.viewer);
@@ -57,16 +54,21 @@ function renderMatchViewer(root) {
   const periodOptions = Array.from(periodSet).sort((a, b) => getPeriodOrder(a) - getPeriodOrder(b));
 
   const tagClass  = APP.refreshFlash ? 'refresh-tag refreshing' : 'refresh-tag';
-  const tagLabel  = APP.refreshFlash ? 'Odświeżanie…' : _viewerRefreshLabel();
+  const tagLabel  = APP.refreshFlash ? T('viewer.refreshing') : _viewerRefreshLabel();
   const _presence = APP.presenceCounts[String(match.id)] || { input: 0, viewer: 0 };
   const presenceBadgeHtml = _renderPresenceBadge(_presence.input, _presence.viewer, 'viewer');
 
+  const statusLabel = match.status === 'live' ? T('viewer.status_live')
+    : match.status === 'finished' ? T('viewer.status_finished')
+    : T('viewer.status_planned');
+
   root.innerHTML = `
     <div class="app-header">
-      <button class="btn" data-action="back-home">← Wróć</button>
-      <h1>${escapeHtml(match.team_A)} vs ${escapeHtml(match.team_B)} <span style="font-size:13px;color:#888;font-weight:normal">— tryb podgląd (read-only)</span></h1>
-      <button class="btn" data-action="toggle-dark-mode" id="theme-toggle" title="Przełącz tryb ciemny">🌙</button>
-      <button class="btn" data-action="open-match-report" data-arg="${escapeHtml(String(match.id))}" title="Pobierz raport PDF">⬇ PDF</button>
+      <button class="btn" data-action="back-home">${T('nav.back')}</button>
+      <h1>${escapeHtml(match.team_A)} vs ${escapeHtml(match.team_B)} <span style="font-size:13px;color:#888;font-weight:normal">${T('viewer.readonly')}</span></h1>
+      ${_langToggleBtn()}
+      <button class="btn" data-action="toggle-dark-mode" id="theme-toggle" title="${T('nav.theme')}">🌙</button>
+      <button class="btn" data-action="open-match-report" data-arg="${escapeHtml(String(match.id))}" title="${T('nav.pdf')}">${T('nav.pdf')}</button>
     </div>
     <div class="match-info-bar ${match.status === 'live' ? 'header-live' : (match.status === 'finished' ? 'header-archived' : '')}">
       <div class="score">
@@ -74,7 +76,7 @@ function renderMatchViewer(root) {
         <span class="sep">:</span>
         <span class="team-B-color">${score.B} ${escapeHtml(match.team_B)}</span>
       </div>
-      <div class="period">${match.status === 'live' ? '🔴 LIVE' : (match.status === 'finished' ? 'KONIEC' : 'PLANOWANY')}</div>
+      <div class="period">${statusLabel}</div>
       <div class="tournament">${escapeHtml(match.tournament)}</div>
       <div class="sides-indicator">${presenceBadgeHtml}<span class="${tagClass}"><span class="dot"></span>${tagLabel}</span></div>
     </div>
@@ -86,8 +88,7 @@ function renderMatchViewer(root) {
         ${renderViewerPerPeriodCard(perPeriod, match)}
         ${renderViewerShotChartCard(match, filtered, periodOptions)}
       </div>
-    </div>
-  `;
+    </div>`;
 
   const chartHost = document.getElementById('viewer-chart-host');
   if (chartHost) {
@@ -96,13 +97,12 @@ function renderMatchViewer(root) {
   }
 }
 
-/** Formatuje etykietę refresh-tag z czasem ostatniego odświeżenia. */
 function _viewerRefreshLabel() {
-  if (!APP.lastViewerRefresh) return 'Ostatnia aktualizacja: —';
+  if (!APP.lastViewerRefresh) return T('viewer.last_update') + '—';
   const h = APP.lastViewerRefresh.getHours().toString().padStart(2, '0');
   const m = APP.lastViewerRefresh.getMinutes().toString().padStart(2, '0');
   const s = APP.lastViewerRefresh.getSeconds().toString().padStart(2, '0');
-  return 'Ostatnia aktualizacja: ' + h + ':' + m + ':' + s;
+  return T('viewer.last_update') + h + ':' + m + ':' + s;
 }
 
 function _splitBar(va, vb) {
@@ -117,11 +117,11 @@ function _splitBar(va, vb) {
 
 function renderViewerStatsCard(statsA, statsB, match) {
   const fmt = (val, isRate) => val === '—' ? '—' : (isRate ? `${val}%` : val);
-  const toggleLabel = APP.splitBars ? 'Ukryj bary' : 'Pokaż bary';
+  const toggleLabel = APP.splitBars ? T('btn.hide_bars') : T('btn.show_bars');
   return `
     <div class="viewer-card">
       <h3 style="display:flex;align-items:center;">
-        Statystyki strzałów
+        ${T('viewer.shots.title')}
         <button class="btn" data-action="toggle-split-bars" style="margin-left:auto;font-size:11px;padding:3px 8px;">${toggleLabel}</button>
       </h3>
       <table class="stats-table">
@@ -133,49 +133,47 @@ function renderViewerStatsCard(statsA, statsB, match) {
           </tr>
         </thead>
         <tbody>
-          <tr><td class="num team-A">${statsA.total}</td><td class="label" style="text-align:center;">strzały (łącznie)</td><td class="num team-B">${statsB.total}</td></tr>
+          <tr><td class="num team-A">${statsA.total}</td><td class="label" style="text-align:center;">${T('viewer.shots.total')}</td><td class="num team-B">${statsB.total}</td></tr>
           ${_splitBar(statsA.total, statsB.total)}
-          <tr><td class="num team-A">${statsA.goals}</td><td class="label" style="text-align:center;">bramki</td><td class="num team-B">${statsB.goals}</td></tr>
+          <tr><td class="num team-A">${statsA.goals}</td><td class="label" style="text-align:center;">${T('viewer.shots.goals')}</td><td class="num team-B">${statsB.goals}</td></tr>
           ${_splitBar(statsA.goals, statsB.goals)}
-          <tr><td class="num team-A">${statsA.onTarget}</td><td class="label" style="text-align:center;">strzały celne (z bramkami)</td><td class="num team-B">${statsB.onTarget}</td></tr>
+          <tr><td class="num team-A">${statsA.onTarget}</td><td class="label" style="text-align:center;">${T('viewer.shots.on_target')}</td><td class="num team-B">${statsB.onTarget}</td></tr>
           ${_splitBar(statsA.onTarget, statsB.onTarget)}
-          <tr><td class="num team-A">${statsA.offTarget}</td><td class="label" style="text-align:center;">strzały niecelne</td><td class="num team-B">${statsB.offTarget}</td></tr>
+          <tr><td class="num team-A">${statsA.offTarget}</td><td class="label" style="text-align:center;">${T('viewer.shots.off_target')}</td><td class="num team-B">${statsB.offTarget}</td></tr>
           ${_splitBar(statsA.offTarget, statsB.offTarget)}
-          <tr class="summary-row"><td class="num team-A">${fmt(statsA.goalRate, true)}</td><td class="label" style="text-align:center;">% skuteczność (gole/strzały)</td><td class="num team-B">${fmt(statsB.goalRate, true)}</td></tr>
+          <tr class="summary-row"><td class="num team-A">${fmt(statsA.goalRate, true)}</td><td class="label" style="text-align:center;">${T('viewer.shots.goal_rate')}</td><td class="num team-B">${fmt(statsB.goalRate, true)}</td></tr>
           ${_splitBar(statsA.goalRate, statsB.goalRate)}
-          <tr class="summary-row"><td class="num team-A">${fmt(statsA.onTargetRate, true)}</td><td class="label" style="text-align:center;">% strzałów celnych</td><td class="num team-B">${fmt(statsB.onTargetRate, true)}</td></tr>
+          <tr class="summary-row"><td class="num team-A">${fmt(statsA.onTargetRate, true)}</td><td class="label" style="text-align:center;">${T('viewer.shots.on_rate')}</td><td class="num team-B">${fmt(statsB.onTargetRate, true)}</td></tr>
           ${_splitBar(statsA.onTargetRate, statsB.onTargetRate)}
         </tbody>
       </table>
-    </div>
-  `;
+    </div>`;
 }
 
 function renderViewerSituationCard(situation, match) {
-  function sitBlock(label, badgeClass, badgeText, dataA, dataB) {
+  function sitBlock(labelKey, badgeClass, badgeText, dataA, dataB) {
     const fmtRate = r => r === '—' ? '—' : r + '%';
     return `
       <div class="sit-col">
         <div class="sit-badge ${badgeClass}">${badgeText}</div>
-        <div class="sit-subtitle">${label}</div>
+        <div class="sit-subtitle">${T(labelKey)}</div>
         <div class="sit-row">
           <span class="sit-val-a">${dataA.shots}/${dataA.goals}</span>
-          <span class="sit-lbl">strzały/bramki</span>
+          <span class="sit-lbl">${T('viewer.sit.shots_goals')}</span>
           <span class="sit-val-b">${dataB.shots}/${dataB.goals}</span>
         </div>
         <div class="sit-row">
           <span class="sit-val-a">${fmtRate(dataA.rate)}</span>
-          <span class="sit-lbl">skuteczność</span>
+          <span class="sit-lbl">${T('viewer.sit.rate')}</span>
           <span class="sit-val-b">${fmtRate(dataB.rate)}</span>
         </div>
-      </div>
-    `;
+      </div>`;
   }
 
   return `
     <div class="viewer-card">
       <div class="sit-card-header">
-        <h3 style="margin:0;">Sytuacje specjalne</h3>
+        <h3 style="margin:0;">${T('viewer.sit.title')}</h3>
         <div class="sit-teams">
           <span class="team-A-label">${escapeHtml(match.team_A)}</span>
           <span class="sit-teams-sep">·</span>
@@ -183,34 +181,21 @@ function renderViewerSituationCard(situation, match) {
         </div>
       </div>
       <div class="sit-grid">
-        ${sitBlock('przewaga',     'sit-badge-up', 'man-up ↑',   situation.manUp.A,   situation.manUp.B)}
-        ${sitBlock('równa liczba', 'sit-badge-eq', '5v5 ·',      situation.equal.A,   situation.equal.B)}
-        ${sitBlock('osłabienie',   'sit-badge-dn', 'man-down ↓', situation.manDown.A, situation.manDown.B)}
-        ${(situation.fastBreak.A.shots > 0 || situation.fastBreak.B.shots > 0) ? sitBlock('fast break', 'sit-badge-fb', 'fast break →', situation.fastBreak.A, situation.fastBreak.B) : ''}
+        ${sitBlock('viewer.sit.man_up',    'sit-badge-up', 'man-up ↑',   situation.manUp.A,   situation.manUp.B)}
+        ${sitBlock('viewer.sit.equal',     'sit-badge-eq', '5v5 ·',      situation.equal.A,   situation.equal.B)}
+        ${sitBlock('viewer.sit.man_down',  'sit-badge-dn', 'man-down ↓', situation.manDown.A, situation.manDown.B)}
+        ${(situation.fastBreak.A.shots > 0 || situation.fastBreak.B.shots > 0) ? sitBlock('viewer.sit.fast_break', 'sit-badge-fb', 'fast break →', situation.fastBreak.A, situation.fastBreak.B) : ''}
       </div>
-    </div>
-  `;
+    </div>`;
 }
 
 function renderViewerGoalieCard(goalies, match) {
   const fmt = (val) => val === '—' ? '—' : val + '%';
 
   function goalieLabel(teamName, goalieList) {
-    if (!goalieList || goalieList.length === 0) return `Bramkarz ${escapeHtml(teamName)} — numer nie wpisany`;
-    if (goalieList.length === 1 && goalieList[0].number !== null) return `Bramkarz ${escapeHtml(teamName)} #${goalieList[0].number}`;
-    return `Bramkarz ${escapeHtml(teamName)}`;
-  }
-
-  function goalieRows(teamSlot, goalieList, otherGoalieList) {
-    if (!goalieList || goalieList.length === 0) return '';
-    return goalieList.map((g, i) => {
-      const label = g.number !== null ? `#${g.number}` : '(brak numeru)';
-      const multipleGoalies = goalieList.length > 1;
-      return `
-        ${multipleGoalies ? `<tr><td class="goalie-name ${teamSlot}" colspan="3">${label}</td></tr>` : ''}
-        <tr><td class="num ${teamSlot}">${g.saves}</td><td class="label" style="text-align:center;">obrony</td><td class="num ${otherGoalieList[i] ? otherGoalieList[i].saves : ''}">${otherGoalieList[i] ? otherGoalieList[i].saves : ''}</td></tr>
-      `;
-    }).join('');
+    if (!goalieList || goalieList.length === 0) return `${APP.lang === 'pl' ? 'Bramkarz' : 'Goalie'} ${escapeHtml(teamName)} ${T('viewer.goalie.no_number')}`;
+    if (goalieList.length === 1 && goalieList[0].number !== null) return `${APP.lang === 'pl' ? 'Bramkarz' : 'Goalie'} ${escapeHtml(teamName)} #${goalieList[0].number}`;
+    return `${APP.lang === 'pl' ? 'Bramkarz' : 'Goalie'} ${escapeHtml(teamName)}`;
   }
 
   const hasMultipleA = goalies.A.goalies && goalies.A.goalies.length > 1;
@@ -219,7 +204,7 @@ function renderViewerGoalieCard(goalies, match) {
 
   return `
     <div class="viewer-card">
-      <h3>Statystyki bramkarzy</h3>
+      <h3>${T('viewer.goalie.title')}</h3>
       <table class="stats-table">
         <thead>
           <tr class="header-row">
@@ -230,16 +215,15 @@ function renderViewerGoalieCard(goalies, match) {
         </thead>
         <tbody>
           ${hasMultiple ? _renderGoalieMultiRows(goalies, match) : `
-          <tr><td class="num team-A">${goalies.A.saves}</td><td class="label" style="text-align:center;">obrony</td><td class="num team-B">${goalies.B.saves}</td></tr>
-          <tr><td class="num team-A">${goalies.A.goalsAgainst}</td><td class="label" style="text-align:center;">bramki stracone</td><td class="num team-B">${goalies.B.goalsAgainst}</td></tr>
-          <tr><td class="num team-A">${goalies.A.shotsOnGoal}</td><td class="label" style="text-align:center;">strzały na bramkę (faced)</td><td class="num team-B">${goalies.B.shotsOnGoal}</td></tr>
-          <tr class="summary-row"><td class="num team-A">${fmt(goalies.A.savePct)}</td><td class="label" style="text-align:center;">% obron</td><td class="num team-B">${fmt(goalies.B.savePct)}</td></tr>
+          <tr><td class="num team-A">${goalies.A.saves}</td><td class="label" style="text-align:center;">${T('viewer.goalie.saves')}</td><td class="num team-B">${goalies.B.saves}</td></tr>
+          <tr><td class="num team-A">${goalies.A.goalsAgainst}</td><td class="label" style="text-align:center;">${T('viewer.goalie.goals_ag')}</td><td class="num team-B">${goalies.B.goalsAgainst}</td></tr>
+          <tr><td class="num team-A">${goalies.A.shotsOnGoal}</td><td class="label" style="text-align:center;">${T('viewer.goalie.shots_on')}</td><td class="num team-B">${goalies.B.shotsOnGoal}</td></tr>
+          <tr class="summary-row"><td class="num team-A">${fmt(goalies.A.savePct)}</td><td class="label" style="text-align:center;">${T('viewer.goalie.save_pct')}</td><td class="num team-B">${fmt(goalies.B.savePct)}</td></tr>
           `}
         </tbody>
       </table>
-      <div style="margin-top:8px;font-size:11px;color:#888;">obrona = strzał celny przeciwnika (zgodnie z konwencją: obrona bramkarza lub trafienie w słupek księgowane razem)</div>
-    </div>
-  `;
+      <div style="margin-top:8px;font-size:11px;color:#888;">${T('viewer.goalie.note')}</div>
+    </div>`;
 }
 
 function _renderGoalieMultiRows(goalies, match) {
@@ -251,13 +235,13 @@ function _renderGoalieMultiRows(goalies, match) {
   for (let i = 0; i < maxLen; i++) {
     const gA = listA[i];
     const gB = listB[i];
-    const labelA = gA ? (gA.number !== null ? `#${gA.number}` : '(brak nr)') : '';
-    const labelB = gB ? (gB.number !== null ? `#${gB.number}` : '(brak nr)') : '';
+    const labelA = gA ? (gA.number !== null ? `#${gA.number}` : T('goalie.no_nr')) : '';
+    const labelB = gB ? (gB.number !== null ? `#${gB.number}` : T('goalie.no_nr')) : '';
     html += `<tr><td class="goalie-name team-A">${labelA}</td><td></td><td class="goalie-name team-B">${labelB}</td></tr>`;
-    html += `<tr><td class="num team-A">${gA ? gA.saves : ''}</td><td class="label" style="text-align:center;">obrony</td><td class="num team-B">${gB ? gB.saves : ''}</td></tr>`;
-    html += `<tr><td class="num team-A">${gA ? gA.goalsAgainst : ''}</td><td class="label" style="text-align:center;">bramki stracone</td><td class="num team-B">${gB ? gB.goalsAgainst : ''}</td></tr>`;
-    html += `<tr><td class="num team-A">${gA ? gA.shotsOnGoal : ''}</td><td class="label" style="text-align:center;">strzały na bramkę</td><td class="num team-B">${gB ? gB.shotsOnGoal : ''}</td></tr>`;
-    html += `<tr class="summary-row"><td class="num team-A">${gA ? fmt(gA.savePct) : ''}</td><td class="label" style="text-align:center;">% obron</td><td class="num team-B">${gB ? fmt(gB.savePct) : ''}</td></tr>`;
+    html += `<tr><td class="num team-A">${gA ? gA.saves : ''}</td><td class="label" style="text-align:center;">${T('viewer.goalie.saves')}</td><td class="num team-B">${gB ? gB.saves : ''}</td></tr>`;
+    html += `<tr><td class="num team-A">${gA ? gA.goalsAgainst : ''}</td><td class="label" style="text-align:center;">${T('viewer.goalie.goals_ag')}</td><td class="num team-B">${gB ? gB.goalsAgainst : ''}</td></tr>`;
+    html += `<tr><td class="num team-A">${gA ? gA.shotsOnGoal : ''}</td><td class="label" style="text-align:center;">${T('viewer.goalie.shots_on')}</td><td class="num team-B">${gB ? gB.shotsOnGoal : ''}</td></tr>`;
+    html += `<tr class="summary-row"><td class="num team-A">${gA ? fmt(gA.savePct) : ''}</td><td class="label" style="text-align:center;">${T('viewer.goalie.save_pct')}</td><td class="num team-B">${gB ? fmt(gB.savePct) : ''}</td></tr>`;
   }
   return html;
 }
@@ -265,11 +249,11 @@ function _renderGoalieMultiRows(goalies, match) {
 function renderViewerPerPeriodCard(perPeriod, match) {
   return `
     <div class="viewer-card per-period">
-      <h3>Podział per okres</h3>
+      <h3>${T('viewer.period.title')}</h3>
       <table class="stats-table">
         <thead>
           <tr class="header-row">
-            <th class="label">Okres</th>
+            <th class="label">${T('viewer.period.period')}</th>
             <th class="team-A">${escapeHtml(match.team_A)}</th>
             <th class="team-B">${escapeHtml(match.team_B)}</th>
           </tr>
@@ -278,15 +262,13 @@ function renderViewerPerPeriodCard(perPeriod, match) {
           ${perPeriod.map(p => `
             <tr>
               <td class="label">${periodLabel(p.period)}</td>
-              <td class="num team-A">${p.A_shots} <span style="color:#888">(${p.A_goals} ${p.A_goals === 1 ? 'gol' : 'goli'})</span></td>
-              <td class="num team-B">${p.B_shots} <span style="color:#888">(${p.B_goals} ${p.B_goals === 1 ? 'gol' : 'goli'})</span></td>
-            </tr>
-          `).join('')}
+              <td class="num team-A">${p.A_shots} <span style="color:#888">(${p.A_goals} ${T_n(p.A_goals, 'viewer.period.goal', 'viewer.period.goals')})</span></td>
+              <td class="num team-B">${p.B_shots} <span style="color:#888">(${p.B_goals} ${T_n(p.B_goals, 'viewer.period.goal', 'viewer.period.goals')})</span></td>
+            </tr>`).join('')}
         </tbody>
       </table>
-      <div style="margin-top:8px;font-size:11px;color:#888;">format: liczba strzałów (liczba goli)</div>
-    </div>
-  `;
+      <div style="margin-top:8px;font-size:11px;color:#888;">${T('viewer.period.format')}</div>
+    </div>`;
 }
 
 function renderViewerShotChartCard(match, filtered, periodOptions) {
@@ -296,38 +278,37 @@ function renderViewerShotChartCard(match, filtered, periodOptions) {
 
   return `
     <div class="viewer-card shot-chart">
-      <h3>Shot chart</h3>
+      <h3>${T('viewer.chart.title')}</h3>
       <div class="viewer-controls">
-        <span class="ctrl-label">Widok:</span>
+        <span class="ctrl-label">${T('viewer.chart.view')}</span>
         <div class="toggle-group">
-          <button class="btn ${v.view_mode === 'full'   ? 'btn-active' : ''}" data-action="viewer-set-mode" data-arg="full">Pełne boisko</button>
-          <button class="btn ${v.view_mode === 'half-A' ? 'btn-active' : ''}" data-action="viewer-set-mode" data-arg="half-A">Połowa ${escapeHtml(match.team_A)}</button>
-          <button class="btn ${v.view_mode === 'half-B' ? 'btn-active' : ''}" data-action="viewer-set-mode" data-arg="half-B">Połowa ${escapeHtml(match.team_B)}</button>
+          <button class="btn ${v.view_mode === 'full'   ? 'btn-active' : ''}" data-action="viewer-set-mode" data-arg="full">${T('viewer.chart.full')}</button>
+          <button class="btn ${v.view_mode === 'half-A' ? 'btn-active' : ''}" data-action="viewer-set-mode" data-arg="half-A">${T('viewer.chart.half')} ${escapeHtml(match.team_A)}</button>
+          <button class="btn ${v.view_mode === 'half-B' ? 'btn-active' : ''}" data-action="viewer-set-mode" data-arg="half-B">${T('viewer.chart.half')} ${escapeHtml(match.team_B)}</button>
         </div>
-        <span class="ctrl-label" style="margin-left:8px;">Tryb:</span>
+        <span class="ctrl-label" style="margin-left:8px;">${T('viewer.chart.mode')}</span>
         <div class="toggle-group">
-          <button class="btn ${v.display_mode === 'markers' ? 'btn-active' : ''}" data-action="viewer-set-display" data-arg="markers">Markery</button>
-          <button class="btn ${v.display_mode === 'heatmap' ? 'btn-active' : ''}" data-action="viewer-set-display" data-arg="heatmap">Heatmap</button>
+          <button class="btn ${v.display_mode === 'markers' ? 'btn-active' : ''}" data-action="viewer-set-display" data-arg="markers">${T('viewer.chart.markers')}</button>
+          <button class="btn ${v.display_mode === 'heatmap' ? 'btn-active' : ''}" data-action="viewer-set-display" data-arg="heatmap">${T('viewer.chart.heatmap')}</button>
         </div>
-        <span class="ctrl-label" style="margin-left:8px;">Okres:</span>
+        <span class="ctrl-label" style="margin-left:8px;">${T('viewer.chart.period')}</span>
         <select id="filter-period" data-action="viewer-set-period-filter">
-          <option value="all" ${v.filter_period === 'all' ? 'selected' : ''}>wszystkie</option>
+          <option value="all" ${v.filter_period === 'all' ? 'selected' : ''}>${T('viewer.chart.all')}</option>
           ${periodOptions.map(p => `<option value="${p}" ${v.filter_period === p ? 'selected' : ''}>${periodLabel(p)}</option>`).join('')}
         </select>
-        <span class="ctrl-label" style="margin-left:8px;">Rezultat:</span>
+        <span class="ctrl-label" style="margin-left:8px;">${T('viewer.chart.result')}</span>
         <select id="filter-result" data-action="viewer-set-result-filter">
-          <option value="all"      ${v.filter_result === 'all'      ? 'selected' : ''}>wszystkie</option>
-          <option value="gol"      ${v.filter_result === 'gol'      ? 'selected' : ''}>tylko gole</option>
-          <option value="celny"    ${v.filter_result === 'celny'    ? 'selected' : ''}>tylko celne</option>
-          <option value="niecelny" ${v.filter_result === 'niecelny' ? 'selected' : ''}>tylko niecelne</option>
+          <option value="all"      ${v.filter_result === 'all'      ? 'selected' : ''}>${T('viewer.chart.all')}</option>
+          <option value="gol"      ${v.filter_result === 'gol'      ? 'selected' : ''}>${T('viewer.chart.goals_only')}</option>
+          <option value="celny"    ${v.filter_result === 'celny'    ? 'selected' : ''}>${T('viewer.chart.on_target')}</option>
+          <option value="niecelny" ${v.filter_result === 'niecelny' ? 'selected' : ''}>${T('viewer.chart.off_target')}</option>
         </select>
       </div>
       <div id="viewer-chart-host"></div>
       <div class="shot-chart-stats">
-        <span><strong>${filtered.length}</strong> strzałów na widoku${(v.filter_period !== 'all' || v.filter_result !== 'all') ? ' (po filtrach)' : ''}</span>
+        <span><strong>${filtered.length}</strong> ${T('viewer.chart.shots_on_view')}${(v.filter_period !== 'all' || v.filter_result !== 'all') ? T('viewer.chart.after_filters') : ''}</span>
         <span>•</span>
-        <span>Zza połowy: <strong style="color:#1d4ed8">${escapeHtml(match.team_A)}: ${ownHalfA}</strong>, <strong style="color:#b91c1c">${escapeHtml(match.team_B)}: ${ownHalfB}</strong></span>
+        <span>${T('viewer.chart.from_half')}<strong style="color:#1d4ed8">${escapeHtml(match.team_A)}: ${ownHalfA}</strong>, <strong style="color:#b91c1c">${escapeHtml(match.team_B)}: ${ownHalfB}</strong></span>
       </div>
-    </div>
-  `;
+    </div>`;
 }

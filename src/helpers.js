@@ -32,7 +32,7 @@ function _renderPresenceBadge(inputCount, viewerCount, selfMode) {
   const viewers = selfMode === 'viewer' ? Math.max(0, viewerCount - 1) : viewerCount;
   if (editors === 0 && viewers === 0) return '';
   const parts = [];
-  if (editors > 0) parts.push(`<span class="presence-badge presence-badge-input" title="${editors} ${editors === 1 ? 'osoba edytuje' : 'osoby edytują'}">✏️ ${editors}</span>`);
-  if (viewers > 0) parts.push(`<span class="presence-badge presence-badge-viewer" title="${viewers} ${viewers === 1 ? 'osoba ogląda' : 'osoby oglądają'}">👁 ${viewers}</span>`);
+  if (editors > 0) parts.push(`<span class="presence-badge presence-badge-input" title="${editors} ${T_n(editors, 'presence.editor_1', 'presence.editor_n')}">✏️ ${editors}</span>`);
+  if (viewers > 0) parts.push(`<span class="presence-badge presence-badge-viewer" title="${viewers} ${T_n(viewers, 'presence.viewer_1', 'presence.viewer_n')}">👁 ${viewers}</span>`);
   return parts.join('');
 }
