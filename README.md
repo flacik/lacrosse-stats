@@ -175,8 +175,8 @@ cd src/
 
 **v2.2.0 (2026-06-09)** — team comparison in analytics:
 
-- New **"Porównanie drużyn"** tab in the analytics screen; mode toggle switches between single-team analysis and two-team comparison without losing filter state
-- Filter bar switches to "Drużyna 1" / "Drużyna 2" selectors in comparison mode; tournament / period / date filters apply to both teams equally
+- New **"Team comparison"** tab in the analytics screen; mode toggle switches between single-team analysis and two-team comparison without losing filter state
+- Filter bar switches to "Team 1" / "Team 2" selectors in comparison mode; tournament / period / date filters apply to both teams equally
 - **Overall comparison table** — three-column layout (team1 | metric | team2) with green highlighting on the better value; covers attack (shots, goals, accuracy, on-target %, man-up, man-down, fast break) and defense (shots conceded, goals conceded, opponent accuracy)
 - **Dual shot charts** — both teams' heatmaps rendered side by side; toggle between fired shots, conceded shots, and zone efficiency heatmap applies to both simultaneously
 - **Head-to-head section** — W/D/L summary with large counters, full match history table for their mutual matches, and a separate H2H stats comparison (goals, shots, accuracy)
