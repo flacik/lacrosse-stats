@@ -161,7 +161,7 @@ cd src/
 
 ## Status
 
-**Current: v2.3.1 — deployed 2026-06-09**
+**Current: v2.3.2 — deployed 2026-06-09**
 
 ### Versioning rules
 
@@ -172,6 +172,11 @@ cd src/
 | **PATCH** | Bug fix, UI tweak, performance improvement |
 
 ### Changelog
+
+**v2.3.2 (2026-06-09)** — PDF shot chart improvements:
+
+- Match report shot chart reduced from 4 maps to 2 — one per team (shots fired), side by side; "shots conceded" maps removed as they were duplicates of the opposing team's "shots fired"
+- Shot chart in PDF now shows individual markers (goal = filled circle, on-target = open circle, off-target = X) with a legend, replacing the heatmap view
 
 **v2.3.1 (2026-06-09)** — bug fix:
 

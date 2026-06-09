@@ -6394,10 +6394,8 @@ function openMatchReport(matchId) {
 
   var evA = shotEvents.filter(function(e) { return e.team_event === match.team_A; });
   var evB = shotEvents.filter(function(e) { return e.team_event === match.team_B; });
-  var svgA_off = _reportHalfFieldSvg(evA, match.team_A, false);
-  var svgA_def = _reportHalfFieldSvg(evB, match.team_B, true);
-  var svgB_off = _reportHalfFieldSvg(evB, match.team_B, false);
-  var svgB_def = _reportHalfFieldSvg(evA, match.team_A, true);
+  var svgA = _reportHalfFieldSvg(evA, match.team_A, false);
+  var svgB = _reportHalfFieldSvg(evB, match.team_B, false);
 
   var title    = escapeHtml(match.team_A) + ' vs ' + escapeHtml(match.team_B);
   var subtitle = [match.tournament, match.match_date].filter(Boolean).map(escapeHtml).join(' · ');
@@ -6408,7 +6406,7 @@ function openMatchReport(matchId) {
     _sectionSituations(situation, match),
     _sectionGoalies(goalies, match),
     _sectionPerPeriod(perPeriod, match),
-    _sectionShotCharts(svgA_off, svgA_def, svgB_off, svgB_def, match),
+    _sectionShotCharts(svgA, svgB, match),
   ]);
 
   _openPrintWindow(html);
@@ -6575,26 +6573,21 @@ function _sectionPerPeriod(perPeriod, match) {
     '<tbody>' + rows + '</tbody></table>');
 }
 
-function _sectionShotCharts(svgA_off, svgA_def, svgB_off, svgB_def, match) {
-  function teamRow(label, cls, svgOff, svgDef) {
-    return '<div class="chart-team-row">' +
-      '<div class="chart-team-label ' + cls + '">' + escapeHtml(label) + '</div>' +
-      '<div class="shot-charts">' +
-        '<div class="chart-col">' +
-          '<div class="chart-sublabel">' + T('report.shots_fired') + '</div>' +
-          '<div class="chart-svg">' + svgOff + '</div>' +
-        '</div>' +
-        '<div class="chart-col">' +
-          '<div class="chart-sublabel">' + T('report.shots_conceded') + '</div>' +
-          '<div class="chart-svg">' + svgDef + '</div>' +
-        '</div>' +
-      '</div>' +
-    '</div>';
-  }
+function _sectionShotCharts(svgA, svgB, match) {
+  var legendHtml = buildFieldLegend(null, {}).outerHTML;
   return '<div class="section page-break">' +
     '<h2>' + T('report.shot_chart') + '</h2>' +
-    teamRow(match.team_A, 'team-a', svgA_off, svgA_def) +
-    teamRow(match.team_B, 'team-b', svgB_off, svgB_def) +
+    '<div class="shot-charts">' +
+      '<div class="chart-col">' +
+        '<div class="chart-label team-a">' + escapeHtml(match.team_A) + '</div>' +
+        '<div class="chart-svg">' + svgA + '</div>' +
+      '</div>' +
+      '<div class="chart-col">' +
+        '<div class="chart-label team-b">' + escapeHtml(match.team_B) + '</div>' +
+        '<div class="chart-svg">' + svgB + '</div>' +
+      '</div>' +
+    '</div>' +
+    legendHtml +
   '</div>';
 }
 
@@ -6705,6 +6698,7 @@ function _sectionAnalyticsShotCharts(svgOff, svgDef, teamName) {
       (svgOff ? '<div class="chart-col"><div class="chart-sublabel">' + T('report.shots_fired') + '</div><div class="chart-svg">' + svgOff + '</div></div>' : '') +
       (svgDef ? '<div class="chart-col"><div class="chart-sublabel">' + T('report.shots_conceded') + '</div><div class="chart-svg">' + svgDef + '</div></div>' : '') +
     '</div>' +
+    buildFieldLegend(null, {}).outerHTML +
   '</div>';
 }
 
@@ -6753,7 +6747,7 @@ function _reportHalfFieldSvg(shotEvents, teamName, useSlotB) {
     ? { id: '__report__', team_A: '__other__', team_B: teamName, team_A_side: 'left' }
     : { id: '__report__', team_A: teamName,    team_B: '__other__', team_A_side: 'left' };
   var mockEvents = shotEvents.map(function(e) { return Object.assign({}, e, { team_event: teamName }); });
-  var mockViewer = { view_mode: 'half-' + slot, display_mode: 'heatmap' };
+  var mockViewer = { view_mode: 'half-' + slot, display_mode: 'markers' };
   drawHalfFieldChart(svg, mockMatch, mockEvents, mockViewer);
   return svg.outerHTML;
 }
@@ -6804,6 +6798,9 @@ function _reportCss() {
     '.chart-svg svg{width:100%;height:auto}',
     '.chart-team-row{margin-bottom:10pt;page-break-inside:avoid}',
     '.chart-team-label{font-weight:700;font-size:10pt;margin-bottom:5pt;padding-bottom:2pt;border-bottom:1px solid #e5e7eb}',
+    '.field-legend{display:flex;gap:10pt;flex-wrap:wrap;font-size:8pt;color:#6b7280;margin-top:4pt;padding-top:4pt;border-top:1px solid #e5e7eb}',
+    '.leg-item{display:flex;align-items:center;gap:4px}',
+    '.leg-item svg{flex-shrink:0}',
   ].join('\n');
 }
 
