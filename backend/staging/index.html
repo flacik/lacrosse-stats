@@ -3571,7 +3571,9 @@ function buildFieldSvg(match) {
     const fillColor = teamSlotName === 'A' ? '#1d4ed8' : '#b91c1c';
     const isOwnHalf = e.zone_name === 'own-half';
     const isGoal = e.result === 'gol';
+    const isMissed = e.result === 'niecelny';
     const dotR = isLatest ? 11 : 7;
+    const sw = isLatest ? (isOwnHalf ? 4 : 3) : (isOwnHalf ? 3 : 2);
 
     // Man-up / man-down outer ring (rendered before dot so dot sits on top)
     if (e.man_up || e.man_down) {
@@ -3586,18 +3588,27 @@ function buildFieldSvg(match) {
       markersG.appendChild(svgEl('circle', ringAttrs));
     }
 
-    const dot = svgEl('circle', {
-      cx: sx, cy: sy,
-      r: dotR,
-      fill: isGoal ? fillColor : 'transparent',
-      stroke: isOwnHalf ? '#ca8a04' : (isGoal ? 'white' : fillColor),
-      'stroke-width': isLatest ? (isOwnHalf ? 4 : 3) : (isOwnHalf ? 3 : 2),
-      class: 'marker' + (isLatest ? ' latest' : '')
-    });
+    let markerEl;
+    if (isMissed) {
+      const s = dotR - 2;
+      const xColor = isOwnHalf ? '#ca8a04' : fillColor;
+      markerEl = svgEl('g', { class: 'marker' + (isLatest ? ' latest' : '') });
+      markerEl.appendChild(svgEl('line', { x1: sx - s, y1: sy - s, x2: sx + s, y2: sy + s, stroke: xColor, 'stroke-width': sw, 'stroke-linecap': 'round' }));
+      markerEl.appendChild(svgEl('line', { x1: sx + s, y1: sy - s, x2: sx - s, y2: sy + s, stroke: xColor, 'stroke-width': sw, 'stroke-linecap': 'round' }));
+    } else {
+      markerEl = svgEl('circle', {
+        cx: sx, cy: sy,
+        r: dotR,
+        fill: isGoal ? fillColor : 'transparent',
+        stroke: isOwnHalf ? '#ca8a04' : (isGoal ? 'white' : fillColor),
+        'stroke-width': sw,
+        class: 'marker' + (isLatest ? ' latest' : '')
+      });
+    }
 
     if (e.assisted) {
       const g = svgEl('g');
-      g.appendChild(dot);
+      g.appendChild(markerEl);
       const bx = sx + dotR - 2;
       const by = sy - dotR + 2;
       g.appendChild(svgEl('circle', { cx: bx, cy: by, r: 6, fill: '#f59e0b', stroke: 'white', 'stroke-width': 1 }));
@@ -3607,7 +3618,7 @@ function buildFieldSvg(match) {
       g.appendChild(t);
       markersG.appendChild(g);
     } else {
-      markersG.appendChild(dot);
+      markersG.appendChild(markerEl);
     }
 
     if (e.fast_break) {
