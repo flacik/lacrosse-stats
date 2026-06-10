@@ -227,7 +227,7 @@ function drawFullFieldChart(svg, match, filtered, viewer) {
   rLab.textContent = `← ${match.team_B}`;
   sideLabels.appendChild(rLab);
   const note = svgEl('text', { x: 550, y: 35, 'text-anchor': 'middle', 'font-size': 11, fill: '#999' });
-  note.textContent = 'widok kanoniczny — A zawsze po lewej';
+  note.textContent = T('field.canonical_note');
   sideLabels.appendChild(note);
   svg.appendChild(sideLabels);
 
@@ -247,7 +247,7 @@ function drawHalfFieldChart(svg, match, filtered, viewer) {
   // Portrait orientation: attack axis goes upward, goal at the top.
   // viewBox: 540 wide × 660 tall (50px title strip + 600 tall field + 10px buffer).
   const title = svgEl('text', { x: 270, y: 28, 'text-anchor': 'middle', 'font-size': 18, 'font-weight': 700, fill: teamColor });
-  title.textContent = `${teamName} — atak ↑ (bramka u góry)`;
+  title.textContent = `${teamName} — ${T('field.attack_up')}`;
   svg.appendChild(title);
 
   const fieldG = svgEl('g', { transform: 'translate(0, 50)' });
@@ -408,33 +408,33 @@ function buildFieldLegend(match, opts) {
   div.innerHTML = `
     <span class="leg-item">
       <svg width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7" r="6" fill="#1d4ed8"/></svg>
-      Bramka (A)
+      ${T('legend.goal')} (A)
     </span>
     <span class="leg-item">
       <svg width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7" r="5" fill="none" stroke="#1d4ed8" stroke-width="2"/></svg>
-      Celny (A)
+      ${T('legend.on_target')} (A)
     </span>
     <span class="leg-item">
       <svg width="14" height="14" viewBox="0 0 14 14">
         <line x1="2" y1="2" x2="12" y2="12" stroke="#1d4ed8" stroke-width="2"/>
         <line x1="12" y1="2" x2="2" y2="12" stroke="#1d4ed8" stroke-width="2"/>
       </svg>
-      Niecelny (A)
+      ${T('legend.off_target')} (A)
     </span>
     <span class="leg-item">
       <svg width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7" r="6" fill="#b91c1c"/></svg>
-      Bramka (B)
+      ${T('legend.goal')} (B)
     </span>
     <span class="leg-item">
       <svg width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7" r="5" fill="none" stroke="#b91c1c" stroke-width="2"/></svg>
-      Celny (B)
+      ${T('legend.on_target')} (B)
     </span>
     <span class="leg-item">
       <svg width="14" height="14" viewBox="0 0 14 14">
         <line x1="2" y1="2" x2="12" y2="12" stroke="#b91c1c" stroke-width="2"/>
         <line x1="12" y1="2" x2="2" y2="12" stroke="#b91c1c" stroke-width="2"/>
       </svg>
-      Niecelny (B)
+      ${T('legend.off_target')} (B)
     </span>
     ${opts.includeManUp ? `
     <span class="leg-item">
@@ -442,14 +442,14 @@ function buildFieldLegend(match, opts) {
         <circle cx="10" cy="10" r="9" fill="none" stroke="#f59e0b" stroke-width="1.5"/>
         <circle cx="10" cy="10" r="5" fill="#1d4ed8"/>
       </svg>
-      Man-up
+      ${T('legend.man_up')}
     </span>
     <span class="leg-item">
       <svg width="20" height="20" viewBox="0 0 20 20">
         <circle cx="10" cy="10" r="9" fill="none" stroke="#7c3aed" stroke-width="1.5" stroke-dasharray="3,2"/>
         <circle cx="10" cy="10" r="5" fill="#1d4ed8"/>
       </svg>
-      Man-down
+      ${T('legend.man_down')}
     </span>
     ` : ''}
     <span class="leg-item">
@@ -458,7 +458,7 @@ function buildFieldLegend(match, opts) {
         <circle cx="17" cy="3" r="4" fill="#f59e0b"/>
         <text x="17" y="3.5" text-anchor="middle" dominant-baseline="middle" font-size="5" font-weight="bold" fill="white">A</text>
       </svg>
-      Asysta
+      ${T('legend.assisted')}
     </span>
     <span class="leg-item">
       <svg width="24" height="14" viewBox="0 0 24 14">
@@ -466,7 +466,7 @@ function buildFieldLegend(match, opts) {
         <line x1="12" y1="7" x2="19" y2="7" stroke="#10b981" stroke-width="2" stroke-linecap="round"/>
         <polyline points="16,4 19,7 16,10" fill="none" stroke="#10b981" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
       </svg>
-      Fast break
+      ${T('legend.fast_break')}
     </span>
   `;
   return div;

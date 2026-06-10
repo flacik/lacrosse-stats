@@ -161,7 +161,7 @@ cd src/
 
 ## Status
 
-**Current: v2.3.2 — deployed 2026-06-09**
+**Current: v2.3.3 — deployed 2026-06-10**
 
 ### Versioning rules
 
@@ -172,6 +172,12 @@ cd src/
 | **PATCH** | Bug fix, UI tweak, performance improvement |
 
 ### Changelog
+
+**v2.3.3 (2026-06-10)** — heatmap and PDF legend translation fix:
+
+- Shot chart legend labels (Goal, On target, Off target, Assisted, Man-up, Man-down, Fast break) now use the active language — previously always rendered in Polish regardless of the selected language
+- Attack direction subtitle on half-field charts ("attack ↑ (goal at top)") and the canonical-view note on full-field charts now translate correctly in EN mode
+- Applies to both the live viewer and the PDF shot chart page
 
 **v2.3.2 (2026-06-09)** — PDF shot chart improvements:
 
