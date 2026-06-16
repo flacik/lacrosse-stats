@@ -10,6 +10,9 @@ backend/reprezentacja/index.html
 backend/liga/.clasp.json
 backend/liga/index.html
 
+backend/mistrzostwa/.clasp.json
+backend/mistrzostwa/index.html
+
 CLAUDE.md
 
 # Internal project management files — never commit

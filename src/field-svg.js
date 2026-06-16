@@ -69,6 +69,10 @@ function buildFieldSvg(match) {
   `;
   fieldG.appendChild(markings);
 
+  if (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.variant === 'field') {
+    fieldG.appendChild(buildFieldLacrosseRozki(1100, 600));
+  }
+
   // Markers (history dots) — convert attacker-relative to physical
   const markersG = svgEl('g');
   const events = eventsForMatch(match.id);
@@ -296,6 +300,9 @@ function drawFieldMarkings(g, w, h) {
   g.appendChild(svgEl('circle', { cx: w * 950 / 1100, cy: h / 2, r: 30, fill: '#9bbf85', stroke: 'white', 'stroke-width': 2 }));
   g.appendChild(svgEl('line',   { x1: w * 150 / 1100, y1: h / 2 - 12, x2: w * 150 / 1100, y2: h / 2 + 12, stroke: 'white', 'stroke-width': 5 }));
   g.appendChild(svgEl('line',   { x1: w * 950 / 1100, y1: h / 2 - 12, x2: w * 950 / 1100, y2: h / 2 + 12, stroke: 'white', 'stroke-width': 5 }));
+  if (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.variant === 'field') {
+    g.appendChild(buildFieldLacrosseRozki(w, h));
+  }
 }
 
 function drawShotsFullField(g, events, match, displayMode) {
@@ -470,6 +477,17 @@ function buildFieldLegend(match, opts) {
     </span>
   `;
   return div;
+}
+
+// ==================== FIELD LACROSSE VARIANT MARKINGS ====================
+
+// Returns an SVG <g> with additional lines specific to field lacrosse (variant='field').
+// Coordinates use the same system as drawFieldMarkings: w=1100, h=600.
+// TODO: opisz dokładne położenie i kształt rózek żeby doprecyzować współrzędne.
+function buildFieldLacrosseRozki(w, h) {
+  const g = svgEl('g', { class: 'field-lacrosse-rozki' });
+  // Placeholder — rózki pojawią się tutaj po ustaleniu współrzędnych.
+  return g;
 }
 
 function drawHeatBlob(g, cx, cy, color) {
