@@ -17,8 +17,8 @@
 
 var CONFIG = {
   // Uzupełnij przed deployem — ID arkuszy z URL Google Sheets
-  PROD_SPREADSHEET_ID: 'UZUPEŁNIJ_ID_ARKUSZA_PROD',
-  DEV_SPREADSHEET_ID:  'UZUPEŁNIJ_ID_ARKUSZA_DEV',
+  PROD_SPREADSHEET_ID: '1UzIkHcaF-Msae84cbzIlEQtLRb3zmiFcshRxcgGgScM',
+  DEV_SPREADSHEET_ID:  '1zwEOombZhVVhQIsSKD23aa4LHwhm-65bOxsqFrdO-NQ',
 
   // Ustaw IS_DEV: false przed deployem produkcyjnym
   IS_DEV: true,
