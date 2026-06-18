@@ -76,6 +76,7 @@ All data is stored in Google Sheets, so the club always has a permanent record o
 | Demo (sample data) | Public, view-only | https://flacik.github.io/lacrosse-stats/ |
 | Reprezentacja (Polish National Team) | Anyone with the link — full editor access | internal |
 | Liga (Polish Lacrosse League) | Viewer: anyone with the link · Editor: `?token=TOKEN` | internal |
+| Mistrzostwa (World Championship, field lacrosse) | In development — `IS_DEV: true`, not yet promoted to prod | internal |
 
 ---
 
@@ -172,6 +173,8 @@ cd src/
 | **PATCH** | Bug fix, UI tweak, performance improvement |
 
 ### Changelog
+
+Each entry is tagged with the deployment(s) it affects: `[all]` ships to every deployment (liga, reprezentacja, mistrzostwa, demo), `[mistrzostwa]` is field-lacrosse-only, `[liga]`/`[reprezentacja]` are box-lacrosse-only. Untagged legacy entries below predate the multi-deployment split and applied to all instances.
 
 **v2.3.3 (2026-06-10)** — heatmap and PDF legend translation fix:
 
