@@ -1037,30 +1037,30 @@ function seedDummyData() {
 
     // ── Turnieje ──────────────────────────────────────────────────────────────
     var tours = [
-      ['t1', 'Liga PL Wiosna 2026', now],
-      ['t2', 'Puchar Polski 2026',  now],
-      ['t3', 'Sparingi',            now],
+      ['t1', 'MŚ 2026 — grupa A',          now],
+      ['t2', 'MŚ 2026 — faza pucharowa',   now],
+      ['t3', 'Sparingi przedturniejowe',   now],
     ];
     tours.forEach(function(t) { tourSheet.appendRow(t); });
 
     // ── Mecze ─────────────────────────────────────────────────────────────────
     // [id, tournament, date, teamA, teamB, created_at, status]
     var matchDefs = [
-      ['m1',  'Liga PL Wiosna 2026', today,        'Hawks',   'Vikings', now, 'live'     ],
-      ['m2',  'Liga PL Wiosna 2026', today,        'Hussars', 'Eagles',  now, 'scheduled'],
-      ['m3',  'Liga PL Wiosna 2026', '2026-02-08', 'Hawks',   'Vikings', now, 'finished' ],
-      ['m4',  'Liga PL Wiosna 2026', '2026-02-08', 'Hussars', 'Eagles',  now, 'finished' ],
-      ['m5',  'Liga PL Wiosna 2026', '2026-02-15', 'Hawks',   'Hussars', now, 'finished' ],
-      ['m6',  'Liga PL Wiosna 2026', '2026-02-15', 'Vikings', 'Eagles',  now, 'finished' ],
-      ['m7',  'Liga PL Wiosna 2026', '2026-02-22', 'Hawks',   'Eagles',  now, 'finished' ],
-      ['m8',  'Liga PL Wiosna 2026', '2026-02-22', 'Vikings', 'Hussars', now, 'finished' ],
-      ['m9',  'Puchar Polski 2026',  '2026-03-08', 'Hawks',   'Hussars', now, 'finished' ],
-      ['m10', 'Puchar Polski 2026',  '2026-03-08', 'Eagles',  'Vikings', now, 'finished' ],
-      ['m11', 'Puchar Polski 2026',  '2026-03-15', 'Hawks',   'Vikings', now, 'finished' ],
-      ['m12', 'Puchar Polski 2026',  '2026-03-15', 'Hussars', 'Eagles',  now, 'finished' ],
-      ['m13', 'Sparingi',            '2026-03-22', 'Wolves',  'Bears',   now, 'finished' ],
-      ['m14', 'Sparingi',            '2026-03-22', 'Hawks',   'Wolves',  now, 'finished' ],
-      ['m15', 'Sparingi',            '2026-03-29', 'Vikings', 'Bears',   now, 'finished' ],
+      ['m1',  'MŚ 2026 — grupa A',        today,        'Polska', 'USA',      now, 'live'     ],
+      ['m2',  'MŚ 2026 — grupa A',        today,        'Niemcy', 'Czechy',   now, 'scheduled'],
+      ['m3',  'MŚ 2026 — grupa A',        '2026-02-08', 'Polska', 'USA',      now, 'finished' ],
+      ['m4',  'MŚ 2026 — grupa A',        '2026-02-08', 'Niemcy', 'Czechy',   now, 'finished' ],
+      ['m5',  'MŚ 2026 — grupa A',        '2026-02-15', 'Polska', 'Niemcy',   now, 'finished' ],
+      ['m6',  'MŚ 2026 — grupa A',        '2026-02-15', 'USA',    'Czechy',   now, 'finished' ],
+      ['m7',  'MŚ 2026 — grupa A',        '2026-02-22', 'Polska', 'Czechy',   now, 'finished' ],
+      ['m8',  'MŚ 2026 — grupa A',        '2026-02-22', 'USA',    'Niemcy',   now, 'finished' ],
+      ['m9',  'MŚ 2026 — faza pucharowa', '2026-03-08', 'Polska', 'Niemcy',   now, 'finished' ],
+      ['m10', 'MŚ 2026 — faza pucharowa', '2026-03-08', 'Czechy', 'USA',      now, 'finished' ],
+      ['m11', 'MŚ 2026 — faza pucharowa', '2026-03-15', 'Polska', 'USA',      now, 'finished' ],
+      ['m12', 'MŚ 2026 — faza pucharowa', '2026-03-15', 'Niemcy', 'Czechy',   now, 'finished' ],
+      ['m13', 'Sparingi przedturniejowe', '2026-03-22', 'Kanada', 'Anglia',   now, 'finished' ],
+      ['m14', 'Sparingi przedturniejowe', '2026-03-22', 'Polska', 'Kanada',   now, 'finished' ],
+      ['m15', 'Sparingi przedturniejowe', '2026-03-29', 'USA',    'Anglia',   now, 'finished' ],
     ];
     matchDefs.forEach(function(m) { matchSheet.appendRow(m); });
 
@@ -1126,7 +1126,7 @@ function seedDummyData() {
         gid, gid + '_c', matchId, tour, teamA, teamB, date,
         period, team,
         '', '', '', '', '', '',
-        now, '', 'goalie_set', num
+        now, '', '', 'goalie_set', num
       ]);
     }
 
@@ -1164,7 +1164,7 @@ function seedDummyData() {
             period, team,
             coords[0], coords[1], zone,
             result, manUp, manDown,
-            now, '', '', ''
+            now, '', '', '', ''
           ]);
         }
       });

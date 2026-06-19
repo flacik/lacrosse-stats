@@ -1123,7 +1123,7 @@ function seedDummyData() {
         gid, gid + '_c', matchId, tour, teamA, teamB, date,
         period, team,
         '', '', '', '', '', '',
-        now, '', 'goalie_set', num
+        now, '', '', 'goalie_set', num
       ]);
     }
 
@@ -1161,7 +1161,7 @@ function seedDummyData() {
             period, team,
             coords[0], coords[1], zone,
             result, manUp, manDown,
-            now, '', '', ''
+            now, '', '', '', ''
           ]);
         }
       });
