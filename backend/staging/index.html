@@ -3569,6 +3569,10 @@ function buildFieldSvg(match) {
   `;
   fieldG.appendChild(markings);
 
+  if (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.variant === 'field') {
+    fieldG.appendChild(buildFieldLacrosseRozki(1100, 600));
+  }
+
   // Markers (history dots) — convert attacker-relative to physical
   const markersG = svgEl('g');
   const events = eventsForMatch(match.id);
@@ -3768,6 +3772,10 @@ function drawHalfFieldChart(svg, match, filtered, viewer) {
   fieldG.appendChild(svgEl('circle', { cx: 270, cy: 163.64, r: 27, fill: '#9bbf85', stroke: 'white', 'stroke-width': 2 }));
   fieldG.appendChild(svgEl('line',   { x1: 258, y1: 163.64, x2: 282, y2: 163.64, stroke: 'white', 'stroke-width': 5 }));
 
+  if (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.variant === 'field') {
+    fieldG.appendChild(buildFieldLacrosseRozkiHalf());
+  }
+
   // Plot only shots with shot_x ≥ 0 (skip own-half).
   // Rotation mapping: attacker shot_x (0→1, center→end) → cy = (1 − shot_x) × 600 (bottom→top).
   //                   attacker shot_y (0→1, attacker-left→right) → cx = shot_y × 540.
@@ -3796,6 +3804,9 @@ function drawFieldMarkings(g, w, h) {
   g.appendChild(svgEl('circle', { cx: w * 950 / 1100, cy: h / 2, r: 30, fill: '#9bbf85', stroke: 'white', 'stroke-width': 2 }));
   g.appendChild(svgEl('line',   { x1: w * 150 / 1100, y1: h / 2 - 12, x2: w * 150 / 1100, y2: h / 2 + 12, stroke: 'white', 'stroke-width': 5 }));
   g.appendChild(svgEl('line',   { x1: w * 950 / 1100, y1: h / 2 - 12, x2: w * 950 / 1100, y2: h / 2 + 12, stroke: 'white', 'stroke-width': 5 }));
+  if (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.variant === 'field') {
+    g.appendChild(buildFieldLacrosseRozki(w, h));
+  }
 }
 
 function drawShotsFullField(g, events, match, displayMode) {
@@ -3970,6 +3981,117 @@ function buildFieldLegend(match, opts) {
     </span>
   `;
   return div;
+}
+
+// ==================== FIELD LACROSSE VARIANT MARKINGS ====================
+
+// Returns an SVG <g> with additional lines specific to field lacrosse (variant='field'):
+// GLE (3m–15m), łuk 15m, rózki + łuk 11m z kreskami hash, punkty 4m, koło środkowe 9m.
+// Coordinates are defined for the base 1100×600 canvas and scaled to the given w/h
+// (same convention as drawFieldMarkings). Crease/goal-mouth stay canonical (r=30) —
+// drawn separately in drawFieldMarkings so charts remain comparable across variants.
+function buildFieldLacrosseRozki(w, h) {
+  const g = svgEl('g', { class: 'field-lacrosse-rozki' });
+  const scaleX = w / 1100;
+  const scaleY = h / 600;
+  const sx = x => x * scaleX;
+  const sy = y => y * scaleY;
+
+  const line = (x1, y1, x2, y2, opts = {}) => g.appendChild(svgEl('line', {
+    x1: sx(x1), y1: sy(y1), x2: sx(x2), y2: sy(y2),
+    stroke: 'white', 'stroke-width': 1.5, ...opts
+  }));
+  const arc = (x1, y1, rBase, sweep, x2, y2, opts = {}) => g.appendChild(svgEl('path', {
+    d: `M ${sx(x1)} ${sy(y1)} A ${rBase * scaleX} ${rBase * scaleY} 0 0 ${sweep} ${sx(x2)} ${sy(y2)}`,
+    stroke: 'white', fill: 'none', 'stroke-width': 1.5, ...opts
+  }));
+
+  // GLE — 3m–15m od środka bramki, po obu stronach
+  line(150, 135, 150, 267, { opacity: 0.8 });
+  line(150, 333, 150, 465, { opacity: 0.8 });
+  line(950, 135, 950, 267, { opacity: 0.8 });
+  line(950, 333, 950, 465, { opacity: 0.8 });
+
+  // Łuk 15m
+  arc(150, 135, 165, 1, 150, 465, { opacity: 0.7 });
+  arc(950, 135, 165, 0, 950, 465, { opacity: 0.7 });
+
+  // Rózki + łuk 11m
+  line(150, 270, 219.2, 200.8);
+  line(150, 330, 219.2, 399.2);
+  arc(219.2, 200.8, 121, 1, 219.2, 399.2);
+  line(950, 270, 880.8, 200.8);
+  line(950, 330, 880.8, 399.2);
+  arc(880.8, 200.8, 121, 0, 880.8, 399.2);
+
+  // Kreski hash na łuku 11m (7 marks: center + ±2×4m + ostatnia para na styku rurek ~55°)
+  [
+    [267, 300, 275, 300], [259.4, 341.6, 266.8, 344.5], [259.4, 258.4, 266.8, 255.5],
+    [237.4, 377.8, 243.4, 383.1], [237.4, 222.2, 243.4, 216.9],
+    [216.9, 396.0, 221.5, 402.5], [216.9, 204.0, 221.5, 197.5],
+  ].forEach(([x1, y1, x2, y2]) => line(x1, y1, x2, y2));
+  [
+    [825, 300, 833, 300], [833.2, 344.5, 840.6, 341.6], [833.2, 255.5, 840.6, 258.4],
+    [856.6, 383.1, 862.6, 377.8], [856.6, 216.9, 862.6, 222.2],
+    [878.5, 402.5, 883.1, 396.0], [878.5, 197.5, 883.1, 204.0],
+  ].forEach(([x1, y1, x2, y2]) => line(x1, y1, x2, y2));
+
+  // Punkty 4m od linii końcowej
+  const dotR = 4 * Math.min(scaleX, scaleY);
+  [[44, 135], [44, 465], [1056, 135], [1056, 465]].forEach(([x, y]) => {
+    g.appendChild(svgEl('circle', { cx: sx(x), cy: sy(y), r: dotR, fill: 'white' }));
+  });
+
+  // Koło środkowe 9m
+  g.appendChild(svgEl('ellipse', {
+    cx: sx(550), cy: sy(300), rx: 99 * scaleX, ry: 99 * scaleY,
+    fill: 'none', stroke: 'white', 'stroke-width': 1.5, opacity: 0.7
+  }));
+
+  return g;
+}
+
+// Half-field equivalent of buildFieldLacrosseRozki, pre-computed for the fixed
+// 540×600 half-field canvas used by drawHalfFieldChart. Derived from the full-field
+// markings via the right-goal transform: cx = sy_full * 0.9, cy = (1100 - sx_full) * 12/11.
+function buildFieldLacrosseRozkiHalf() {
+  const g = svgEl('g', { class: 'field-lacrosse-rozki' });
+  const line = (x1, y1, x2, y2) => g.appendChild(svgEl('line', {
+    x1, y1, x2, y2, stroke: 'white', 'stroke-width': 1.5
+  }));
+
+  // Łuk 15m
+  g.appendChild(svgEl('path', {
+    d: 'M 121.5 163.64 A 148.5 180 0 0 0 270 343.64 A 148.5 180 0 0 0 418.5 163.64',
+    stroke: 'white', fill: 'none', 'stroke-width': 1.5, opacity: 0.7
+  }));
+
+  // Rózki + łuk 11m
+  line(243, 163.64, 180.7, 239.1);
+  line(297, 163.64, 359.3, 239.1);
+  g.appendChild(svgEl('path', {
+    d: 'M 180.7 239.1 A 109 132 0 0 0 359.3 239.1',
+    stroke: 'white', fill: 'none', 'stroke-width': 1.5
+  }));
+
+  // Kreski hash na łuku 11m
+  [
+    [270, 300, 270, 291.3], [310.1, 291.1, 307.4, 283.0], [230.0, 291.1, 232.6, 283.0],
+    [344.8, 265.8, 340.0, 259.3], [195.2, 265.8, 200.0, 259.3],
+    [362.3, 241.6, 356.4, 236.6], [177.8, 241.6, 183.6, 236.6],
+  ].forEach(([x1, y1, x2, y2]) => line(x1, y1, x2, y2));
+
+  // Punkty 4m od linii końcowej
+  g.appendChild(svgEl('circle', { cx: 121.5, cy: 48, r: 4, fill: 'white' }));
+  g.appendChild(svgEl('circle', { cx: 418.5, cy: 48, r: 4, fill: 'white' }));
+
+  // Koło środkowe 9m (połowa widoczna od linii środkowej, sklejona z drugą połową boiska)
+  g.appendChild(svgEl('ellipse', {
+    cx: 270, cy: 600, rx: 89.1, ry: 108,
+    fill: 'none', stroke: 'white', 'stroke-width': 1.5, opacity: 0.7
+  }));
+
+  return g;
 }
 
 function drawHeatBlob(g, cx, cy, color) {
