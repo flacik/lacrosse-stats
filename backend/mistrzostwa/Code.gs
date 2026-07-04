@@ -58,6 +58,7 @@ var EVENT_COLS = [
   'result', 'man_up', 'man_down',
   'created_at', 'assisted', 'fast_break',
   'event_type', 'goalie_number',
+  'free_position', 'penalty_shot',
 ];
 
 var MATCH_COLS = [
@@ -374,6 +375,11 @@ function validateEvent(ev) {
     return 'Sprzeczność: man_up i man_down nie mogą być jednocześnie true';
   }
 
+  // 8b. free_position/penalty_shot wzajemna wyłączność
+  if (ev.free_position && ev.penalty_shot) {
+    return 'Sprzeczność: free_position i penalty_shot nie mogą być jednocześnie true';
+  }
+
   // 9. team_event musi być team_A lub team_B
   if (ev.team_event !== ev.team_A && ev.team_event !== ev.team_B) {
     return 'team_event ("' + ev.team_event + '") musi być równy team_A lub team_B';
@@ -618,10 +624,12 @@ function saveEvent(eventObj) {
     var row = EVENT_COLS.map(function(col) {
       if (col === 'id')         return newId;
       if (col === 'created_at') return createdAt;
-      if (col === 'man_up')     return eventObj.man_up     ? true : false;
-      if (col === 'man_down')   return eventObj.man_down   ? true : false;
-      if (col === 'assisted')   return eventObj.assisted   ? true : false;
-      if (col === 'fast_break') return eventObj.fast_break ? true : false;
+      if (col === 'man_up')        return eventObj.man_up        ? true : false;
+      if (col === 'man_down')      return eventObj.man_down      ? true : false;
+      if (col === 'assisted')      return eventObj.assisted      ? true : false;
+      if (col === 'fast_break')    return eventObj.fast_break    ? true : false;
+      if (col === 'free_position') return eventObj.free_position ? true : false;
+      if (col === 'penalty_shot')  return eventObj.penalty_shot  ? true : false;
       if (col === 'shot_x')     return eventObj.event_type === 'goalie_set' ? '' : parseFloat(eventObj.shot_x);
       if (col === 'shot_y')     return eventObj.event_type === 'goalie_set' ? '' : parseFloat(eventObj.shot_y);
       var val = eventObj[col];
@@ -660,10 +668,12 @@ function updateEvent(id, eventObj) {
     var row = EVENT_COLS.map(function(col) {
       if (col === 'id')         return id;
       if (col === 'created_at') return origCreatedAt;
-      if (col === 'man_up')     return eventObj.man_up     ? true : false;
-      if (col === 'man_down')   return eventObj.man_down   ? true : false;
-      if (col === 'assisted')   return eventObj.assisted   ? true : false;
-      if (col === 'fast_break') return eventObj.fast_break ? true : false;
+      if (col === 'man_up')        return eventObj.man_up        ? true : false;
+      if (col === 'man_down')      return eventObj.man_down      ? true : false;
+      if (col === 'assisted')      return eventObj.assisted      ? true : false;
+      if (col === 'fast_break')    return eventObj.fast_break    ? true : false;
+      if (col === 'free_position') return eventObj.free_position ? true : false;
+      if (col === 'penalty_shot')  return eventObj.penalty_shot  ? true : false;
       if (col === 'shot_x')     return eventObj.event_type === 'goalie_set' ? '' : parseFloat(eventObj.shot_x);
       if (col === 'shot_y')     return eventObj.event_type === 'goalie_set' ? '' : parseFloat(eventObj.shot_y);
       var val = eventObj[col];
@@ -1118,7 +1128,7 @@ function seedDummyData() {
 
     // EVENT_COLS: id, client_event_id, match_id, tournament, team_A, team_B, match_date,
     //             period, team_event, shot_x, shot_y, zone_name, result, man_up, man_down,
-    //             created_at, assisted, event_type, goalie_number
+    //             created_at, assisted, fast_break, event_type, goalie_number, free_position, penalty_shot
 
     function pushGoalie(matchId, tour, teamA, teamB, date, team, num, period) {
       var gid = 'gs_' + matchId + '_' + team.substring(0,3) + '_' + period;
@@ -1126,7 +1136,8 @@ function seedDummyData() {
         gid, gid + '_c', matchId, tour, teamA, teamB, date,
         period, team,
         '', '', '', '', '', '',
-        now, '', '', 'goalie_set', num
+        now, '', '', 'goalie_set', num,
+        false, false
       ]);
     }
 
@@ -1164,7 +1175,8 @@ function seedDummyData() {
             period, team,
             coords[0], coords[1], zone,
             result, manUp, manDown,
-            now, '', '', '', ''
+            now, '', '', '', '',
+            false, false
           ]);
         }
       });

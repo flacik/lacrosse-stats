@@ -120,16 +120,36 @@ function buildFieldSvg(match) {
       });
     }
 
-    if (e.assisted) {
+    if (e.assisted || e.free_position || e.penalty_shot) {
       const g = svgEl('g');
       g.appendChild(markerEl);
-      const bx = sx + dotR - 2;
-      const by = sy - dotR + 2;
-      g.appendChild(svgEl('circle', { cx: bx, cy: by, r: 6, fill: '#f59e0b', stroke: 'white', 'stroke-width': 1 }));
-      const t = svgEl('text', { x: bx, y: by + 0.5, 'text-anchor': 'middle', 'dominant-baseline': 'middle',
-        'font-size': 7, 'font-weight': 'bold', fill: 'white' });
-      t.textContent = 'A';
-      g.appendChild(t);
+      if (e.assisted) {
+        const bx = sx + dotR - 2;
+        const by = sy - dotR + 2;
+        g.appendChild(svgEl('circle', { cx: bx, cy: by, r: 6, fill: '#f59e0b', stroke: 'white', 'stroke-width': 1 }));
+        const t = svgEl('text', { x: bx, y: by + 0.5, 'text-anchor': 'middle', 'dominant-baseline': 'middle',
+          'font-size': 7, 'font-weight': 'bold', fill: 'white' });
+        t.textContent = 'A';
+        g.appendChild(t);
+      }
+      if (e.free_position) {
+        const bx = sx - dotR + 2;
+        const by = sy - dotR + 2;
+        g.appendChild(svgEl('circle', { cx: bx, cy: by, r: 6, fill: '#0891b2', stroke: 'white', 'stroke-width': 1 }));
+        const t = svgEl('text', { x: bx, y: by + 0.5, 'text-anchor': 'middle', 'dominant-baseline': 'middle',
+          'font-size': 7, 'font-weight': 'bold', fill: 'white' });
+        t.textContent = 'W';
+        g.appendChild(t);
+      }
+      if (e.penalty_shot) {
+        const bx = sx - dotR + 2;
+        const by = sy + dotR - 2;
+        g.appendChild(svgEl('circle', { cx: bx, cy: by, r: 6, fill: '#dc2626', stroke: 'white', 'stroke-width': 1 }));
+        const t = svgEl('text', { x: bx, y: by + 0.5, 'text-anchor': 'middle', 'dominant-baseline': 'middle',
+          'font-size': 7, 'font-weight': 'bold', fill: 'white' });
+        t.textContent = 'K';
+        g.appendChild(t);
+      }
       markersG.appendChild(g);
     } else {
       markersG.appendChild(markerEl);
@@ -284,7 +304,7 @@ function drawHalfFieldChart(svg, match, filtered, viewer) {
     const cx = e.shot_y * 540;
     const cy = (1 - e.shot_x) * 600;
     if (viewer.display_mode === 'heatmap') drawHeatBlob(fieldG, cx, cy, teamColor);
-    else                                    drawShotMarker(fieldG, cx, cy, teamColor, e.result, false, e.man_up, e.man_down, e.assisted, e.fast_break);
+    else                                    drawShotMarker(fieldG, cx, cy, teamColor, e.result, false, e.man_up, e.man_down, e.assisted, e.fast_break, e.free_position, e.penalty_shot);
   });
 
   svg.appendChild(fieldG);
@@ -318,11 +338,11 @@ function drawShotsFullField(g, events, match, displayMode) {
     const cx = physical_x * 1100;
     const cy = physical_y * 600;
     if (displayMode === 'heatmap') drawHeatBlob(g, cx, cy, color);
-    else                            drawShotMarker(g, cx, cy, color, e.result, e.zone_name === 'own-half', e.man_up, e.man_down, e.assisted, e.fast_break);
+    else                            drawShotMarker(g, cx, cy, color, e.result, e.zone_name === 'own-half', e.man_up, e.man_down, e.assisted, e.fast_break, e.free_position, e.penalty_shot);
   });
 }
 
-function drawShotMarker(g, cx, cy, color, result, isOwnHalf, manUp, manDown, hasAssist, fastBreak) {
+function drawShotMarker(g, cx, cy, color, result, isOwnHalf, manUp, manDown, hasAssist, fastBreak, freePosition, penaltyShot) {
   const isGoal   = result === 'gol';
   const isMissed = result === 'niecelny';
   const strokeColor = isOwnHalf ? '#ca8a04' : color;
@@ -360,6 +380,28 @@ function drawShotMarker(g, cx, cy, color, result, isOwnHalf, manUp, manDown, has
       'font-size': 6, 'font-weight': 'bold', fill: 'white'
     });
     t.textContent = 'A';
+    g.appendChild(t);
+  }
+
+  if (freePosition) {
+    g.appendChild(svgEl('circle', { cx: cx - 5, cy: cy - 5, r: 5, fill: '#0891b2', stroke: 'white', 'stroke-width': 1 }));
+    const t = svgEl('text', {
+      x: cx - 5, y: cy - 4.5,
+      'text-anchor': 'middle', 'dominant-baseline': 'middle',
+      'font-size': 6, 'font-weight': 'bold', fill: 'white'
+    });
+    t.textContent = 'W';
+    g.appendChild(t);
+  }
+
+  if (penaltyShot) {
+    g.appendChild(svgEl('circle', { cx: cx - 5, cy: cy + 5, r: 5, fill: '#dc2626', stroke: 'white', 'stroke-width': 1 }));
+    const t = svgEl('text', {
+      x: cx - 5, y: cy + 5.5,
+      'text-anchor': 'middle', 'dominant-baseline': 'middle',
+      'font-size': 6, 'font-weight': 'bold', fill: 'white'
+    });
+    t.textContent = 'K';
     g.appendChild(t);
   }
 
@@ -479,6 +521,24 @@ function buildFieldLegend(match, opts) {
       </svg>
       ${T('legend.fast_break')}
     </span>
+    ${opts.includeFieldShotTypes ? `
+    <span class="leg-item">
+      <svg width="22" height="14" viewBox="0 0 22 14">
+        <circle cx="9" cy="7" r="6" fill="#1d4ed8"/>
+        <circle cx="3" cy="1" r="4" fill="#0891b2" stroke="white" stroke-width="1"/>
+        <text x="3" y="1.5" text-anchor="middle" dominant-baseline="middle" font-size="5" font-weight="bold" fill="white">W</text>
+      </svg>
+      ${T('legend.free_position')}
+    </span>
+    <span class="leg-item">
+      <svg width="22" height="14" viewBox="0 0 22 14">
+        <circle cx="9" cy="7" r="6" fill="#1d4ed8"/>
+        <circle cx="3" cy="13" r="4" fill="#dc2626" stroke="white" stroke-width="1"/>
+        <text x="3" y="13.5" text-anchor="middle" dominant-baseline="middle" font-size="5" font-weight="bold" fill="white">K</text>
+      </svg>
+      ${T('legend.penalty_shot')}
+    </span>
+    ` : ''}
   `;
   return div;
 }
