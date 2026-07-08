@@ -232,10 +232,12 @@ function renderHistoryRow(e, match) {
   }
 
   const flags = [];
-  if (e.man_up)      flags.push('<span class="flag man-up">man-up</span>');
-  if (e.man_down)    flags.push('<span class="flag man-down">man-down</span>');
-  if (e.assisted)    flags.push('<span class="flag assisted">A</span>');
-  if (e.fast_break)  flags.push('<span class="flag fast-break">FB</span>');
+  if (e.man_up)        flags.push('<span class="flag man-up">man-up</span>');
+  if (e.man_down)      flags.push('<span class="flag man-down">man-down</span>');
+  if (e.assisted)      flags.push('<span class="flag assisted">A</span>');
+  if (e.fast_break)    flags.push('<span class="flag fast-break">FB</span>');
+  if (e.free_position) flags.push('<span class="flag free-position">FP</span>');
+  if (e.penalty_shot)  flags.push('<span class="flag penalty-shot">PEN</span>');
 
   return `
     <div class="${rowClass}">

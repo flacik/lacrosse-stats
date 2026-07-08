@@ -46,6 +46,8 @@ function renderResultModal(pending) {
         <label><input type="checkbox" id="flag-man-down" data-action="mutex-flag" data-arg="man-down"> ${T('flag.man_down')}</label>
         <label><input type="checkbox" id="flag-assisted"> ${T('flag.assisted')}</label>
         <label><input type="checkbox" id="flag-fast-break"> ${T('flag.fast_break')}</label>
+        <label><input type="checkbox" id="flag-free-position"> ${T('flag.free_position')}</label>
+        <label><input type="checkbox" id="flag-penalty-shot"> ${T('flag.penalty_shot')}</label>
       </div>
       <div class="result-buttons">
         <button class="result-btn niecelny" data-action="submit-result" data-arg="niecelny">${T('result.miss')}</button>
@@ -95,6 +97,8 @@ function renderEditEventModal(e) {
         <label><input type="checkbox" id="edit-man-down" data-action="mutex-edit-flag" data-arg="man-down" ${e.man_down ? 'checked' : ''}> ${T('flag.man_down_short')}</label>
         <label><input type="checkbox" id="edit-assisted" ${e.assisted ? 'checked' : ''}> ${T('flag.assisted')}</label>
         <label><input type="checkbox" id="edit-fast-break" ${e.fast_break ? 'checked' : ''}> ${T('flag.fast_break')}</label>
+        <label><input type="checkbox" id="edit-free-position" ${e.free_position ? 'checked' : ''}> ${T('flag.free_position')}</label>
+        <label><input type="checkbox" id="edit-penalty-shot" ${e.penalty_shot ? 'checked' : ''}> ${T('flag.penalty_shot')}</label>
       </div>
       <div class="modal-actions">
         <button class="btn" data-action="cancel-modal">${T('btn.cancel')}</button>

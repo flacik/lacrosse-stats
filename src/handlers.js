@@ -554,12 +554,15 @@ const HANDLERS = {
     const pending  = APP.modal.pending;
     const manUp     = document.getElementById('flag-man-up').checked;
     const manDown   = document.getElementById('flag-man-down').checked;
-    const assisted  = document.getElementById('flag-assisted')?.checked ?? false;
-    const fastBreak = document.getElementById('flag-fast-break')?.checked ?? false;
+    const assisted      = document.getElementById('flag-assisted')?.checked ?? false;
+    const fastBreak     = document.getElementById('flag-fast-break')?.checked ?? false;
+    const freePosition  = document.getElementById('flag-free-position')?.checked ?? false;
+    const penaltyShot   = document.getElementById('flag-penalty-shot')?.checked ?? false;
     recordEvent({
       shot_x: pending.shot_x, shot_y: pending.shot_y,
       zone_name: pending.zone_name, team_event: pending.team_event,
-      result, man_up: manUp, man_down: manDown, assisted, fast_break: fastBreak
+      result, man_up: manUp, man_down: manDown, assisted, fast_break: fastBreak,
+      free_position: freePosition, penalty_shot: penaltyShot,
     });
     APP.modal = null;
     render();
@@ -577,9 +580,11 @@ const HANDLERS = {
     const result   = document.getElementById('edit-result').value;
     const manUp     = document.getElementById('edit-man-up').checked;
     const manDown   = document.getElementById('edit-man-down').checked;
-    const assisted  = document.getElementById('edit-assisted')?.checked ?? false;
-    const fastBreak = document.getElementById('edit-fast-break')?.checked ?? false;
-    updateEvent(id, { team_event: team, period, result, man_up: manUp, man_down: manDown, assisted, fast_break: fastBreak });
+    const assisted     = document.getElementById('edit-assisted')?.checked ?? false;
+    const fastBreak    = document.getElementById('edit-fast-break')?.checked ?? false;
+    const freePosition = document.getElementById('edit-free-position')?.checked ?? false;
+    const penaltyShot  = document.getElementById('edit-penalty-shot')?.checked ?? false;
+    updateEvent(id, { team_event: team, period, result, man_up: manUp, man_down: manDown, assisted, fast_break: fastBreak, free_position: freePosition, penalty_shot: penaltyShot });
     APP.modal = null;
     render();
   },

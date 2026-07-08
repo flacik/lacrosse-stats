@@ -262,6 +262,8 @@ svg.field.field-half {
 .history-row .flag.man-down { background: #fee2e2; color: #991b1b; }
 .history-row .flag.assisted { background: #fef3c7; color: #92400e; }
 .history-row .flag.fast-break { background: #ede9fe; color: #5b21b6; }
+.history-row .flag.free-position { background: #e0f2fe; color: #075985; }
+.history-row .flag.penalty-shot  { background: #fce7f3; color: #9d174d; }
 .history-row .actions { display: flex; gap: 4px; }
 .history-row .icon-btn {
   background: none; border: none; cursor: pointer;
@@ -745,7 +747,9 @@ table.stats-table td.num {
 [data-theme="dark"] .history-row .flag.man-up { background: #0f2d1c; color: #3fb950; }
 [data-theme="dark"] .history-row .flag.man-down { background: #3d0e0e; color: #f85149; }
 [data-theme="dark"] .history-row .flag.assisted { background: #2d1f00; color: #fcd34d; }
-[data-theme="dark"] .history-row .flag.fast-break { background: #1e1040; color: #a78bfa; }
+[data-theme="dark"] .history-row .flag.fast-break    { background: #1e1040; color: #a78bfa; }
+[data-theme="dark"] .history-row .flag.free-position { background: #0c2535; color: #38bdf8; }
+[data-theme="dark"] .history-row .flag.penalty-shot  { background: #3d0a21; color: #f472b6; }
 [data-theme="dark"] .history-row .icon-btn { color: #6e7681; }
 [data-theme="dark"] .history-row .icon-btn:hover { background: #1c2128; color: #e6edf3; }
 [data-theme="dark"] .history-row .icon-btn.delete:hover { color: #f85149; background: #1f0e0e; }
