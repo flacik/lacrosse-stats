@@ -158,15 +158,16 @@ function renderMatchInput(root) {
             <button data-action="open-goalie-retroactive" class="btn-link goalie-retroactive-v2">${T('goalie.edit_retro')}</button>
           </div>
           <div class="counter-bar counter-bar-v2">
-            <div class="counter-row-v2">
+            <div class="counter-cell-v2">
               <button data-action="record-groundball" data-arg="A" class="counter-btn team-A-color">+</button>
-              <span class="counter-label-v2">Groundball</span>
+              <span class="counter-label-v2">GB</span>
               <span class="counter-val-v2 team-A-color">${counters.gbA}</span>
               <span class="counter-sep-v2">:</span>
               <span class="counter-val-v2 team-B-color">${counters.gbB}</span>
               <button data-action="record-groundball" data-arg="B" class="counter-btn team-B-color">+</button>
             </div>
-            <div class="counter-row-v2">
+            <span class="counter-divider-v2">|</span>
+            <div class="counter-cell-v2">
               <button data-action="record-draw" data-arg="A" class="counter-btn team-A-color">+</button>
               <span class="counter-label-v2">Draw</span>
               <span class="counter-val-v2 team-A-color">${counters.drawA}</span>
