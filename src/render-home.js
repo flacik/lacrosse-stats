@@ -87,6 +87,7 @@ function renderHome(root) {
     ? `<div class="offline-recovery-banner">
         ⚠ ${APP.offlineBanner} ${T_n(APP.offlineBanner, 'offline.event', 'offline.events')} ${T('offline.pending')}
         <div class="offline-recovery-actions">
+          <button class="btn btn-sm btn-primary" data-action="retry-all-offline">${T('btn.retry_all') || 'Ponów wszystkie'}</button>
           <button class="btn btn-sm" data-action="export-offline-backup" title="${T('btn.download_backup')}">${T('btn.download_backup')}</button>
           <button class="btn btn-sm" data-action="import-offline-backup" title="${T('btn.import_backup')}">${T('btn.import_backup')}</button>
         </div>

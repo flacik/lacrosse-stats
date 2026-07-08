@@ -28,6 +28,7 @@ const STRINGS = {
     'btn.add_tournament': '+ Dodaj turniej', 'btn.plan_match': '+ Zaplanuj mecz',
     'btn.add_match': 'Dodaj mecz', 'btn.upload_csv': 'Wgraj plik CSV',
     'btn.download_backup': 'Pobierz kopię', 'btn.import_backup': 'Importuj z pliku',
+    'btn.retry_all': 'Ponów wszystkie',
     'btn.create_adhoc': 'Utwórz i wpisuj statystyki', 'btn.retry_send': 'Wyślij ponownie',
     'btn.show_bars': 'Pokaż bary', 'btn.hide_bars': 'Ukryj bary',
     'period.ot': 'Dogrywka', 'period.quarter': 'Kwarta',

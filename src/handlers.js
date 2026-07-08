@@ -88,6 +88,28 @@ const HANDLERS = {
     render();
   },
 
+  // Ponów wszystkie eventy z offline buffer (przycisk w bannerze na home screen)
+  'retry-all-offline': () => {
+    const buffer = loadOfflineBuffer();
+    if (!buffer.length) return;
+    buffer.forEach(ev => {
+      gasSaveEvent(ev).then(function(result) {
+        removeFromOfflineBuffer(ev.client_event_id);
+        // Jeśli event jest też w DATA.events, zaktualizuj go
+        const idx = DATA.events.findIndex(e => e.client_event_id === ev.client_event_id);
+        if (idx >= 0) {
+          DATA.events[idx] = Object.assign({}, DATA.events[idx], { id: result.id, _syncing: false, _syncError: null });
+        }
+        APP.offlineBanner = loadOfflineBuffer().length || null;
+        render();
+      }).catch(function() {
+        // Zostaje w buforze, spróbuje przy następnym retry
+      });
+    });
+    APP.offlineBanner = buffer.length; // pokaż że wysyłamy
+    render();
+  },
+
   // Ręczny retry eventu z błędem sync (krok 8)
   'retry-event': (clientEventId) => {
     const ev = DATA.events.find(e => e.client_event_id === clientEventId);

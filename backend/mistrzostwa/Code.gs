@@ -21,7 +21,7 @@ var CONFIG = {
   DEV_SPREADSHEET_ID:  '1zwEOombZhVVhQIsSKD23aa4LHwhm-65bOxsqFrdO-NQ',
 
   // Ustaw IS_DEV: false przed deployem produkcyjnym
-  IS_DEV: true,
+  IS_DEV: false,
 
   // Wariant lacrosse — wstrzykiwany do APP_CONFIG w przeglądarce
   VARIANT: 'field',
@@ -315,7 +315,7 @@ function validateEvent(ev) {
   // 1. Required fields (all event types)
   var required = [
     'client_event_id', 'match_id',
-    'tournament', 'team_A', 'team_B', 'match_date',
+    'team_A', 'team_B', 'match_date',
     'period', 'team_event',
   ];
   if (!isGoalieSet) {
@@ -756,8 +756,8 @@ function listScheduledMatchesForDate(date) {
  */
 function createScheduledMatch(matchObj) {
   try {
-    if (!matchObj.tournament || !matchObj.match_date || !matchObj.team_A || !matchObj.team_B) {
-      return err('SCHEMA_INVALID', 'Wymagane pola: tournament, match_date, team_A, team_B');
+    if (!matchObj.match_date || !matchObj.team_A || !matchObj.team_B) {
+      return err('SCHEMA_INVALID', 'Wymagane pola: match_date, team_A, team_B');
     }
     if (!/^\d{4}-\d{2}-\d{2}$/.test(String(matchObj.match_date))) {
       return err('SCHEMA_INVALID', 'match_date musi być w formacie YYYY-MM-DD');
@@ -948,8 +948,8 @@ function bulkCreateMatches(matchesArray) {
 
     for (var i = 0; i < matchesArray.length; i++) {
       var m = matchesArray[i];
-      if (!m.tournament || !m.match_date || !m.team_A || !m.team_B) {
-        return err('SCHEMA_INVALID', 'Mecz ' + (i + 1) + ': wymagane pola: tournament, match_date, team_A, team_B');
+      if (!m.match_date || !m.team_A || !m.team_B) {
+        return err('SCHEMA_INVALID', 'Mecz ' + (i + 1) + ': wymagane pola: match_date, team_A, team_B');
       }
       if (!/^\d{4}-\d{2}-\d{2}$/.test(String(m.match_date))) {
         return err('SCHEMA_INVALID', 'Mecz ' + (i + 1) + ': match_date musi być w formacie YYYY-MM-DD');
@@ -1368,5 +1368,153 @@ function seedProdData() {
     Logger.log(summary);
   } catch (e) {
     Logger.log('seedProdData error: ' + e.message);
+  }
+}
+
+/**
+ * Dodaje ręcznie brakującego gola — jednorazowe użycie.
+ */
+function addMissingGoal() {
+  var sheet = getSheet(CONFIG.SHEET_EVENTS);
+  var matchSheet = getSheet(CONFIG.SHEET_MATCHES);
+
+  // Pobierz dane meczu z scheduled_matches
+  var matchData = matchSheet.getDataRange().getValues();
+  var matchRow = matchData.find(function(r) { return String(r[0]).indexOf('m_') === 0; });
+  if (!matchRow) { Logger.log('Brak meczu w scheduled_matches'); return; }
+
+  var matchIdIdx  = MATCH_COLS.indexOf('id');
+  var teamAIdx    = MATCH_COLS.indexOf('team_A');
+  var teamBIdx    = MATCH_COLS.indexOf('team_B');
+  var dateIdx     = MATCH_COLS.indexOf('match_date');
+
+  var matchId  = matchRow[matchIdIdx];
+  var teamA    = matchRow[teamAIdx];
+  var teamB    = matchRow[teamBIdx];
+  var matchDate = matchRow[dateIdx];
+
+  var newId     = Math.max(1, sheet.getLastRow());
+  var clientId  = 'manual_' + Date.now();
+  var createdAt = new Date().toISOString();
+
+  var row = EVENT_COLS.map(function(col) {
+    if (col === 'id')            return newId;
+    if (col === 'client_event_id') return clientId;
+    if (col === 'match_id')      return matchId;
+    if (col === 'tournament')    return '';
+    if (col === 'team_A')        return teamA;
+    if (col === 'team_B')        return teamB;
+    if (col === 'match_date')    return matchDate;
+    if (col === 'period')        return 4;
+    if (col === 'team_event')    return teamB; // Nowa Zelandia strzela
+    if (col === 'shot_x')        return 0;
+    if (col === 'shot_y')        return 0.5;
+    if (col === 'zone_name')     return 'attack-center';
+    if (col === 'result')        return 'gol';
+    if (col === 'man_up')        return false;
+    if (col === 'man_down')      return false;
+    if (col === 'assisted')      return false;
+    if (col === 'fast_break')    return false;
+    if (col === 'free_position') return false;
+    if (col === 'penalty_shot')  return false;
+    if (col === 'event_type')    return 'shot';
+    if (col === 'created_at')    return createdAt;
+    return '';
+  });
+
+  sheet.appendRow(row);
+  Logger.log('Dodano gola dla ' + teamB + ' w Q4, match_id=' + matchId);
+}
+
+/**
+ * Policz gole per drużyna i wylistuj wszystkie gol-eventy.
+ */
+function checkGoals() {
+  var sheet = getSheet(CONFIG.SHEET_EVENTS);
+  var last = sheet.getLastRow();
+  if (last < 2) { Logger.log('Brak eventów'); return; }
+  var data = sheet.getRange(2, 1, last - 1, EVENT_COLS.length).getValues();
+  var resultIdx   = EVENT_COLS.indexOf('result');
+  var teamEvIdx   = EVENT_COLS.indexOf('team_event');
+  var periodIdx   = EVENT_COLS.indexOf('period');
+  var idIdx       = EVENT_COLS.indexOf('id');
+
+  var hk = 0, nz = 0;
+  var details = [];
+  for (var i = 0; i < data.length; i++) {
+    if (String(data[i][resultIdx]) === 'gol') {
+      var team = String(data[i][teamEvIdx]);
+      var period = data[i][periodIdx];
+      var id = data[i][idIdx];
+      details.push('row ' + (i+2) + ' id=' + id + ' Q' + period + ' ' + team);
+      if (team.toLowerCase().indexOf('hong') >= 0) hk++;
+      else nz++;
+    }
+  }
+  Logger.log('HK: ' + hk + ' goli, NZ: ' + nz + ' goli');
+  details.forEach(function(d) { Logger.log(d); });
+}
+
+/**
+ * JEDNORAZOWA FUNKCJA NAPRAWCZA — uruchom raz z edytora GAS.
+ * Scala wszystkie eventy adhoc_* w jeden mecz i tworzy wpis w scheduled_matches.
+ */
+function fixUnifyMatchIds() {
+  try {
+    var evSheet = getSheet(CONFIG.SHEET_EVENTS);
+    var matchSheet = getSheet(CONFIG.SHEET_MATCHES);
+
+    var lastRow = evSheet.getLastRow();
+    if (lastRow < 2) { Logger.log('Brak eventów'); return; }
+
+    var data = evSheet.getRange(2, 1, lastRow - 1, EVENT_COLS.length).getValues();
+
+    // Zbierz unikalne adhoc match_ids i dane meczu z pierwszego eventu
+    var matchIdCol = EVENT_COLS.indexOf('match_id');
+    var teamACol   = EVENT_COLS.indexOf('team_A');
+    var teamBCol   = EVENT_COLS.indexOf('team_B');
+    var dateCol    = EVENT_COLS.indexOf('match_date');
+    var tournCol   = EVENT_COLS.indexOf('tournament');
+
+    var firstRow = data[0];
+    var teamA    = firstRow[teamACol];
+    var teamB    = firstRow[teamBCol];
+    var date     = firstRow[dateCol];
+    var tourn    = firstRow[tournCol] || '';
+
+    // Stwórz jeden spójny mecz w scheduled_matches
+    var matchId  = generateId('m');
+    var createdAt = new Date().toISOString();
+    // MATCH_COLS: id, tournament, match_date, team_A, team_B, created_at, status, video_url
+    var matchRow = MATCH_COLS.map(function(col) {
+      if (col === 'id')         return matchId;
+      if (col === 'tournament') return tourn;
+      if (col === 'match_date') return date;
+      if (col === 'team_A')     return teamA;
+      if (col === 'team_B')     return teamB;
+      if (col === 'created_at') return createdAt;
+      if (col === 'status')     return 'live';
+      return '';
+    });
+    matchSheet.appendRow(matchRow);
+
+    // Zaktualizuj match_id we wszystkich eventach adhoc na nowe ID
+    var updated = 0;
+    for (var i = 0; i < data.length; i++) {
+      var mid = String(data[i][matchIdCol]);
+      if (mid.indexOf('adhoc_') === 0) {
+        evSheet.getRange(i + 2, matchIdCol + 1).setValue(matchId);
+        updated++;
+      }
+    }
+
+    var msg = 'fixUnifyMatchIds OK — nowe match_id: ' + matchId +
+              ', zaktualizowano eventów: ' + updated +
+              ', drużyny: ' + teamA + ' vs ' + teamB;
+    Logger.log(msg);
+    return msg;
+  } catch (e) {
+    Logger.log('fixUnifyMatchIds error: ' + e.message);
+    return 'ERROR: ' + e.message;
   }
 }
