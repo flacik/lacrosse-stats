@@ -1093,6 +1093,23 @@ table.stats-table td.num {
 }
 .btn-back-v2:hover { background: #f0f0eb; }
 
+.btn-retry-all {
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 8px;
+  border: 1px solid #d97706;
+  background: #fffbeb;
+  color: #b45309;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.btn-retry-all:hover { background: #fef3c7; }
+[data-theme="dark"] .btn-retry-all { background: #292113; color: #fbbf24; border-color: #92400e; }
+[data-theme="dark"] .btn-retry-all:hover { background: #3a2e14; }
+
 .header-score-v2 {
   flex: 1;
   display: flex;

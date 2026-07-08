@@ -1107,6 +1107,23 @@ table.stats-table td.num {
 }
 .btn-back-v2:hover { background: #f0f0eb; }
 
+.btn-retry-all {
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 8px;
+  border: 1px solid #d97706;
+  background: #fffbeb;
+  color: #b45309;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.btn-retry-all:hover { background: #fef3c7; }
+[data-theme="dark"] .btn-retry-all { background: #292113; color: #fbbf24; border-color: #92400e; }
+[data-theme="dark"] .btn-retry-all:hover { background: #3a2e14; }
+
 .header-score-v2 {
   flex: 1;
   display: flex;
@@ -4483,6 +4500,10 @@ function renderMatchInput(root) {
 
   const _presence = APP.presenceCounts[String(match.id)] || { input: 0, viewer: 0 };
   const presenceBadgeHtml = _renderPresenceBadge(_presence.input, _presence.viewer, 'input');
+  const errorCount = allMatchEvents.filter(e => e._syncError).length;
+  const retryAllBtn = errorCount > 0
+    ? `<button class="btn btn-retry-all" data-action="retry-all-errors" title="${APP.lang === 'pl' ? 'Ponów wszystkie błędy' : 'Retry all errors'}">↻ ${errorCount}</button>`
+    : '';
 
   root.innerHTML = `
     <div class="app-header app-header-v2">
@@ -4498,6 +4519,7 @@ function renderMatchInput(root) {
         ${match.video_url ? `<a class="btn-video-pill-v2" href="${escapeHtml(match.video_url)}" target="_blank" rel="noopener">▶ ${APP.lang === 'pl' ? 'Nagranie' : 'Recording'}</a>` : ''}
       </div>
       <span class="sides-tag-v2">A: ${A_left ? T('sides.left') : T('sides.right')}</span>
+      ${retryAllBtn}
       ${presenceBadgeHtml}
       ${_langToggleBtn()}
       <button class="btn" data-action="toggle-dark-mode" id="theme-toggle" title="${T('nav.theme')}">🌙</button>
@@ -7527,6 +7549,35 @@ const HANDLERS = {
         render();
       }
     });
+  },
+
+  'retry-all-errors': () => {
+    const errored = DATA.events.filter(e => e._syncError && !e._syncing);
+    errored.forEach(ev => {
+      const clientEventId = ev.client_event_id;
+      const validationError = validateEventPayload(ev);
+      if (validationError) return;
+      const idx = DATA.events.findIndex(e => e.client_event_id === clientEventId);
+      if (idx < 0) return;
+      DATA.events[idx] = Object.assign({}, DATA.events[idx], { _syncing: true, _syncError: null });
+      gasSaveEvent(ev).then(function(result) {
+        const i = DATA.events.findIndex(e => e.client_event_id === clientEventId);
+        if (i >= 0) {
+          DATA.events[i] = Object.assign({}, DATA.events[i], { id: result.id, _syncing: false, _syncError: null });
+          removeFromOfflineBuffer(clientEventId);
+        }
+        render();
+      }).catch(function(err) {
+        if (err.code !== 'DEV_MODE') {
+          const i = DATA.events.findIndex(e => e.client_event_id === clientEventId);
+          if (i >= 0) {
+            DATA.events[i] = Object.assign({}, DATA.events[i], { _syncing: false, _syncError: err.message || 'Błąd zapisu — wyślij ponownie' });
+          }
+          render();
+        }
+      });
+    });
+    if (errored.length) render();
   },
 
   // Routing

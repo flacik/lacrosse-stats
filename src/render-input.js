@@ -105,6 +105,10 @@ function renderMatchInput(root) {
 
   const _presence = APP.presenceCounts[String(match.id)] || { input: 0, viewer: 0 };
   const presenceBadgeHtml = _renderPresenceBadge(_presence.input, _presence.viewer, 'input');
+  const errorCount = allMatchEvents.filter(e => e._syncError).length;
+  const retryAllBtn = errorCount > 0
+    ? `<button class="btn btn-retry-all" data-action="retry-all-errors" title="${APP.lang === 'pl' ? 'Ponów wszystkie błędy' : 'Retry all errors'}">↻ ${errorCount}</button>`
+    : '';
 
   root.innerHTML = `
     <div class="app-header app-header-v2">
@@ -120,6 +124,7 @@ function renderMatchInput(root) {
         ${match.video_url ? `<a class="btn-video-pill-v2" href="${escapeHtml(match.video_url)}" target="_blank" rel="noopener">▶ ${APP.lang === 'pl' ? 'Nagranie' : 'Recording'}</a>` : ''}
       </div>
       <span class="sides-tag-v2">A: ${A_left ? T('sides.left') : T('sides.right')}</span>
+      ${retryAllBtn}
       ${presenceBadgeHtml}
       ${_langToggleBtn()}
       <button class="btn" data-action="toggle-dark-mode" id="theme-toggle" title="${T('nav.theme')}">🌙</button>

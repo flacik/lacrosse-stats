@@ -158,6 +158,35 @@ const HANDLERS = {
     });
   },
 
+  'retry-all-errors': () => {
+    const errored = DATA.events.filter(e => e._syncError && !e._syncing);
+    errored.forEach(ev => {
+      const clientEventId = ev.client_event_id;
+      const validationError = validateEventPayload(ev);
+      if (validationError) return;
+      const idx = DATA.events.findIndex(e => e.client_event_id === clientEventId);
+      if (idx < 0) return;
+      DATA.events[idx] = Object.assign({}, DATA.events[idx], { _syncing: true, _syncError: null });
+      gasSaveEvent(ev).then(function(result) {
+        const i = DATA.events.findIndex(e => e.client_event_id === clientEventId);
+        if (i >= 0) {
+          DATA.events[i] = Object.assign({}, DATA.events[i], { id: result.id, _syncing: false, _syncError: null });
+          removeFromOfflineBuffer(clientEventId);
+        }
+        render();
+      }).catch(function(err) {
+        if (err.code !== 'DEV_MODE') {
+          const i = DATA.events.findIndex(e => e.client_event_id === clientEventId);
+          if (i >= 0) {
+            DATA.events[i] = Object.assign({}, DATA.events[i], { _syncing: false, _syncError: err.message || 'Błąd zapisu — wyślij ponownie' });
+          }
+          render();
+        }
+      });
+    });
+    if (errored.length) render();
+  },
+
   // Routing
   'open-match':  (id) => openMatchInput(id),
   'open-viewer': (id) => openMatchViewer(id),
