@@ -521,7 +521,7 @@ function buildFieldLegend(match, opts) {
       </svg>
       ${T('legend.fast_break')}
     </span>
-    ${opts.includeFieldShotTypes ? `
+    ${(opts.includeFieldShotTypes || (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.variant === 'field')) ? `
     <span class="leg-item">
       <svg width="22" height="14" viewBox="0 0 22 14">
         <circle cx="9" cy="7" r="6" fill="#1d4ed8"/>
