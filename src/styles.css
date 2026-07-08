@@ -318,7 +318,8 @@ svg.field.field-half {
 .result-btn.gol:hover { background: #15803d; }
 
 .flag-row {
-  display: flex; gap: 12px; margin-bottom: 16px;
+  display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px 12px;
+  margin-bottom: 16px;
   background: #f7f7f5; padding: 12px 14px; border-radius: 8px;
 }
 .flag-row label {
