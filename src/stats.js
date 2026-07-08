@@ -39,6 +39,21 @@ function getPeriodOrder(p) {
   return parseInt(p);
 }
 
+function isShotEvent(e) {
+  return !e.event_type || e.event_type === '';
+}
+
+function computeCounterStats(matchId, match, period) {
+  const events = DATA.events.filter(e => String(e.match_id) === String(matchId));
+  const ev = period ? events.filter(e => String(e.period) === String(period)) : events;
+  return {
+    gbA:   ev.filter(e => e.event_type === 'groundball' && e.team_event === match.team_A).length,
+    gbB:   ev.filter(e => e.event_type === 'groundball' && e.team_event === match.team_B).length,
+    drawA: ev.filter(e => e.event_type === 'draw'       && e.team_event === match.team_A).length,
+    drawB: ev.filter(e => e.event_type === 'draw'       && e.team_event === match.team_B).length,
+  };
+}
+
 function teamSlot(matchId, teamName) {
   const m = DATA.scheduledMatches.find(x => String(x.id) === String(matchId));
   if (!m) return '';
@@ -81,7 +96,7 @@ function computeTeamStats(matchId, teamName, events) {
 
 function computeGoalieStats(match, allEvents) {
   const goalieSetEvents = allEvents.filter(e => e.event_type === 'goalie_set');
-  const shots = allEvents.filter(e => e.event_type !== 'goalie_set');
+  const shots = allEvents.filter(e => isShotEvent(e));
 
   function getActiveGoalie(teamName, period) {
     const assignments = goalieSetEvents
@@ -132,7 +147,7 @@ function computeGoalieStats(match, allEvents) {
 }
 
 function computePerPeriodStats(matchId, match) {
-  const events = DATA.events.filter(e => String(e.match_id) === String(matchId) && e.event_type !== 'goalie_set');
+  const events = DATA.events.filter(e => String(e.match_id) === String(matchId) && isShotEvent(e));
   const periods = new Set();
   events.forEach(e => { if (e.period !== undefined && e.period !== '') periods.add(String(e.period)); });
   const sorted = Array.from(periods).sort((a, b) => getPeriodOrder(a) - getPeriodOrder(b));

@@ -31,6 +31,7 @@ function renderMatchInput(root) {
   const allMatchEvents = DATA.events.filter(e => String(e.match_id) === String(match.id));
   const goalieA = getCurrentGoalieNumber(match.team_A, allMatchEvents);
   const goalieB = getCurrentGoalieNumber(match.team_B, allMatchEvents);
+  const counters = computeCounterStats(match.id, match, null);
   const isFinal = APP.match.period === '4' || (APP.match.period && APP.match.period.startsWith('OT'));
 
   let bannerHtml = '';
@@ -156,6 +157,24 @@ function renderMatchInput(root) {
             </div>
             <button data-action="open-goalie-retroactive" class="btn-link goalie-retroactive-v2">${T('goalie.edit_retro')}</button>
           </div>
+          <div class="counter-bar counter-bar-v2">
+            <div class="counter-row-v2">
+              <button data-action="record-groundball" data-arg="A" class="counter-btn team-A-color">+</button>
+              <span class="counter-label-v2">Groundball</span>
+              <span class="counter-val-v2 team-A-color">${counters.gbA}</span>
+              <span class="counter-sep-v2">:</span>
+              <span class="counter-val-v2 team-B-color">${counters.gbB}</span>
+              <button data-action="record-groundball" data-arg="B" class="counter-btn team-B-color">+</button>
+            </div>
+            <div class="counter-row-v2">
+              <button data-action="record-draw" data-arg="A" class="counter-btn team-A-color">+</button>
+              <span class="counter-label-v2">Draw</span>
+              <span class="counter-val-v2 team-A-color">${counters.drawA}</span>
+              <span class="counter-sep-v2">:</span>
+              <span class="counter-val-v2 team-B-color">${counters.drawB}</span>
+              <button data-action="record-draw" data-arg="B" class="counter-btn team-B-color">+</button>
+            </div>
+          </div>
         </div>
 
         <div class="match-history-col-v2">
@@ -179,11 +198,6 @@ function renderMatchInput(root) {
 
 function renderHistoryRow(e, match) {
   const slot  = teamSlot(match.id, e.team_event);
-  const flags = [];
-  if (e.man_up)      flags.push('<span class="flag man-up">man-up</span>');
-  if (e.man_down)    flags.push('<span class="flag man-down">man-down</span>');
-  if (e.assisted)    flags.push('<span class="flag assisted">A</span>');
-  if (e.fast_break)  flags.push('<span class="flag fast-break">FB</span>');
 
   let syncBadge = '';
   let retryBtn  = '';
@@ -195,6 +209,27 @@ function renderHistoryRow(e, match) {
   }
 
   const rowClass = e._syncError ? 'history-row sync-error' : 'history-row';
+
+  if (e.event_type === 'groundball' || e.event_type === 'draw') {
+    const label = e.event_type === 'groundball' ? 'GB' : 'Draw';
+    return `
+      <div class="${rowClass}">
+        <div class="period">${periodLabel(e.period)}</div>
+        <div class="team-tag ${slot}">${slot}</div>
+        <div class="result">${label}</div>
+        <div class="flags">${syncBadge}</div>
+        <div class="actions">
+          ${retryBtn}
+          <button class="icon-btn delete" title="${APP.lang === 'pl' ? 'Usuń' : 'Delete'}" data-action="delete-event" data-arg="${e.id}">🗑</button>
+        </div>
+      </div>`;
+  }
+
+  const flags = [];
+  if (e.man_up)      flags.push('<span class="flag man-up">man-up</span>');
+  if (e.man_down)    flags.push('<span class="flag man-down">man-down</span>');
+  if (e.assisted)    flags.push('<span class="flag assisted">A</span>');
+  if (e.fast_break)  flags.push('<span class="flag fast-break">FB</span>');
 
   return `
     <div class="${rowClass}">

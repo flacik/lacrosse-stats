@@ -1417,6 +1417,67 @@ table.stats-table td.num {
 
 [data-theme="dark"] .goalie-value-v2 { color: #e6edf3; }
 
+/* Counter bar (Groundball / Draw) */
+.counter-bar-v2 {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 6px 10px;
+  background: #fafaf7;
+  border-top: 1px solid #e5e5e0;
+  border-bottom: 1px solid #e5e5e0;
+}
+
+.counter-row-v2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.counter-label-v2 {
+  flex: 1;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #555;
+}
+
+.counter-val-v2 {
+  font-size: 20px;
+  font-weight: 700;
+  min-width: 26px;
+  text-align: center;
+}
+
+.counter-sep-v2 {
+  color: #999;
+  font-size: 13px;
+}
+
+.counter-btn {
+  padding: 2px 12px;
+  font-size: 20px;
+  font-weight: 700;
+  border-radius: 5px;
+  border: 1px solid currentColor;
+  background: transparent;
+  cursor: pointer;
+  line-height: 1.2;
+  opacity: 0.85;
+}
+
+.counter-btn:hover { opacity: 1; }
+
+[data-theme="dark"] .counter-bar-v2 {
+  background: #1c2128;
+  border-color: #21262d;
+}
+
+[data-theme="dark"] .counter-label-v2 { color: #8b949e; }
+[data-theme="dark"] .counter-sep-v2 { color: #484f58; }
+
 [data-theme="dark"] .goalie-retroactive-v2 { color: #6e7681; }
 
 [data-theme="dark"] .match-field-col-v2 {
@@ -2007,6 +2068,10 @@ function validateEventPayload(ev) {
     if (!PERIOD_REGEX.test(String(ev.period))) return 'Nieprawidłowy okres: ' + ev.period;
     return null;
   }
+  if (ev.event_type === 'groundball' || ev.event_type === 'draw') {
+    if (!PERIOD_REGEX.test(String(ev.period))) return 'Nieprawidłowy okres: ' + ev.period;
+    return null;
+  }
   if (!VALID_RESULTS.includes(ev.result))            return 'Nieprawidłowy wynik: ' + ev.result;
   if (typeof ev.shot_x !== 'number' || ev.shot_x < -1 || ev.shot_x > 1) return 'Nieprawidłowa pozycja shot_x';
   if (typeof ev.shot_y !== 'number' || ev.shot_y < 0  || ev.shot_y > 1) return 'Nieprawidłowa pozycja shot_y';
@@ -2154,6 +2219,21 @@ function getPeriodOrder(p) {
   return parseInt(p);
 }
 
+function isShotEvent(e) {
+  return !e.event_type || e.event_type === '';
+}
+
+function computeCounterStats(matchId, match, period) {
+  const events = DATA.events.filter(e => String(e.match_id) === String(matchId));
+  const ev = period ? events.filter(e => String(e.period) === String(period)) : events;
+  return {
+    gbA:   ev.filter(e => e.event_type === 'groundball' && e.team_event === match.team_A).length,
+    gbB:   ev.filter(e => e.event_type === 'groundball' && e.team_event === match.team_B).length,
+    drawA: ev.filter(e => e.event_type === 'draw'       && e.team_event === match.team_A).length,
+    drawB: ev.filter(e => e.event_type === 'draw'       && e.team_event === match.team_B).length,
+  };
+}
+
 function teamSlot(matchId, teamName) {
   const m = DATA.scheduledMatches.find(x => String(x.id) === String(matchId));
   if (!m) return '';
@@ -2196,7 +2276,7 @@ function computeTeamStats(matchId, teamName, events) {
 
 function computeGoalieStats(match, allEvents) {
   const goalieSetEvents = allEvents.filter(e => e.event_type === 'goalie_set');
-  const shots = allEvents.filter(e => e.event_type !== 'goalie_set');
+  const shots = allEvents.filter(e => isShotEvent(e));
 
   function getActiveGoalie(teamName, period) {
     const assignments = goalieSetEvents
@@ -2247,7 +2327,7 @@ function computeGoalieStats(match, allEvents) {
 }
 
 function computePerPeriodStats(matchId, match) {
-  const events = DATA.events.filter(e => String(e.match_id) === String(matchId) && e.event_type !== 'goalie_set');
+  const events = DATA.events.filter(e => String(e.match_id) === String(matchId) && isShotEvent(e));
   const periods = new Set();
   events.forEach(e => { if (e.period !== undefined && e.period !== '') periods.add(String(e.period)); });
   const sorted = Array.from(periods).sort((a, b) => getPeriodOrder(a) - getPeriodOrder(b));
@@ -4321,6 +4401,7 @@ function renderMatchInput(root) {
   const allMatchEvents = DATA.events.filter(e => String(e.match_id) === String(match.id));
   const goalieA = getCurrentGoalieNumber(match.team_A, allMatchEvents);
   const goalieB = getCurrentGoalieNumber(match.team_B, allMatchEvents);
+  const counters = computeCounterStats(match.id, match, null);
   const isFinal = APP.match.period === '4' || (APP.match.period && APP.match.period.startsWith('OT'));
 
   let bannerHtml = '';
@@ -4446,6 +4527,24 @@ function renderMatchInput(root) {
             </div>
             <button data-action="open-goalie-retroactive" class="btn-link goalie-retroactive-v2">${T('goalie.edit_retro')}</button>
           </div>
+          <div class="counter-bar counter-bar-v2">
+            <div class="counter-row-v2">
+              <button data-action="record-groundball" data-arg="A" class="counter-btn team-A-color">+</button>
+              <span class="counter-label-v2">Groundball</span>
+              <span class="counter-val-v2 team-A-color">${counters.gbA}</span>
+              <span class="counter-sep-v2">:</span>
+              <span class="counter-val-v2 team-B-color">${counters.gbB}</span>
+              <button data-action="record-groundball" data-arg="B" class="counter-btn team-B-color">+</button>
+            </div>
+            <div class="counter-row-v2">
+              <button data-action="record-draw" data-arg="A" class="counter-btn team-A-color">+</button>
+              <span class="counter-label-v2">Draw</span>
+              <span class="counter-val-v2 team-A-color">${counters.drawA}</span>
+              <span class="counter-sep-v2">:</span>
+              <span class="counter-val-v2 team-B-color">${counters.drawB}</span>
+              <button data-action="record-draw" data-arg="B" class="counter-btn team-B-color">+</button>
+            </div>
+          </div>
         </div>
 
         <div class="match-history-col-v2">
@@ -4469,11 +4568,6 @@ function renderMatchInput(root) {
 
 function renderHistoryRow(e, match) {
   const slot  = teamSlot(match.id, e.team_event);
-  const flags = [];
-  if (e.man_up)      flags.push('<span class="flag man-up">man-up</span>');
-  if (e.man_down)    flags.push('<span class="flag man-down">man-down</span>');
-  if (e.assisted)    flags.push('<span class="flag assisted">A</span>');
-  if (e.fast_break)  flags.push('<span class="flag fast-break">FB</span>');
 
   let syncBadge = '';
   let retryBtn  = '';
@@ -4485,6 +4579,27 @@ function renderHistoryRow(e, match) {
   }
 
   const rowClass = e._syncError ? 'history-row sync-error' : 'history-row';
+
+  if (e.event_type === 'groundball' || e.event_type === 'draw') {
+    const label = e.event_type === 'groundball' ? 'GB' : 'Draw';
+    return `
+      <div class="${rowClass}">
+        <div class="period">${periodLabel(e.period)}</div>
+        <div class="team-tag ${slot}">${slot}</div>
+        <div class="result">${label}</div>
+        <div class="flags">${syncBadge}</div>
+        <div class="actions">
+          ${retryBtn}
+          <button class="icon-btn delete" title="${APP.lang === 'pl' ? 'Usuń' : 'Delete'}" data-action="delete-event" data-arg="${e.id}">🗑</button>
+        </div>
+      </div>`;
+  }
+
+  const flags = [];
+  if (e.man_up)      flags.push('<span class="flag man-up">man-up</span>');
+  if (e.man_down)    flags.push('<span class="flag man-down">man-down</span>');
+  if (e.assisted)    flags.push('<span class="flag assisted">A</span>');
+  if (e.fast_break)  flags.push('<span class="flag fast-break">FB</span>');
 
   return `
     <div class="${rowClass}">
@@ -4545,7 +4660,7 @@ function renderMatchViewer(root) {
   }
 
   const allEvents  = DATA.events.filter(e => String(e.match_id) === String(match.id));
-  const shotEvents = allEvents.filter(e => e.event_type !== 'goalie_set');
+  const shotEvents = allEvents.filter(e => isShotEvent(e));
   const filtered   = applyViewerFilters(shotEvents, APP.viewer);
   const score      = computeScore(match.id);
   const statsA     = computeTeamStats(match.id, match.team_A, shotEvents);
@@ -5017,7 +5132,7 @@ function _computeGoalieAnalytics(filteredShots, allEvents, allMatches, f, sort) 
   allMatches.forEach(m => { matchMap[String(m.id)] = m; });
 
   let shotsOnGoal = allEvents.filter(e =>
-    e.event_type !== 'goalie_set' &&
+    isShotEvent(e) &&
     matchIds.has(String(e.match_id)) &&
     (e.result === 'gol' || e.result === 'celny')
   );
@@ -6576,7 +6691,7 @@ function openMatchReport(matchId) {
     return String(e.match_id) === String(matchId);
   });
   var shotEvents = allEvents.filter(function(e) {
-    return e.event_type !== 'goalie_set';
+    return isShotEvent(e);
   });
 
   var score     = computeScore(matchId);
@@ -6628,7 +6743,7 @@ function openAnalyticsReport() {
     var conceded  = data.events.filter(function(e) {
       return matchIds.has(String(e.match_id)) &&
              e.team_event !== f.team &&
-             e.event_type !== 'goalie_set';
+             isShotEvent(e);
     });
     svgDef = conceded.length > 0 ? _reportHalfFieldSvg(conceded, conceded[0].team_event || '__opp__', true) : '';
   }
@@ -7908,6 +8023,25 @@ const HANDLERS = {
 
   // Viewer: toggle split-barów (F-02)
   'toggle-split-bars': () => { APP.splitBars = !APP.splitBars; render(); },
+
+  // Groundball / Draw
+  'record-groundball': (slot) => {
+    const match = DATA.scheduledMatches.find(m => String(m.id) === String(APP.matchId));
+    recordEvent({
+      event_type: 'groundball', team_event: slot === 'A' ? match.team_A : match.team_B,
+      period: APP.match.period, result: null,
+      shot_x: null, shot_y: null, zone_name: null, man_up: false, man_down: false,
+    });
+  },
+
+  'record-draw': (slot) => {
+    const match = DATA.scheduledMatches.find(m => String(m.id) === String(APP.matchId));
+    recordEvent({
+      event_type: 'draw', team_event: slot === 'A' ? match.team_A : match.team_B,
+      period: APP.match.period, result: null,
+      shot_x: null, shot_y: null, zone_name: null, man_up: false, man_down: false,
+    });
+  },
 
   // Bramkarze (F-11)
   'open-goalie-modal': (slot) => {

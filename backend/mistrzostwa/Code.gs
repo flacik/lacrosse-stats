@@ -310,7 +310,8 @@ function findRowById(sheet, id) {
  * Zwraca null jeśli OK, lub string z opisem błędu.
  */
 function validateEvent(ev) {
-  var isGoalieSet = ev.event_type === 'goalie_set';
+  var isGoalieSet      = ev.event_type === 'goalie_set';
+  var isSimpleCounter  = ev.event_type === 'groundball' || ev.event_type === 'draw';
 
   // 1. Required fields (all event types)
   var required = [
@@ -318,7 +319,7 @@ function validateEvent(ev) {
     'team_A', 'team_B', 'match_date',
     'period', 'team_event',
   ];
-  if (!isGoalieSet) {
+  if (!isGoalieSet && !isSimpleCounter) {
     required = required.concat(['shot_x', 'shot_y', 'zone_name', 'result']);
   }
   for (var i = 0; i < required.length; i++) {
@@ -332,6 +333,15 @@ function validateEvent(ev) {
   if (isGoalieSet) {
     var gn = String(ev.goalie_number !== undefined && ev.goalie_number !== null ? ev.goalie_number : '');
     if (!/^\d{1,2}$/.test(gn)) return 'goalie_number musi być liczbą 0–99: ' + gn;
+    return null;
+  }
+
+  // groundball / draw: tylko kwarta i drużyna
+  if (isSimpleCounter) {
+    if (!PERIOD_REGEX.test(String(ev.period)))
+      return 'Niepoprawna kwarta: ' + ev.period;
+    if (ev.team_event !== ev.team_A && ev.team_event !== ev.team_B)
+      return 'team_event musi być równy team_A lub team_B';
     return null;
   }
 
@@ -630,8 +640,9 @@ function saveEvent(eventObj) {
       if (col === 'fast_break')    return eventObj.fast_break    ? true : false;
       if (col === 'free_position') return eventObj.free_position ? true : false;
       if (col === 'penalty_shot')  return eventObj.penalty_shot  ? true : false;
-      if (col === 'shot_x')     return eventObj.event_type === 'goalie_set' ? '' : parseFloat(eventObj.shot_x);
-      if (col === 'shot_y')     return eventObj.event_type === 'goalie_set' ? '' : parseFloat(eventObj.shot_y);
+      var _nonShot = ['goalie_set', 'groundball', 'draw'];
+      if (col === 'shot_x') return _nonShot.indexOf(eventObj.event_type) >= 0 ? '' : parseFloat(eventObj.shot_x);
+      if (col === 'shot_y') return _nonShot.indexOf(eventObj.event_type) >= 0 ? '' : parseFloat(eventObj.shot_y);
       var val = eventObj[col];
       if (typeof val === 'string') return sanitizeText(val);
       return val !== undefined ? val : '';
@@ -674,8 +685,9 @@ function updateEvent(id, eventObj) {
       if (col === 'fast_break')    return eventObj.fast_break    ? true : false;
       if (col === 'free_position') return eventObj.free_position ? true : false;
       if (col === 'penalty_shot')  return eventObj.penalty_shot  ? true : false;
-      if (col === 'shot_x')     return eventObj.event_type === 'goalie_set' ? '' : parseFloat(eventObj.shot_x);
-      if (col === 'shot_y')     return eventObj.event_type === 'goalie_set' ? '' : parseFloat(eventObj.shot_y);
+      var _nonShot = ['goalie_set', 'groundball', 'draw'];
+      if (col === 'shot_x') return _nonShot.indexOf(eventObj.event_type) >= 0 ? '' : parseFloat(eventObj.shot_x);
+      if (col === 'shot_y') return _nonShot.indexOf(eventObj.event_type) >= 0 ? '' : parseFloat(eventObj.shot_y);
       var val = eventObj[col];
       if (typeof val === 'string') return sanitizeText(val);
       return val !== undefined ? val : '';

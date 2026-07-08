@@ -1403,6 +1403,67 @@ table.stats-table td.num {
 
 [data-theme="dark"] .goalie-value-v2 { color: #e6edf3; }
 
+/* Counter bar (Groundball / Draw) */
+.counter-bar-v2 {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 6px 10px;
+  background: #fafaf7;
+  border-top: 1px solid #e5e5e0;
+  border-bottom: 1px solid #e5e5e0;
+}
+
+.counter-row-v2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.counter-label-v2 {
+  flex: 1;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #555;
+}
+
+.counter-val-v2 {
+  font-size: 20px;
+  font-weight: 700;
+  min-width: 26px;
+  text-align: center;
+}
+
+.counter-sep-v2 {
+  color: #999;
+  font-size: 13px;
+}
+
+.counter-btn {
+  padding: 2px 12px;
+  font-size: 20px;
+  font-weight: 700;
+  border-radius: 5px;
+  border: 1px solid currentColor;
+  background: transparent;
+  cursor: pointer;
+  line-height: 1.2;
+  opacity: 0.85;
+}
+
+.counter-btn:hover { opacity: 1; }
+
+[data-theme="dark"] .counter-bar-v2 {
+  background: #1c2128;
+  border-color: #21262d;
+}
+
+[data-theme="dark"] .counter-label-v2 { color: #8b949e; }
+[data-theme="dark"] .counter-sep-v2 { color: #484f58; }
+
 [data-theme="dark"] .goalie-retroactive-v2 { color: #6e7681; }
 
 [data-theme="dark"] .match-field-col-v2 {

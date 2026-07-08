@@ -194,7 +194,7 @@ function _computeGoalieAnalytics(filteredShots, allEvents, allMatches, f, sort) 
   allMatches.forEach(m => { matchMap[String(m.id)] = m; });
 
   let shotsOnGoal = allEvents.filter(e =>
-    e.event_type !== 'goalie_set' &&
+    isShotEvent(e) &&
     matchIds.has(String(e.match_id)) &&
     (e.result === 'gol' || e.result === 'celny')
   );

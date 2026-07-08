@@ -15,7 +15,7 @@ function openMatchReport(matchId) {
     return String(e.match_id) === String(matchId);
   });
   var shotEvents = allEvents.filter(function(e) {
-    return e.event_type !== 'goalie_set';
+    return isShotEvent(e);
   });
 
   var score     = computeScore(matchId);
@@ -67,7 +67,7 @@ function openAnalyticsReport() {
     var conceded  = data.events.filter(function(e) {
       return matchIds.has(String(e.match_id)) &&
              e.team_event !== f.team &&
-             e.event_type !== 'goalie_set';
+             isShotEvent(e);
     });
     svgDef = conceded.length > 0 ? _reportHalfFieldSvg(conceded, conceded[0].team_event || '__opp__', true) : '';
   }

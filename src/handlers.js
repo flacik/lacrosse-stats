@@ -662,6 +662,25 @@ const HANDLERS = {
   // Viewer: toggle split-barów (F-02)
   'toggle-split-bars': () => { APP.splitBars = !APP.splitBars; render(); },
 
+  // Groundball / Draw
+  'record-groundball': (slot) => {
+    const match = DATA.scheduledMatches.find(m => String(m.id) === String(APP.matchId));
+    recordEvent({
+      event_type: 'groundball', team_event: slot === 'A' ? match.team_A : match.team_B,
+      period: APP.match.period, result: null,
+      shot_x: null, shot_y: null, zone_name: null, man_up: false, man_down: false,
+    });
+  },
+
+  'record-draw': (slot) => {
+    const match = DATA.scheduledMatches.find(m => String(m.id) === String(APP.matchId));
+    recordEvent({
+      event_type: 'draw', team_event: slot === 'A' ? match.team_A : match.team_B,
+      period: APP.match.period, result: null,
+      shot_x: null, shot_y: null, zone_name: null, man_up: false, man_down: false,
+    });
+  },
+
   // Bramkarze (F-11)
   'open-goalie-modal': (slot) => {
     APP.modal = { type: 'goalie-form', team_slot: slot };
