@@ -1107,8 +1107,11 @@ table.stats-table td.num {
   flex-shrink: 0;
 }
 .btn-retry-all:hover { background: #fef3c7; }
+.btn-retry-all-disabled { border-color: #d4d4d0 !important; background: #f5f5f3 !important; color: #aaa !important; cursor: default !important; }
+.btn-retry-all-disabled:hover { background: #f5f5f3 !important; }
 [data-theme="dark"] .btn-retry-all { background: #292113; color: #fbbf24; border-color: #92400e; }
 [data-theme="dark"] .btn-retry-all:hover { background: #3a2e14; }
+[data-theme="dark"] .btn-retry-all-disabled { background: #1e1e1e !important; border-color: #333 !important; color: #555 !important; }
 
 .header-score-v2 {
   flex: 1;

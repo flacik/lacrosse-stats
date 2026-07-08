@@ -108,7 +108,7 @@ function renderMatchInput(root) {
   const errorCount = allMatchEvents.filter(e => e._syncError).length;
   const retryAllBtn = errorCount > 0
     ? `<button class="btn btn-retry-all" data-action="retry-all-errors" title="${APP.lang === 'pl' ? 'Ponów wszystkie błędy' : 'Retry all errors'}">↻ ${errorCount}</button>`
-    : '';
+    : `<button class="btn btn-retry-all btn-retry-all-disabled" disabled title="${APP.lang === 'pl' ? 'Brak błędów synchronizacji' : 'No sync errors'}">↻ 0</button>`;
 
   root.innerHTML = `
     <div class="app-header app-header-v2">
