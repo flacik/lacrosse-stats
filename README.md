@@ -76,7 +76,7 @@ All data is stored in Google Sheets, so the club always has a permanent record o
 | Demo (sample data) | Public, view-only | https://flacik.github.io/lacrosse-stats/ |
 | Reprezentacja (Polish National Team) | Anyone with the link — full editor access | internal |
 | Liga (Polish Lacrosse League) | Viewer: anyone with the link · Editor: `?token=TOKEN` | internal |
-| Mistrzostwa (World Championship, field lacrosse) | In development — `IS_DEV: true`, not yet promoted to prod | internal |
+| Mistrzostwa (World Championship, field lacrosse) | Anyone with the link — full editor access | internal |
 
 ---
 
