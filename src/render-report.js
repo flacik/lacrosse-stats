@@ -24,6 +24,7 @@ function openMatchReport(matchId) {
   var goalies   = computeGoalieStats(match, allEvents);
   var perPeriod = computePerPeriodStats(matchId, match);
   var situation = computeSituationStats(matchId, match, shotEvents);
+  var cumScore  = computeCumulativeScore(matchId, match);
 
   var evA = shotEvents.filter(function(e) { return e.team_event === match.team_A; });
   var evB = shotEvents.filter(function(e) { return e.team_event === match.team_B; });
@@ -39,6 +40,7 @@ function openMatchReport(matchId) {
     _sectionSituations(situation, match),
     _sectionGoalies(goalies, match),
     _sectionPerPeriod(perPeriod, match),
+    _sectionProgression(cumScore, match.team_A, match.team_B),
     _sectionShotCharts(svgA, svgB, match),
   ]);
 
@@ -72,14 +74,44 @@ function openAnalyticsReport() {
     svgDef = conceded.length > 0 ? _reportHalfFieldSvg(conceded, conceded[0].team_event || '__opp__', true) : '';
   }
 
+  var progressionSection = '';
+  if (f.team) {
+    var concededEvents = _buildConcededEvents(filtered, data.events, f);
+    var cum = cumulativeFromPeriodTotals(s.periods, computeAnalyticsStats(concededEvents).periods);
+    progressionSection = _sectionProgression(cum, T('analytics.progression.scored'), T('analytics.progression.conceded'));
+  }
+
   var html = _reportShell(T('report.analytics') + ' — ' + escapeHtml(teamLabel), subtitle, [
     _sectionAnalyticsSummary(s, filtered, f),
     _sectionAnalyticsZones(s),
     _sectionAnalyticsPeriods(s),
+    progressionSection,
     _sectionAnalyticsSituations(s),
     _sectionAnalyticsGoalies(goalieData),
     (svgOff || svgDef) ? _sectionAnalyticsShotCharts(svgOff, svgDef, f.team) : '',
     _sectionMatchHistory(filtered, data.events, data.matches, f),
+  ]);
+
+  _openPrintWindow(html);
+}
+
+function openCompareReport() {
+  var data = APP.analyticsData;
+  if (!data || !data.events) { alert(T('error.no_analytics')); return; }
+
+  var f = APP.analyticsFilters;
+  if (!f.team || !f.team2 || f.team === f.team2) { alert(T('error.no_filtered')); return; }
+
+  var d = _computeCompareData(f, data.events, data.matches);
+
+  var parts    = [f.tournament, f.period ? periodLabel(f.period) : '', f.dateFrom, f.dateTo].filter(Boolean);
+  var subtitle = parts.join(' · ');
+  var cum      = cumulativeFromPeriodTotals(d.s1.periods, d.s2.periods);
+
+  var html = _reportShell(T('report.compare') + ' — ' + escapeHtml(f.team) + ' vs ' + escapeHtml(f.team2), subtitle, [
+    _sectionCmpGeneral(d, f),
+    d.h2hMatches.length > 0 ? _sectionCmpH2H(d.h2hMatches, data.events, f) : '',
+    _sectionProgression(cum, f.team, f.team2),
   ]);
 
   _openPrintWindow(html);
@@ -203,6 +235,66 @@ function _sectionPerPeriod(perPeriod, match) {
   return _section(T('report.per_period'),
     '<table class="cmp-table">' +
     '<thead><tr><th class="lbl">' + T('report.per_period.period') + '</th><th class="num-a">' + escapeHtml(match.team_A) + '</th><th class="num-b">' + escapeHtml(match.team_B) + '</th></tr></thead>' +
+    '<tbody>' + rows + '</tbody></table>');
+}
+
+function _sectionProgression(cum, labelA, labelB) {
+  if (!cum || cum.labels.length <= 1) return '';
+  var svg = buildProgressionChartSvg(cum.labels,
+    { label: labelA, color: '#1d4ed8', values: cum.teamA },
+    { label: labelB, color: '#b91c1c', values: cum.teamB });
+  return _section(T('report.progression'), '<div class="chart-svg">' + svg + '</div>');
+}
+
+function _sectionCmpGeneral(d, f) {
+  var t1 = escapeHtml(f.team), t2 = escapeHtml(f.team2);
+  var rows = [
+    [T('analytics.stats.matches'),   d.m1count,       d.m2count],
+    [T('analytics.stats.shots'),     d.s1.total,      d.s2.total],
+    [T('analytics.stats.goals'),     d.s1.goals,      d.s2.goals],
+    [T('analytics.stats.on_target'), d.s1.onTarget,   d.s2.onTarget],
+    [T('analytics.stats.rate'),      d.s1.pct + '%',  d.s2.pct + '%'],
+    [T('analytics.stats.on_pct'),    d.s1.onPct + '%',d.s2.onPct + '%'],
+  ];
+  var tbody = rows.map(function(r) {
+    return '<tr><td class="num-a">' + r[1] + '</td><td class="lbl">' + r[0] + '</td><td class="num-b">' + r[2] + '</td></tr>';
+  }).join('');
+  return _section(T('compare.general.title'),
+    '<table class="cmp-table">' +
+    '<thead><tr><th class="num-a">' + t1 + '</th><th class="lbl"></th><th class="num-b">' + t2 + '</th></tr></thead>' +
+    '<tbody>' + tbody + '</tbody></table>');
+}
+
+function _sectionCmpH2H(h2hMatches, allEvents, f) {
+  var t1 = escapeHtml(f.team), t2 = escapeHtml(f.team2);
+  var t1wins = 0, t2wins = 0, draws = 0;
+
+  var rows = h2hMatches.slice()
+    .sort(function(a, b) { return String(b.match_date).localeCompare(String(a.match_date)); })
+    .map(function(m) {
+      var mE  = allEvents.filter(function(e) { return String(e.match_id) === String(m.id); });
+      var gA  = mE.filter(function(e) { return e.team_event === m.team_A && e.result === 'gol'; }).length;
+      var gB  = mE.filter(function(e) { return e.team_event === m.team_B && e.result === 'gol'; }).length;
+      var t1g = m.team_A === f.team ? gA : gB;
+      var t2g = m.team_A === f.team ? gB : gA;
+      var hasEv = mE.length > 0;
+      if (hasEv && t1g > t2g) t1wins++;
+      else if (hasEv && t2g > t1g) t2wins++;
+      else if (hasEv) draws++;
+      var result = hasEv ? (t1g + ' : ' + t2g) : '— : —';
+      return '<tr><td>' + escapeHtml(String(m.match_date || '')) + '</td>' +
+        '<td>' + escapeHtml(m.tournament || '—') + '</td>' +
+        '<td class="num">' + result + '</td></tr>';
+    }).join('');
+
+  return _section(T('compare.h2h.title') + ' (' + h2hMatches.length + ')',
+    '<div class="summary-grid">' +
+      '<div class="sum-cell"><div class="sum-val">' + t1wins + '</div><div class="sum-lbl">' + t1 + ' ' + T('compare.h2h.wins') + '</div></div>' +
+      '<div class="sum-cell"><div class="sum-val">' + draws + '</div><div class="sum-lbl">' + T('compare.h2h.draws') + '</div></div>' +
+      '<div class="sum-cell"><div class="sum-val">' + t2wins + '</div><div class="sum-lbl">' + t2 + ' ' + T('compare.h2h.wins') + '</div></div>' +
+    '</div>' +
+    '<table class="data-table" style="margin-top:8pt">' +
+    '<thead><tr><th>' + T('analytics.history.date') + '</th><th>' + T('analytics.history.tournament') + '</th><th>' + t1 + ' : ' + t2 + '</th></tr></thead>' +
     '<tbody>' + rows + '</tbody></table>');
 }
 

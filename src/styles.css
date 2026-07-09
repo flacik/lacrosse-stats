@@ -603,6 +603,9 @@ table.stats-table td.num {
 .period-chart-wrapper { overflow-x: auto; margin-bottom: 8px; }
 .period-chart-wrapper svg { display: block; }
 
+.progression-chart-wrapper { overflow-x: auto; margin-bottom: 8px; }
+.progression-chart-wrapper svg { display: block; max-width: 100%; }
+
 .cmp-table { width: 100%; max-width: 420px; }
 .cmp-table th:not(:first-child) { text-align: center; font-size: 13px; }
 .cmp-label { color: #6b7280; font-size: 13px; }
@@ -874,6 +877,8 @@ table.stats-table td.num {
 [data-theme="dark"] .donut-wrapper svg text { fill: #8b949e; }
 [data-theme="dark"] .period-chart-wrapper svg text { fill: #8b949e; }
 [data-theme="dark"] .period-chart-wrapper svg line { stroke: #30363d; }
+[data-theme="dark"] .progression-chart-wrapper svg text { fill: #8b949e; }
+[data-theme="dark"] .progression-chart-wrapper svg line { stroke: #30363d; }
 
 /* ── Standings (tabela ligowa) ──────────────────────────────────────────── */
 .standings-content {

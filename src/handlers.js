@@ -31,6 +31,7 @@ const HANDLERS = {
   'analytics-retry':  () => loadAnalyticsData(),
   'open-match-report':    (matchId) => openMatchReport(matchId),
   'open-analytics-report': ()       => openAnalyticsReport(),
+  'open-compare-report':  ()       => openCompareReport(),
   'analytics-filter-change': (val, el) => {
     const field = el.dataset.field;
     if (field && field in APP.analyticsFilters) {

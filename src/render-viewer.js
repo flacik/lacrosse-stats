@@ -86,6 +86,7 @@ function renderMatchViewer(root) {
         ${renderViewerSituationCard(situation, match)}
         ${renderViewerGoalieCard(goalies, match)}
         ${renderViewerPerPeriodCard(perPeriod, match)}
+        ${renderViewerProgressionCard(match)}
         ${renderViewerShotChartCard(match, filtered, periodOptions)}
       </div>
     </div>`;
@@ -268,6 +269,20 @@ function renderViewerPerPeriodCard(perPeriod, match) {
         </tbody>
       </table>
       <div style="margin-top:8px;font-size:11px;color:#888;">${T('viewer.period.format')}</div>
+    </div>`;
+}
+
+function renderViewerProgressionCard(match) {
+  const cum = computeCumulativeScore(match.id, match);
+  const body = cum.labels.length <= 1
+    ? `<p class="empty">${T('viewer.progression.no_data')}</p>`
+    : `<div class="progression-chart-wrapper">${buildProgressionChartSvg(cum.labels,
+        { label: match.team_A, color: '#1d4ed8', values: cum.teamA },
+        { label: match.team_B, color: '#b91c1c', values: cum.teamB })}</div>`;
+  return `
+    <div class="viewer-card progression">
+      <h3>${T('viewer.progression.title')}</h3>
+      ${body}
     </div>`;
 }
 

@@ -56,6 +56,7 @@ function renderAnalytics(root) {
         <button class="btn" data-action="go-home-from-analytics">${T('nav.home')}</button>
         ${_langToggleBtn()}
         <button class="btn" data-action="toggle-dark-mode" id="theme-toggle" title="${T('nav.theme')}">🌙</button>
+        ${(f.team && f.team2) ? `<button class="btn" data-action="open-compare-report" title="${T('nav.pdf')}">${T('nav.pdf')}</button>` : ''}
       </div>
       <div class="analytics-content">
         ${modeTabs}
@@ -709,7 +710,22 @@ function _renderAnalyticsStats(filtered, f) {
       ${Object.keys(s.periods).length > 0 ? `
         <h3>${T('analytics.eff_period')}</h3>
         ${_renderPeriodBarChart(s.periods)}` : ''}
+      ${_renderAnalyticsProgressionChart(s, filtered, f)}
     </section>`;
+}
+
+function _renderAnalyticsProgressionChart(s, filtered, f) {
+  if (!f.team) {
+    return `<h3>${T('analytics.progression.title')}</h3><p class="empty">${T('analytics.progression.select_team')}</p>`;
+  }
+  const conceded   = _buildConcededEvents(filtered, APP.analyticsData.events, f);
+  const sConceded  = computeAnalyticsStats(conceded).periods;
+  const cum        = cumulativeFromPeriodTotals(s.periods, sConceded);
+  if (cum.labels.length <= 1) return '';
+  const svg = buildProgressionChartSvg(cum.labels,
+    { label: T('analytics.progression.scored'),   color: '#1d4ed8', values: cum.teamA },
+    { label: T('analytics.progression.conceded'), color: '#b91c1c', values: cum.teamB });
+  return `<h3>${T('analytics.progression.title')}</h3><div class="progression-chart-wrapper">${svg}</div>`;
 }
 
 // ── Heatmap ───────────────────────────────────────────────────────────────────
@@ -901,16 +917,7 @@ function _renderAnalyticsMatchHistory(filtered, allEvents, allMatches, f) {
 
 // ── Team comparison ───────────────────────────────────────────────────────────
 
-function _renderAnalyticsCompareBody(f, events, matches) {
-  if (!f.team || !f.team2) {
-    return `<div class="empty" style="padding:32px;text-align:center">
-      ${!f.team ? T('compare.choose_t1') : T('compare.choose_t2')}
-    </div>`;
-  }
-  if (f.team === f.team2) {
-    return `<div class="empty" style="padding:32px;text-align:center">${T('compare.different_teams')}</div>`;
-  }
-
+function _computeCompareData(f, events, matches) {
   const f2 = Object.assign({}, f, { team: f.team2 });
   const e1 = _analyticsApplyFilters(events, f);
   const e2 = _analyticsApplyFilters(events, f2);
@@ -946,12 +953,27 @@ function _renderAnalyticsCompareBody(f, events, matches) {
   const def1 = computeAnalyticsStats(conc1);
   const def2 = computeAnalyticsStats(conc2);
 
+  return { e1, e2, conc1, conc2, s1, s2, def1, def2, h2hMatches, h2hE1, h2hE2, m1count, m2count };
+}
+
+function _renderAnalyticsCompareBody(f, events, matches) {
+  if (!f.team || !f.team2) {
+    return `<div class="empty" style="padding:32px;text-align:center">
+      ${!f.team ? T('compare.choose_t1') : T('compare.choose_t2')}
+    </div>`;
+  }
+  if (f.team === f.team2) {
+    return `<div class="empty" style="padding:32px;text-align:center">${T('compare.different_teams')}</div>`;
+  }
+
+  const d = _computeCompareData(f, events, matches);
+
   return `
-    ${_renderCmpStatsSection(s1, s2, def1, def2, m1count, m2count, f)}
-    ${_renderCmpHeatmaps(e1, e2, conc1, conc2, f)}
-    ${h2hMatches.length > 0 ? _renderCmpH2H(h2hMatches, h2hE1, h2hE2, f, events) : _renderCmpH2HEmpty(f)}
-    ${_renderCmpGoalies(e1, e2, f, events, matches)}
-    ${_renderCmpPeriods(s1, s2, f)}`;
+    ${_renderCmpStatsSection(d.s1, d.s2, d.def1, d.def2, d.m1count, d.m2count, f)}
+    ${_renderCmpHeatmaps(d.e1, d.e2, d.conc1, d.conc2, f)}
+    ${d.h2hMatches.length > 0 ? _renderCmpH2H(d.h2hMatches, d.h2hE1, d.h2hE2, f, events) : _renderCmpH2HEmpty(f)}
+    ${_renderCmpGoalies(d.e1, d.e2, f, events, matches)}
+    ${_renderCmpPeriods(d.s1, d.s2, f)}`;
 }
 
 function _cmpRow(label, v1, v2, lowerIsBetter) {
@@ -1204,5 +1226,16 @@ function _renderCmpPeriods(s1, s2, f) {
           ${chart2 || `<p class="empty" style="font-size:13px">${T('compare.no_data')}</p>`}
         </div>
       </div>
+      <h3>${T('compare.progression.title')}</h3>
+      ${_buildCmpProgressionSvg(s1, s2, f) || `<p class="empty" style="font-size:13px">${T('compare.no_data')}</p>`}
     </section>`;
+}
+
+function _buildCmpProgressionSvg(s1, s2, f) {
+  const cum = cumulativeFromPeriodTotals(s1.periods, s2.periods);
+  if (cum.labels.length <= 1) return '';
+  const svg = buildProgressionChartSvg(cum.labels,
+    { label: f.team,  color: '#1d4ed8', values: cum.teamA },
+    { label: f.team2, color: '#b91c1c', values: cum.teamB });
+  return `<div class="progression-chart-wrapper">${svg}</div>`;
 }

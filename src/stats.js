@@ -161,6 +161,29 @@ function computePerPeriodStats(matchId, match) {
   });
 }
 
+function computeCumulativeScore(matchId, match) {
+  const perPeriod = computePerPeriodStats(matchId, match);
+  const labels = ['start', ...perPeriod.map(p => p.period)];
+  const teamA = [0], teamB = [0];
+  perPeriod.forEach(p => {
+    teamA.push(teamA[teamA.length - 1] + p.A_goals);
+    teamB.push(teamB[teamB.length - 1] + p.B_goals);
+  });
+  return { labels, teamA, teamB };
+}
+
+function cumulativeFromPeriodTotals(periodsA, periodsB) {
+  const keys = new Set([...Object.keys(periodsA || {}), ...Object.keys(periodsB || {})]);
+  const sorted = Array.from(keys).sort((a, b) => getPeriodOrder(a) - getPeriodOrder(b));
+  const labels = ['start', ...sorted];
+  const teamA = [0], teamB = [0];
+  sorted.forEach(p => {
+    teamA.push(teamA[teamA.length - 1] + ((periodsA && periodsA[p]) ? periodsA[p].goals : 0));
+    teamB.push(teamB[teamB.length - 1] + ((periodsB && periodsB[p]) ? periodsB[p].goals : 0));
+  });
+  return { labels, teamA, teamB };
+}
+
 function computeSituationStats(matchId, match, allEvents) {
   function statsForSituation(events, teamName) {
     const teamEvents = events.filter(e => e.team_event === teamName);
