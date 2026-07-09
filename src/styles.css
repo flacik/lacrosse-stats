@@ -463,7 +463,8 @@ table.stats-table td.num {
     align-items: start;
   }
   .viewer-card.shot-chart,
-  .viewer-card.per-period {
+  .viewer-card.per-period,
+  .viewer-card.progression {
     grid-column: 1 / -1;
   }
 }
@@ -603,8 +604,8 @@ table.stats-table td.num {
 .period-chart-wrapper { overflow-x: auto; margin-bottom: 8px; }
 .period-chart-wrapper svg { display: block; }
 
-.progression-chart-wrapper { overflow-x: auto; margin-bottom: 8px; }
-.progression-chart-wrapper svg { display: block; max-width: 100%; }
+.progression-chart-wrapper { margin-bottom: 8px; }
+.progression-chart-wrapper svg { display: block; width: 100%; height: auto; }
 
 .cmp-table { width: 100%; max-width: 420px; }
 .cmp-table th:not(:first-child) { text-align: center; font-size: 13px; }
