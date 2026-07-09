@@ -48,6 +48,7 @@ function renderMatchViewer(root) {
   const goalies    = computeGoalieStats(match, allEvents);
   const perPeriod  = computePerPeriodStats(match.id, match);
   const situation  = computeSituationStats(match.id, match, shotEvents);
+  const counters   = computeCounterStats(match.id, match, null);
 
   const periodSet = new Set();
   allEvents.forEach(e => { if (e.period !== undefined && e.period !== '') periodSet.add(String(e.period)); });
@@ -84,6 +85,7 @@ function renderMatchViewer(root) {
       <div class="viewer-section">
         ${renderViewerStatsCard(statsA, statsB, match)}
         ${renderViewerSituationCard(situation, match)}
+        ${renderViewerCounterCard(counters, match)}
         ${renderViewerGoalieCard(goalies, match)}
         ${renderViewerPerPeriodCard(perPeriod, match)}
         ${renderViewerProgressionCard(match)}
@@ -146,6 +148,28 @@ function renderViewerStatsCard(statsA, statsB, match) {
           ${_splitBar(statsA.goalRate, statsB.goalRate)}
           <tr class="summary-row"><td class="num team-A">${fmt(statsA.onTargetRate, true)}</td><td class="label" style="text-align:center;">${T('viewer.shots.on_rate')}</td><td class="num team-B">${fmt(statsB.onTargetRate, true)}</td></tr>
           ${_splitBar(statsA.onTargetRate, statsB.onTargetRate)}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+function renderViewerCounterCard(counters, match) {
+  return `
+    <div class="viewer-card">
+      <h3>${T('viewer.counters.title')}</h3>
+      <table class="stats-table">
+        <thead>
+          <tr class="header-row">
+            <th class="team-A">${escapeHtml(match.team_A)}</th>
+            <th class="label" style="text-align:center;">&nbsp;</th>
+            <th class="team-B">${escapeHtml(match.team_B)}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td class="num team-A">${counters.drawA}</td><td class="label" style="text-align:center;">${T('viewer.counters.draw')}</td><td class="num team-B">${counters.drawB}</td></tr>
+          ${_splitBar(counters.drawA, counters.drawB)}
+          <tr><td class="num team-A">${counters.gbA}</td><td class="label" style="text-align:center;">${T('viewer.counters.gb')}</td><td class="num team-B">${counters.gbB}</td></tr>
+          ${_splitBar(counters.gbA, counters.gbB)}
         </tbody>
       </table>
     </div>`;
@@ -273,15 +297,18 @@ function renderViewerPerPeriodCard(perPeriod, match) {
 }
 
 function renderViewerProgressionCard(match) {
-  const cum = computeCumulativeScore(match.id, match);
+  const metrics = APP.viewer.progression_metrics;
+  const cum = computeCumulativeScore(match.id, match, metrics);
   const body = cum.labels.length <= 1
     ? `<p class="empty">${T('viewer.progression.no_data')}</p>`
-    : `<div class="progression-chart-wrapper">${buildProgressionChartSvg(cum.labels,
-        { label: match.team_A, color: '#1d4ed8', values: cum.teamA },
-        { label: match.team_B, color: '#b91c1c', values: cum.teamB })}</div>`;
+    : `<div class="progression-chart-wrapper">${buildMultiProgressionChartSvg(cum.labels,
+        { label: match.team_A, color: '#1d4ed8' },
+        { label: match.team_B, color: '#b91c1c' },
+        cum.series)}</div>`;
   return `
     <div class="viewer-card progression">
       <h3>${T('viewer.progression.title')}</h3>
+      ${progressionMetricToggle('viewer-set-progression-metric', metrics)}
       ${body}
     </div>`;
 }

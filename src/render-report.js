@@ -24,7 +24,9 @@ function openMatchReport(matchId) {
   var goalies   = computeGoalieStats(match, allEvents);
   var perPeriod = computePerPeriodStats(matchId, match);
   var situation = computeSituationStats(matchId, match, shotEvents);
-  var cumScore  = computeCumulativeScore(matchId, match);
+  var counters  = computeCounterStats(matchId, match, null);
+  var progressionMetrics = (APP.viewer && APP.viewer.progression_metrics) || ['goals'];
+  var cumScore  = computeCumulativeScore(matchId, match, progressionMetrics);
 
   var evA = shotEvents.filter(function(e) { return e.team_event === match.team_A; });
   var evB = shotEvents.filter(function(e) { return e.team_event === match.team_B; });
@@ -38,9 +40,10 @@ function openMatchReport(matchId) {
     _sectionMatchHeader(match, score),
     _sectionShotStats(statsA, statsB, match),
     _sectionSituations(situation, match),
+    _sectionCounters(counters, match),
     _sectionGoalies(goalies, match),
     _sectionPerPeriod(perPeriod, match),
-    _sectionProgression(cumScore, match.team_A, match.team_B),
+    _sectionProgression(cumScore, match.team_A, match.team_B, progressionMetrics),
     _sectionShotCharts(svgA, svgB, match),
   ]);
 
@@ -76,9 +79,10 @@ function openAnalyticsReport() {
 
   var progressionSection = '';
   if (f.team) {
+    var progressionMetrics = APP.analyticsProgressionMetrics || ['goals'];
     var concededEvents = _buildConcededEvents(filtered, data.events, f);
-    var cum = cumulativeFromPeriodTotals(s.periods, computeAnalyticsStats(concededEvents).periods);
-    progressionSection = _sectionProgression(cum, T('analytics.progression.scored'), T('analytics.progression.conceded'));
+    var cum = buildCumulativeMetricSeries(computePeriodMetricStats(filtered), computePeriodMetricStats(concededEvents), progressionMetrics);
+    progressionSection = _sectionProgression(cum, T('analytics.progression.scored'), T('analytics.progression.conceded'), progressionMetrics);
   }
 
   var html = _reportShell(T('report.analytics') + ' — ' + escapeHtml(teamLabel), subtitle, [
@@ -106,12 +110,13 @@ function openCompareReport() {
 
   var parts    = [f.tournament, f.period ? periodLabel(f.period) : '', f.dateFrom, f.dateTo].filter(Boolean);
   var subtitle = parts.join(' · ');
-  var cum      = cumulativeFromPeriodTotals(d.s1.periods, d.s2.periods);
+  var progressionMetrics = APP.compareProgressionMetrics || ['goals'];
+  var cum      = buildCumulativeMetricSeries(computePeriodMetricStats(d.e1), computePeriodMetricStats(d.e2), progressionMetrics);
 
   var html = _reportShell(T('report.compare') + ' — ' + escapeHtml(f.team) + ' vs ' + escapeHtml(f.team2), subtitle, [
     _sectionCmpGeneral(d, f),
     d.h2hMatches.length > 0 ? _sectionCmpH2H(d.h2hMatches, data.events, f) : '',
-    _sectionProgression(cum, f.team, f.team2),
+    _sectionProgression(cum, f.team, f.team2, progressionMetrics),
   ]);
 
   _openPrintWindow(html);
@@ -201,6 +206,17 @@ function _sectionSituations(situation, match) {
     '<tbody>' + rows + '</tbody></table>');
 }
 
+function _sectionCounters(counters, match) {
+  if (!counters.drawA && !counters.drawB && !counters.gbA && !counters.gbB) return '';
+  var rows =
+    '<tr><td class="num-a">' + counters.drawA + '</td><td class="lbl">' + T('viewer.counters.draw') + '</td><td class="num-b">' + counters.drawB + '</td></tr>' +
+    '<tr><td class="num-a">' + counters.gbA + '</td><td class="lbl">' + T('viewer.counters.gb') + '</td><td class="num-b">' + counters.gbB + '</td></tr>';
+  return _section(T('report.counters'),
+    '<table class="cmp-table">' +
+    '<thead><tr><th class="num-a">' + escapeHtml(match.team_A) + '</th><th class="lbl"></th><th class="num-b">' + escapeHtml(match.team_B) + '</th></tr></thead>' +
+    '<tbody>' + rows + '</tbody></table>');
+}
+
 function _sectionGoalies(goalies, match) {
   var fmt = function(v) { return v === '—' ? '—' : v + '%'; };
 
@@ -238,12 +254,15 @@ function _sectionPerPeriod(perPeriod, match) {
     '<tbody>' + rows + '</tbody></table>');
 }
 
-function _sectionProgression(cum, labelA, labelB) {
+function _sectionProgression(cum, labelA, labelB, metrics) {
   if (!cum || cum.labels.length <= 1) return '';
-  var svg = buildProgressionChartSvg(cum.labels,
-    { label: labelA, color: '#1d4ed8', values: cum.teamA },
-    { label: labelB, color: '#b91c1c', values: cum.teamB });
-  return _section(T('report.progression'), '<div class="chart-svg">' + svg + '</div>');
+  var svg = buildMultiProgressionChartSvg(cum.labels,
+    { label: labelA, color: '#1d4ed8' },
+    { label: labelB, color: '#b91c1c' },
+    cum.series);
+  var metricLabels = (metrics || ['goals']).map(progressionMetricLabel).join(', ');
+  var title = T('report.progression') + ' — ' + metricLabels;
+  return _section(title, '<div class="chart-svg">' + svg + '</div>');
 }
 
 function _sectionCmpGeneral(d, f) {
@@ -331,6 +350,11 @@ function _sectionAnalyticsSummary(s, filtered, f) {
   if (s.manUp)     rows.push(['Man-up',     s.manUp]);
   if (s.manDown)   rows.push(['Man-down',   s.manDown]);
   if (s.fastBreak) rows.push(['Fast break', s.fastBreak]);
+
+  var drawsWon    = filtered.filter(function(e) { return e.event_type === 'draw'; }).length;
+  var groundballs = filtered.filter(function(e) { return e.event_type === 'groundball'; }).length;
+  if (drawsWon)    rows.push([T('report.rows.draws'), drawsWon]);
+  if (groundballs) rows.push([T('report.rows.groundballs'), groundballs]);
 
   var cells = rows.map(function(r) {
     return '<div class="sum-cell"><div class="sum-val">' + r[1] + '</div><div class="sum-lbl">' + r[0] + '</div></div>';

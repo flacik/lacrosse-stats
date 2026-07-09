@@ -161,27 +161,71 @@ function computePerPeriodStats(matchId, match) {
   });
 }
 
-function computeCumulativeScore(matchId, match) {
-  const perPeriod = computePerPeriodStats(matchId, match);
-  const labels = ['start', ...perPeriod.map(p => p.period)];
-  const teamA = [0], teamB = [0];
-  perPeriod.forEach(p => {
-    teamA.push(teamA[teamA.length - 1] + p.A_goals);
-    teamB.push(teamB[teamB.length - 1] + p.B_goals);
+// Per-period totals for progression metrics. `rawEvents` may include non-shot
+// event types (groundball/draw/goalie_set) — shots and groundballs are bucketed
+// separately so callers can drive a cumulative chart off any of them.
+function computePeriodMetricStats(rawEvents) {
+  const periods = {};
+  function bucket(p) {
+    if (!periods[p]) periods[p] = { total: 0, goals: 0, onTarget: 0, gb: 0 };
+    return periods[p];
+  }
+  rawEvents.forEach(e => {
+    if (e.period === undefined || e.period === '') return;
+    const p = String(e.period);
+    if (isShotEvent(e)) {
+      const b = bucket(p);
+      b.total++;
+      if (e.result === 'gol') b.goals++;
+      if (e.result === 'gol' || e.result === 'celny') b.onTarget++;
+    } else if (e.event_type === 'groundball') {
+      bucket(p).gb++;
+    }
   });
-  return { labels, teamA, teamB };
+  return periods;
 }
 
-function cumulativeFromPeriodTotals(periodsA, periodsB) {
+function _progressionMetricValue(metric, cum) {
+  switch (metric) {
+    case 'shots':       return cum.total;
+    case 'onTarget':    return cum.onTarget;
+    case 'groundballs': return cum.gb;
+    case 'accuracy':    return cum.total > 0 ? Math.round(cum.goals / cum.total * 100) : 0;
+    default:            return cum.goals;
+  }
+}
+
+// metrics: array of metric names (e.g. ['goals', 'groundballs']). Returns one
+// cumulative {valuesA, valuesB} series per requested metric, sharing the same
+// period-by-period walk so multiple metrics can be plotted on one chart.
+function buildCumulativeMetricSeries(periodsA, periodsB, metrics) {
+  metrics = Array.isArray(metrics) ? metrics : [metrics || 'goals'];
   const keys = new Set([...Object.keys(periodsA || {}), ...Object.keys(periodsB || {})]);
   const sorted = Array.from(keys).sort((a, b) => getPeriodOrder(a) - getPeriodOrder(b));
   const labels = ['start', ...sorted];
-  const teamA = [0], teamB = [0];
+  const cumA = { total: 0, goals: 0, onTarget: 0, gb: 0 };
+  const cumB = { total: 0, goals: 0, onTarget: 0, gb: 0 };
+  const series = metrics.map(m => ({ metric: m, valuesA: [0], valuesB: [0] }));
   sorted.forEach(p => {
-    teamA.push(teamA[teamA.length - 1] + ((periodsA && periodsA[p]) ? periodsA[p].goals : 0));
-    teamB.push(teamB[teamB.length - 1] + ((periodsB && periodsB[p]) ? periodsB[p].goals : 0));
+    const a = (periodsA && periodsA[p]) || { total: 0, goals: 0, onTarget: 0, gb: 0 };
+    const b = (periodsB && periodsB[p]) || { total: 0, goals: 0, onTarget: 0, gb: 0 };
+    cumA.total += a.total; cumA.goals += a.goals; cumA.onTarget += a.onTarget; cumA.gb += a.gb;
+    cumB.total += b.total; cumB.goals += b.goals; cumB.onTarget += b.onTarget; cumB.gb += b.gb;
+    series.forEach(s => {
+      s.valuesA.push(_progressionMetricValue(s.metric, cumA));
+      s.valuesB.push(_progressionMetricValue(s.metric, cumB));
+    });
   });
-  return { labels, teamA, teamB };
+  return { labels, series };
+}
+
+function computeCumulativeScore(matchId, match, metrics) {
+  const events  = DATA.events.filter(e => String(e.match_id) === String(matchId));
+  const eventsA = events.filter(e => e.team_event === match.team_A);
+  const eventsB = events.filter(e => e.team_event === match.team_B);
+  const periodsA = computePeriodMetricStats(eventsA);
+  const periodsB = computePeriodMetricStats(eventsB);
+  return buildCumulativeMetricSeries(periodsA, periodsB, metrics);
 }
 
 function computeSituationStats(matchId, match, allEvents) {

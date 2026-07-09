@@ -2380,27 +2380,71 @@ function computePerPeriodStats(matchId, match) {
   });
 }
 
-function computeCumulativeScore(matchId, match) {
-  const perPeriod = computePerPeriodStats(matchId, match);
-  const labels = ['start', ...perPeriod.map(p => p.period)];
-  const teamA = [0], teamB = [0];
-  perPeriod.forEach(p => {
-    teamA.push(teamA[teamA.length - 1] + p.A_goals);
-    teamB.push(teamB[teamB.length - 1] + p.B_goals);
+// Per-period totals for progression metrics. `rawEvents` may include non-shot
+// event types (groundball/draw/goalie_set) — shots and groundballs are bucketed
+// separately so callers can drive a cumulative chart off any of them.
+function computePeriodMetricStats(rawEvents) {
+  const periods = {};
+  function bucket(p) {
+    if (!periods[p]) periods[p] = { total: 0, goals: 0, onTarget: 0, gb: 0 };
+    return periods[p];
+  }
+  rawEvents.forEach(e => {
+    if (e.period === undefined || e.period === '') return;
+    const p = String(e.period);
+    if (isShotEvent(e)) {
+      const b = bucket(p);
+      b.total++;
+      if (e.result === 'gol') b.goals++;
+      if (e.result === 'gol' || e.result === 'celny') b.onTarget++;
+    } else if (e.event_type === 'groundball') {
+      bucket(p).gb++;
+    }
   });
-  return { labels, teamA, teamB };
+  return periods;
 }
 
-function cumulativeFromPeriodTotals(periodsA, periodsB) {
+function _progressionMetricValue(metric, cum) {
+  switch (metric) {
+    case 'shots':       return cum.total;
+    case 'onTarget':    return cum.onTarget;
+    case 'groundballs': return cum.gb;
+    case 'accuracy':    return cum.total > 0 ? Math.round(cum.goals / cum.total * 100) : 0;
+    default:            return cum.goals;
+  }
+}
+
+// metrics: array of metric names (e.g. ['goals', 'groundballs']). Returns one
+// cumulative {valuesA, valuesB} series per requested metric, sharing the same
+// period-by-period walk so multiple metrics can be plotted on one chart.
+function buildCumulativeMetricSeries(periodsA, periodsB, metrics) {
+  metrics = Array.isArray(metrics) ? metrics : [metrics || 'goals'];
   const keys = new Set([...Object.keys(periodsA || {}), ...Object.keys(periodsB || {})]);
   const sorted = Array.from(keys).sort((a, b) => getPeriodOrder(a) - getPeriodOrder(b));
   const labels = ['start', ...sorted];
-  const teamA = [0], teamB = [0];
+  const cumA = { total: 0, goals: 0, onTarget: 0, gb: 0 };
+  const cumB = { total: 0, goals: 0, onTarget: 0, gb: 0 };
+  const series = metrics.map(m => ({ metric: m, valuesA: [0], valuesB: [0] }));
   sorted.forEach(p => {
-    teamA.push(teamA[teamA.length - 1] + ((periodsA && periodsA[p]) ? periodsA[p].goals : 0));
-    teamB.push(teamB[teamB.length - 1] + ((periodsB && periodsB[p]) ? periodsB[p].goals : 0));
+    const a = (periodsA && periodsA[p]) || { total: 0, goals: 0, onTarget: 0, gb: 0 };
+    const b = (periodsB && periodsB[p]) || { total: 0, goals: 0, onTarget: 0, gb: 0 };
+    cumA.total += a.total; cumA.goals += a.goals; cumA.onTarget += a.onTarget; cumA.gb += a.gb;
+    cumB.total += b.total; cumB.goals += b.goals; cumB.onTarget += b.onTarget; cumB.gb += b.gb;
+    series.forEach(s => {
+      s.valuesA.push(_progressionMetricValue(s.metric, cumA));
+      s.valuesB.push(_progressionMetricValue(s.metric, cumB));
+    });
   });
-  return { labels, teamA, teamB };
+  return { labels, series };
+}
+
+function computeCumulativeScore(matchId, match, metrics) {
+  const events  = DATA.events.filter(e => String(e.match_id) === String(matchId));
+  const eventsA = events.filter(e => e.team_event === match.team_A);
+  const eventsB = events.filter(e => e.team_event === match.team_B);
+  const periodsA = computePeriodMetricStats(eventsA);
+  const periodsB = computePeriodMetricStats(eventsB);
+  return buildCumulativeMetricSeries(periodsA, periodsB, metrics);
 }
 
 function computeSituationStats(matchId, match, allEvents) {
@@ -2482,6 +2526,9 @@ let APP = {
     period:     '',
   },
   analyticsHeatmapMode: 'fired',  // 'fired' | 'conceded'
+  // Progression chart — which metrics are plotted at once; each is 'goals' | 'shots' | 'onTarget' | 'accuracy' | 'groundballs'
+  analyticsProgressionMetrics: ['goals'],
+  compareProgressionMetrics:   ['goals'],
 
   // CSV bulk import (panel admin)
   csvImport: null,  // null | { rows: [], importing: bool }
@@ -2804,7 +2851,8 @@ function initViewerSession() {
     view_mode: 'full',
     display_mode: 'markers',
     filter_period: 'all',
-    filter_result: 'all'
+    filter_result: 'all',
+    progression_metrics: ['goals']
   };
 }
 
@@ -3229,6 +3277,8 @@ const STRINGS = {
     'viewer.sit.man_up': 'przewaga', 'viewer.sit.equal': 'równa liczba',
     'viewer.sit.man_down': 'osłabienie', 'viewer.sit.fast_break': 'fast break',
     'viewer.sit.shots_goals': 'strzały/bramki', 'viewer.sit.rate': 'skuteczność',
+    'viewer.counters.title': 'Groundball i wznowienia',
+    'viewer.counters.gb': 'groundball (GB)', 'viewer.counters.draw': 'wygrane wznowienia (Draw)',
     'viewer.goalie.title': 'Statystyki bramkarzy',
     'viewer.goalie.saves': 'obrony', 'viewer.goalie.goals_ag': 'bramki stracone',
     'viewer.goalie.shots_on': 'strzały na bramkę (faced)', 'viewer.goalie.save_pct': '% obron',
@@ -3239,6 +3289,10 @@ const STRINGS = {
     'viewer.period.goal': 'gol', 'viewer.period.goals': 'goli',
     'viewer.progression.title': 'Progresja wyniku',
     'viewer.progression.no_data': 'Brak jeszcze danych o okresach.',
+    'progression.metric.label': 'Metryka:',
+    'progression.metric.goals': 'Gole', 'progression.metric.shots': 'Strzały',
+    'progression.metric.on_target': 'Celne', 'progression.metric.accuracy': 'Skuteczność %',
+    'progression.metric.groundballs': 'Groundballs',
     'viewer.chart.title': 'Shot chart', 'viewer.chart.view': 'Widok:',
     'viewer.chart.mode': 'Tryb:', 'viewer.chart.period': 'Okres:', 'viewer.chart.result': 'Rezultat:',
     'viewer.chart.full': 'Pełne boisko', 'viewer.chart.half': 'Połowa',
@@ -3286,6 +3340,7 @@ const STRINGS = {
     'analytics.stats.matches': 'Meczy', 'analytics.stats.shots': 'Strzałów',
     'analytics.stats.goals': 'Bramek', 'analytics.stats.on_target': 'Celnych',
     'analytics.stats.rate': 'Skuteczność', 'analytics.stats.on_pct': '% celnych',
+    'analytics.stats.draws': 'Wygranych wznowień', 'analytics.stats.groundballs': 'Groundballs',
     'analytics.zones.title': 'Rozkład po strefach', 'analytics.zones.zone': 'Strefa',
     'analytics.periods.title': 'Rozkład po kwartach', 'analytics.periods.quarter': 'Kwarta',
     'analytics.eff_period': 'Skuteczność per kwarta',
@@ -3383,6 +3438,8 @@ const STRINGS = {
     'report.shot_stats': 'Statystyki strzałów',
     'report.situations': 'Sytuacje specjalne — strzały/bramki (skuteczność%)',
     'report.situations_th': 'Sytuacja', 'report.goalies': 'Bramkarze',
+    'report.counters': 'Groundball i wznowienia',
+    'report.rows.draws': 'Wygrane wznowienia', 'report.rows.groundballs': 'Groundballs',
     'report.goalies.team': 'Drużyna', 'report.goalies.nr': 'Nr',
     'report.goalies.saves': 'Obrony', 'report.goalies.goals_ag': 'Bramki str.',
     'report.goalies.shots_on': 'Strzały na br.', 'report.goalies.save_pct': 'Save%',
@@ -3466,6 +3523,8 @@ const STRINGS = {
     'viewer.sit.man_up': 'man-up', 'viewer.sit.equal': 'even strength',
     'viewer.sit.man_down': 'man-down', 'viewer.sit.fast_break': 'fast break',
     'viewer.sit.shots_goals': 'shots/goals', 'viewer.sit.rate': 'efficiency',
+    'viewer.counters.title': 'Ground balls & draws',
+    'viewer.counters.gb': 'ground balls (GB)', 'viewer.counters.draw': 'draws won',
     'viewer.goalie.title': 'Goalie statistics',
     'viewer.goalie.saves': 'saves', 'viewer.goalie.goals_ag': 'goals against',
     'viewer.goalie.shots_on': 'shots on goal (faced)', 'viewer.goalie.save_pct': '% saves',
@@ -3476,6 +3535,10 @@ const STRINGS = {
     'viewer.period.goal': 'goal', 'viewer.period.goals': 'goals',
     'viewer.progression.title': 'Score progression',
     'viewer.progression.no_data': 'No period data yet.',
+    'progression.metric.label': 'Metric:',
+    'progression.metric.goals': 'Goals', 'progression.metric.shots': 'Shots',
+    'progression.metric.on_target': 'On target', 'progression.metric.accuracy': 'Accuracy %',
+    'progression.metric.groundballs': 'Ground balls',
     'viewer.chart.title': 'Shot chart', 'viewer.chart.view': 'View:',
     'viewer.chart.mode': 'Mode:', 'viewer.chart.period': 'Period:', 'viewer.chart.result': 'Result:',
     'viewer.chart.full': 'Full field', 'viewer.chart.half': 'Half',
@@ -3523,6 +3586,7 @@ const STRINGS = {
     'analytics.stats.matches': 'Matches', 'analytics.stats.shots': 'Shots',
     'analytics.stats.goals': 'Goals', 'analytics.stats.on_target': 'On target',
     'analytics.stats.rate': 'Efficiency', 'analytics.stats.on_pct': '% on target',
+    'analytics.stats.draws': 'Draws won', 'analytics.stats.groundballs': 'Ground balls',
     'analytics.zones.title': 'Shot distribution by zone', 'analytics.zones.zone': 'Zone',
     'analytics.periods.title': 'Shot distribution by period', 'analytics.periods.quarter': 'Period',
     'analytics.eff_period': 'Efficiency per period',
@@ -3620,6 +3684,8 @@ const STRINGS = {
     'report.shot_stats': 'Shot statistics',
     'report.situations': 'Special situations — shots/goals (efficiency%)',
     'report.situations_th': 'Situation', 'report.goalies': 'Goalkeepers',
+    'report.counters': 'Ground balls & draws',
+    'report.rows.draws': 'Draws won', 'report.rows.groundballs': 'Ground balls',
     'report.goalies.team': 'Team', 'report.goalies.nr': 'No.',
     'report.goalies.saves': 'Saves', 'report.goalies.goals_ag': 'Goals ag.',
     'report.goalies.shots_on': 'Shots on goal', 'report.goalies.save_pct': 'Save%',
@@ -4348,31 +4414,81 @@ function _niceIntegerTicks(maxVal, desiredCount) {
   return { step, topTick, ticks };
 }
 
-function buildProgressionChartSvg(labels, seriesA, seriesB, opts) {
-  opts = opts || {};
-  const width  = opts.width  || 480;
-  const height = opts.height || 220;
+const PROGRESSION_METRICS = ['goals', 'shots', 'onTarget', 'accuracy', 'groundballs'];
 
-  if (!labels || labels.length < 2) {
+function progressionMetricLabel(metric) {
+  switch (metric) {
+    case 'shots':       return T('progression.metric.shots');
+    case 'onTarget':    return T('progression.metric.on_target');
+    case 'accuracy':    return T('progression.metric.accuracy');
+    case 'groundballs': return T('progression.metric.groundballs');
+    default:            return T('progression.metric.goals');
+  }
+}
+
+function progressionMetricToggle(actionName, activeMetrics) {
+  const buttons = PROGRESSION_METRICS.map(m =>
+    `<button class="btn ${activeMetrics.includes(m) ? 'btn-active' : ''}" data-action="${actionName}" data-arg="${m}">${progressionMetricLabel(m)}</button>`
+  ).join('');
+  return `<div class="viewer-controls" style="margin-bottom:8px;">
+    <span class="ctrl-label">${T('progression.metric.label')}</span>
+    <div class="toggle-group">${buttons}</div>
+  </div>`;
+}
+
+// Dash pattern per metric — lets several metrics share one chart/axis while
+// staying visually distinct (color is reserved for team A vs team B).
+const METRIC_DASH = {
+  goals:       '',
+  shots:       '6,4',
+  onTarget:    '2,3',
+  accuracy:    '9,3,2,3',
+  groundballs: '12,4',
+};
+
+// Renders 1..N metrics × team A/B on one chart. Count-based metrics (goals,
+// shots, onTarget, groundballs) share a single auto-scaled left axis since
+// they're all "number of events"; accuracy (%) gets its own fixed 0–100 axis
+// on the right because it isn't the same unit and would flatten the rest.
+function buildMultiProgressionChartSvg(labels, teamA, teamB, metricSeries, opts) {
+  opts = opts || {};
+  const width  = opts.width  || 560;
+  const height = opts.height || 240;
+
+  if (!labels || labels.length < 2 || !metricSeries || metricSeries.length === 0) {
     return `<svg width="${width}" height="60" viewBox="0 0 ${width} 60"></svg>`;
   }
 
-  const marginLeft = 34, marginRight = 14, marginTop = 32, marginBottom = 26;
-  const plotLeft   = marginLeft;
-  const plotTop    = marginTop;
+  const leftMetrics  = metricSeries.filter(m => m.metric !== 'accuracy');
+  const rightMetrics = metricSeries.filter(m => m.metric === 'accuracy');
+  const hasLeft  = leftMetrics.length > 0;
+  const hasRight = rightMetrics.length > 0;
+
+  const legendRows   = Math.ceil(metricSeries.length / 3);
+  const marginLeft   = 34;
+  const marginRight  = hasRight ? 34 : 14;
+  const marginTop    = 24 + legendRows * 14 + 14;
+  const marginBottom = 26;
   const plotW      = width - marginLeft - marginRight;
   const plotH      = height - marginTop - marginBottom;
+  const plotTop    = marginTop;
   const plotBottom = plotTop + plotH;
 
-  const maxVal = Math.max(...seriesA.values, ...seriesB.values, 1);
-  const { ticks, topTick } = _niceIntegerTicks(maxVal);
+  const leftVals = hasLeft ? leftMetrics.flatMap(m => [...m.valuesA, ...m.valuesB]) : [0];
+  const { ticks: leftTicks, topTick: leftTop } = _niceIntegerTicks(Math.max(...leftVals, 1));
+  const rightTop   = 100;
+  const rightTicks = [0, 20, 40, 60, 80, 100];
 
-  const yScale = v => plotBottom - (v / topTick) * plotH;
-  const xScale = i  => plotLeft + i * (plotW / (labels.length - 1));
+  const yScaleLeft  = v => plotBottom - (v / leftTop) * plotH;
+  const yScaleRight = v => plotBottom - (v / rightTop) * plotH;
+  const xScale      = i => marginLeft + i * (plotW / (labels.length - 1));
 
-  const gridLines = ticks.map(t => `
-    <line x1="${plotLeft}" y1="${yScale(t)}" x2="${plotLeft + plotW}" y2="${yScale(t)}" stroke="#e5e7eb" stroke-width="1"/>
-    <text x="${plotLeft - 8}" y="${yScale(t) + 4}" text-anchor="end" font-size="10" fill="#9ca3af">${t}</text>`).join('');
+  const leftGrid = hasLeft ? leftTicks.map(t => `
+    <line x1="${marginLeft}" y1="${yScaleLeft(t)}" x2="${marginLeft + plotW}" y2="${yScaleLeft(t)}" stroke="#e5e7eb" stroke-width="1"/>
+    <text x="${marginLeft - 8}" y="${yScaleLeft(t) + 4}" text-anchor="end" font-size="10" fill="#9ca3af">${t}</text>`).join('') : '';
+
+  const rightAxis = hasRight ? rightTicks.map(t => `
+    <text x="${marginLeft + plotW + 8}" y="${yScaleRight(t) + 4}" text-anchor="start" font-size="10" fill="#9ca3af">${t}%</text>`).join('') : '';
 
   const xLabels = labels.map((lab, i) => {
     const text = lab === 'start' ? T('progression.start') : periodLabel(lab);
@@ -4380,35 +4496,45 @@ function buildProgressionChartSvg(labels, seriesA, seriesB, opts) {
     return `<text x="${xScale(i)}" y="${plotBottom + 16}" text-anchor="${anchor}" font-size="10" fill="#6b7280">${escapeHtml(text)}</text>`;
   }).join('');
 
-  function seriesLine(series) {
-    const points = series.values.map((v, i) => `${xScale(i)},${yScale(v)}`).join(' ');
-    const markers = series.values.map((v, i) => `<circle cx="${xScale(i)}" cy="${yScale(v)}" r="3" fill="${series.color}"/>`).join('');
-    return `<polyline points="${points}" fill="none" stroke="${series.color}" stroke-width="2.5"/>${markers}`;
+  function seriesLine(values, color, metric) {
+    const scale = metric === 'accuracy' ? yScaleRight : yScaleLeft;
+    const dash  = METRIC_DASH[metric] || '';
+    const points  = values.map((v, i) => `${xScale(i)},${scale(v)}`).join(' ');
+    const markers = values.map((v, i) => `<circle cx="${xScale(i)}" cy="${scale(v)}" r="2.5" fill="${color}"/>`).join('');
+    const dashAttr = dash ? ` stroke-dasharray="${dash}"` : '';
+    return `<polyline points="${points}" fill="none" stroke="${color}" stroke-width="2"${dashAttr}/>${markers}`;
   }
 
-  const lastIdx  = labels.length - 1;
-  const lastA    = seriesA.values[lastIdx];
-  const lastB    = seriesB.values[lastIdx];
-  const endLabels = `
-    <text x="${xScale(lastIdx)}" y="${yScale(lastA) - 8}" text-anchor="middle" font-size="11" font-weight="700" fill="${seriesA.color}">${lastA}</text>
-    <text x="${xScale(lastIdx)}" y="${yScale(lastB) + 16}" text-anchor="middle" font-size="11" font-weight="700" fill="${seriesB.color}">${lastB}</text>`;
+  const lines = metricSeries.map(m =>
+    seriesLine(m.valuesA, teamA.color, m.metric) + seriesLine(m.valuesB, teamB.color, m.metric)
+  ).join('');
 
-  const legend = `
+  const teamLegend = `
     <g>
-      <rect x="0" y="6" width="12" height="3" fill="${seriesA.color}"/>
-      <text x="16" y="12" font-size="11" fill="#374151">${escapeHtml(seriesA.label)}</text>
-      <rect x="${width / 2}" y="6" width="12" height="3" fill="${seriesB.color}"/>
-      <text x="${width / 2 + 16}" y="12" font-size="11" fill="#374151">${escapeHtml(seriesB.label)}</text>
+      <rect x="0" y="6" width="12" height="3" fill="${teamA.color}"/>
+      <text x="16" y="12" font-size="11" fill="#374151">${escapeHtml(teamA.label)}</text>
+      <rect x="${width / 2}" y="6" width="12" height="3" fill="${teamB.color}"/>
+      <text x="${width / 2 + 16}" y="12" font-size="11" fill="#374151">${escapeHtml(teamB.label)}</text>
     </g>`;
+
+  const metricLegend = metricSeries.map((m, i) => {
+    const col = i % 3, row = Math.floor(i / 3);
+    const x = 4 + col * (width / 3);
+    const y = 26 + row * 14;
+    const dash = METRIC_DASH[m.metric] || '';
+    const dashAttr = dash ? ` stroke-dasharray="${dash}"` : '';
+    return `<line x1="${x}" y1="${y}" x2="${x + 18}" y2="${y}" stroke="#6b7280" stroke-width="2"${dashAttr}/>
+      <text x="${x + 22}" y="${y + 3}" font-size="10" fill="#374151">${progressionMetricLabel(m.metric)}${m.metric === 'accuracy' ? ' (%)' : ''}</text>`;
+  }).join('');
 
   return `
     <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
-      ${legend}
-      ${gridLines}
+      ${teamLegend}
+      ${metricLegend}
+      ${leftGrid}
+      ${rightAxis}
       ${xLabels}
-      ${seriesLine(seriesA)}
-      ${seriesLine(seriesB)}
-      ${endLabels}
+      ${lines}
     </svg>`;
 }
 
@@ -4847,6 +4973,7 @@ function renderMatchViewer(root) {
   const goalies    = computeGoalieStats(match, allEvents);
   const perPeriod  = computePerPeriodStats(match.id, match);
   const situation  = computeSituationStats(match.id, match, shotEvents);
+  const counters   = computeCounterStats(match.id, match, null);
 
   const periodSet = new Set();
   allEvents.forEach(e => { if (e.period !== undefined && e.period !== '') periodSet.add(String(e.period)); });
@@ -4883,6 +5010,7 @@ function renderMatchViewer(root) {
       <div class="viewer-section">
         ${renderViewerStatsCard(statsA, statsB, match)}
         ${renderViewerSituationCard(situation, match)}
+        ${renderViewerCounterCard(counters, match)}
         ${renderViewerGoalieCard(goalies, match)}
         ${renderViewerPerPeriodCard(perPeriod, match)}
         ${renderViewerProgressionCard(match)}
@@ -4945,6 +5073,28 @@ function renderViewerStatsCard(statsA, statsB, match) {
           ${_splitBar(statsA.goalRate, statsB.goalRate)}
           <tr class="summary-row"><td class="num team-A">${fmt(statsA.onTargetRate, true)}</td><td class="label" style="text-align:center;">${T('viewer.shots.on_rate')}</td><td class="num team-B">${fmt(statsB.onTargetRate, true)}</td></tr>
           ${_splitBar(statsA.onTargetRate, statsB.onTargetRate)}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+function renderViewerCounterCard(counters, match) {
+  return `
+    <div class="viewer-card">
+      <h3>${T('viewer.counters.title')}</h3>
+      <table class="stats-table">
+        <thead>
+          <tr class="header-row">
+            <th class="team-A">${escapeHtml(match.team_A)}</th>
+            <th class="label" style="text-align:center;">&nbsp;</th>
+            <th class="team-B">${escapeHtml(match.team_B)}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td class="num team-A">${counters.drawA}</td><td class="label" style="text-align:center;">${T('viewer.counters.draw')}</td><td class="num team-B">${counters.drawB}</td></tr>
+          ${_splitBar(counters.drawA, counters.drawB)}
+          <tr><td class="num team-A">${counters.gbA}</td><td class="label" style="text-align:center;">${T('viewer.counters.gb')}</td><td class="num team-B">${counters.gbB}</td></tr>
+          ${_splitBar(counters.gbA, counters.gbB)}
         </tbody>
       </table>
     </div>`;
@@ -5072,15 +5222,18 @@ function renderViewerPerPeriodCard(perPeriod, match) {
 }
 
 function renderViewerProgressionCard(match) {
-  const cum = computeCumulativeScore(match.id, match);
+  const metrics = APP.viewer.progression_metrics;
+  const cum = computeCumulativeScore(match.id, match, metrics);
   const body = cum.labels.length <= 1
     ? `<p class="empty">${T('viewer.progression.no_data')}</p>`
-    : `<div class="progression-chart-wrapper">${buildProgressionChartSvg(cum.labels,
-        { label: match.team_A, color: '#1d4ed8', values: cum.teamA },
-        { label: match.team_B, color: '#b91c1c', values: cum.teamB })}</div>`;
+    : `<div class="progression-chart-wrapper">${buildMultiProgressionChartSvg(cum.labels,
+        { label: match.team_A, color: '#1d4ed8' },
+        { label: match.team_B, color: '#b91c1c' },
+        cum.series)}</div>`;
   return `
     <div class="viewer-card progression">
       <h3>${T('viewer.progression.title')}</h3>
+      ${progressionMetricToggle('viewer-set-progression-metric', metrics)}
       ${body}
     </div>`;
 }
@@ -5609,7 +5762,8 @@ function _renderOffenseDefenseComparison(filteredTeamEvents, allEvents, f) {
 
 // ── Stats computation ─────────────────────────────────────────────────────────
 
-function computeAnalyticsStats(events) {
+function computeAnalyticsStats(allEvents) {
+  const events = allEvents.filter(isShotEvent);
   const total     = events.length;
   const goals     = events.filter(e => e.result === 'gol').length;
   const onTarget  = events.filter(e => e.result === 'celny' || e.result === 'gol').length;
@@ -5780,6 +5934,8 @@ function _renderAnalyticsStats(filtered, f) {
   const s = computeAnalyticsStats(filtered);
   const teamLabel = f.team || T('select.all_teams');
   const matchCount = new Set(filtered.map(e => String(e.match_id))).size;
+  const drawsWon    = filtered.filter(e => e.event_type === 'draw').length;
+  const groundballs = filtered.filter(e => e.event_type === 'groundball').length;
 
   const zoneOrder = ['attack-center','attack-left','attack-right',
                      'midfield-center','midfield-left','midfield-right','own-half'];
@@ -5824,6 +5980,8 @@ function _renderAnalyticsStats(filtered, f) {
         ${s.manUp     ? `<div class="stat-box"><div class="stat-val">${s.manUp}</div><div class="stat-lbl">Man-up</div></div>` : ''}
         ${s.manDown   ? `<div class="stat-box"><div class="stat-val">${s.manDown}</div><div class="stat-lbl">Man-down</div></div>` : ''}
         ${s.fastBreak ? `<div class="stat-box"><div class="stat-val">${s.fastBreak}</div><div class="stat-lbl">Fast break</div></div>` : ''}
+        ${drawsWon    ? `<div class="stat-box"><div class="stat-val">${drawsWon}</div><div class="stat-lbl">${T('analytics.stats.draws')}</div></div>` : ''}
+        ${groundballs ? `<div class="stat-box"><div class="stat-val">${groundballs}</div><div class="stat-lbl">${T('analytics.stats.groundballs')}</div></div>` : ''}
       </div>
       ${zoneRows ? `
         <h3>${T('analytics.zones.title')}</h3>
@@ -5842,22 +6000,26 @@ function _renderAnalyticsStats(filtered, f) {
       ${Object.keys(s.periods).length > 0 ? `
         <h3>${T('analytics.eff_period')}</h3>
         ${_renderPeriodBarChart(s.periods)}` : ''}
-      ${_renderAnalyticsProgressionChart(s, filtered, f)}
+      ${_renderAnalyticsProgressionChart(filtered, f)}
     </section>`;
 }
 
-function _renderAnalyticsProgressionChart(s, filtered, f) {
+function _renderAnalyticsProgressionChart(filtered, f) {
   if (!f.team) {
     return `<h3>${T('analytics.progression.title')}</h3><p class="empty">${T('analytics.progression.select_team')}</p>`;
   }
-  const conceded   = _buildConcededEvents(filtered, APP.analyticsData.events, f);
-  const sConceded  = computeAnalyticsStats(conceded).periods;
-  const cum        = cumulativeFromPeriodTotals(s.periods, sConceded);
-  if (cum.labels.length <= 1) return '';
-  const svg = buildProgressionChartSvg(cum.labels,
-    { label: T('analytics.progression.scored'),   color: '#1d4ed8', values: cum.teamA },
-    { label: T('analytics.progression.conceded'), color: '#b91c1c', values: cum.teamB });
-  return `<h3>${T('analytics.progression.title')}</h3><div class="progression-chart-wrapper">${svg}</div>`;
+  const metrics        = APP.analyticsProgressionMetrics;
+  const conceded        = _buildConcededEvents(filtered, APP.analyticsData.events, f);
+  const periodsScored   = computePeriodMetricStats(filtered);
+  const periodsConceded = computePeriodMetricStats(conceded);
+  const cum = buildCumulativeMetricSeries(periodsScored, periodsConceded, metrics);
+  const toggle = progressionMetricToggle('analytics-set-progression-metric', metrics);
+  if (cum.labels.length <= 1) return `<h3>${T('analytics.progression.title')}</h3>${toggle}`;
+  const svg = buildMultiProgressionChartSvg(cum.labels,
+    { label: T('analytics.progression.scored'),   color: '#1d4ed8' },
+    { label: T('analytics.progression.conceded'), color: '#b91c1c' },
+    cum.series);
+  return `<h3>${T('analytics.progression.title')}</h3>${toggle}<div class="progression-chart-wrapper">${svg}</div>`;
 }
 
 // ── Heatmap ───────────────────────────────────────────────────────────────────
@@ -6105,7 +6267,7 @@ function _renderAnalyticsCompareBody(f, events, matches) {
     ${_renderCmpHeatmaps(d.e1, d.e2, d.conc1, d.conc2, f)}
     ${d.h2hMatches.length > 0 ? _renderCmpH2H(d.h2hMatches, d.h2hE1, d.h2hE2, f, events) : _renderCmpH2HEmpty(f)}
     ${_renderCmpGoalies(d.e1, d.e2, f, events, matches)}
-    ${_renderCmpPeriods(d.s1, d.s2, f)}`;
+    ${_renderCmpPeriods(d, f)}`;
 }
 
 function _cmpRow(label, v1, v2, lowerIsBetter) {
@@ -6334,7 +6496,8 @@ function _renderCmpGoalies(e1, e2, f, allEvents, allMatches) {
     </section>`;
 }
 
-function _renderCmpPeriods(s1, s2, f) {
+function _renderCmpPeriods(d, f) {
+  const s1 = d.s1, s2 = d.s2;
   const t1 = escapeHtml(f.team);
   const t2 = escapeHtml(f.team2);
 
@@ -6344,6 +6507,10 @@ function _renderCmpPeriods(s1, s2, f) {
   const chart1 = _renderPeriodBarChart(s1.periods);
   const chart2 = _renderPeriodBarChart(s2.periods);
   if (!chart1 && !chart2) return '';
+
+  const metrics = APP.compareProgressionMetrics;
+  const toggle = progressionMetricToggle('compare-set-progression-metric', metrics);
+  const progressionSvg = _buildCmpProgressionSvg(d.e1, d.e2, f, metrics);
 
   return `
     <section class="analytics-section">
@@ -6359,16 +6526,20 @@ function _renderCmpPeriods(s1, s2, f) {
         </div>
       </div>
       <h3>${T('compare.progression.title')}</h3>
-      ${_buildCmpProgressionSvg(s1, s2, f) || `<p class="empty" style="font-size:13px">${T('compare.no_data')}</p>`}
+      ${toggle}
+      ${progressionSvg || `<p class="empty" style="font-size:13px">${T('compare.no_data')}</p>`}
     </section>`;
 }
 
-function _buildCmpProgressionSvg(s1, s2, f) {
-  const cum = cumulativeFromPeriodTotals(s1.periods, s2.periods);
+function _buildCmpProgressionSvg(e1, e2, f, metrics) {
+  const periods1 = computePeriodMetricStats(e1);
+  const periods2 = computePeriodMetricStats(e2);
+  const cum = buildCumulativeMetricSeries(periods1, periods2, metrics);
   if (cum.labels.length <= 1) return '';
-  const svg = buildProgressionChartSvg(cum.labels,
-    { label: f.team,  color: '#1d4ed8', values: cum.teamA },
-    { label: f.team2, color: '#b91c1c', values: cum.teamB });
+  const svg = buildMultiProgressionChartSvg(cum.labels,
+    { label: f.team,  color: '#1d4ed8' },
+    { label: f.team2, color: '#b91c1c' },
+    cum.series);
   return `<div class="progression-chart-wrapper">${svg}</div>`;
 }
 
@@ -6927,7 +7098,9 @@ function openMatchReport(matchId) {
   var goalies   = computeGoalieStats(match, allEvents);
   var perPeriod = computePerPeriodStats(matchId, match);
   var situation = computeSituationStats(matchId, match, shotEvents);
-  var cumScore  = computeCumulativeScore(matchId, match);
+  var counters  = computeCounterStats(matchId, match, null);
+  var progressionMetrics = (APP.viewer && APP.viewer.progression_metrics) || ['goals'];
+  var cumScore  = computeCumulativeScore(matchId, match, progressionMetrics);
 
   var evA = shotEvents.filter(function(e) { return e.team_event === match.team_A; });
   var evB = shotEvents.filter(function(e) { return e.team_event === match.team_B; });
@@ -6941,9 +7114,10 @@ function openMatchReport(matchId) {
     _sectionMatchHeader(match, score),
     _sectionShotStats(statsA, statsB, match),
     _sectionSituations(situation, match),
+    _sectionCounters(counters, match),
     _sectionGoalies(goalies, match),
     _sectionPerPeriod(perPeriod, match),
-    _sectionProgression(cumScore, match.team_A, match.team_B),
+    _sectionProgression(cumScore, match.team_A, match.team_B, progressionMetrics),
     _sectionShotCharts(svgA, svgB, match),
   ]);
 
@@ -6979,9 +7153,10 @@ function openAnalyticsReport() {
 
   var progressionSection = '';
   if (f.team) {
+    var progressionMetrics = APP.analyticsProgressionMetrics || ['goals'];
     var concededEvents = _buildConcededEvents(filtered, data.events, f);
-    var cum = cumulativeFromPeriodTotals(s.periods, computeAnalyticsStats(concededEvents).periods);
-    progressionSection = _sectionProgression(cum, T('analytics.progression.scored'), T('analytics.progression.conceded'));
+    var cum = buildCumulativeMetricSeries(computePeriodMetricStats(filtered), computePeriodMetricStats(concededEvents), progressionMetrics);
+    progressionSection = _sectionProgression(cum, T('analytics.progression.scored'), T('analytics.progression.conceded'), progressionMetrics);
   }
 
   var html = _reportShell(T('report.analytics') + ' — ' + escapeHtml(teamLabel), subtitle, [
@@ -7009,12 +7184,13 @@ function openCompareReport() {
 
   var parts    = [f.tournament, f.period ? periodLabel(f.period) : '', f.dateFrom, f.dateTo].filter(Boolean);
   var subtitle = parts.join(' · ');
-  var cum      = cumulativeFromPeriodTotals(d.s1.periods, d.s2.periods);
+  var progressionMetrics = APP.compareProgressionMetrics || ['goals'];
+  var cum      = buildCumulativeMetricSeries(computePeriodMetricStats(d.e1), computePeriodMetricStats(d.e2), progressionMetrics);
 
   var html = _reportShell(T('report.compare') + ' — ' + escapeHtml(f.team) + ' vs ' + escapeHtml(f.team2), subtitle, [
     _sectionCmpGeneral(d, f),
     d.h2hMatches.length > 0 ? _sectionCmpH2H(d.h2hMatches, data.events, f) : '',
-    _sectionProgression(cum, f.team, f.team2),
+    _sectionProgression(cum, f.team, f.team2, progressionMetrics),
   ]);
 
   _openPrintWindow(html);
@@ -7104,6 +7280,17 @@ function _sectionSituations(situation, match) {
     '<tbody>' + rows + '</tbody></table>');
 }
 
+function _sectionCounters(counters, match) {
+  if (!counters.drawA && !counters.drawB && !counters.gbA && !counters.gbB) return '';
+  var rows =
+    '<tr><td class="num-a">' + counters.drawA + '</td><td class="lbl">' + T('viewer.counters.draw') + '</td><td class="num-b">' + counters.drawB + '</td></tr>' +
+    '<tr><td class="num-a">' + counters.gbA + '</td><td class="lbl">' + T('viewer.counters.gb') + '</td><td class="num-b">' + counters.gbB + '</td></tr>';
+  return _section(T('report.counters'),
+    '<table class="cmp-table">' +
+    '<thead><tr><th class="num-a">' + escapeHtml(match.team_A) + '</th><th class="lbl"></th><th class="num-b">' + escapeHtml(match.team_B) + '</th></tr></thead>' +
+    '<tbody>' + rows + '</tbody></table>');
+}
+
 function _sectionGoalies(goalies, match) {
   var fmt = function(v) { return v === '—' ? '—' : v + '%'; };
 
@@ -7141,12 +7328,15 @@ function _sectionPerPeriod(perPeriod, match) {
     '<tbody>' + rows + '</tbody></table>');
 }
 
-function _sectionProgression(cum, labelA, labelB) {
+function _sectionProgression(cum, labelA, labelB, metrics) {
   if (!cum || cum.labels.length <= 1) return '';
-  var svg = buildProgressionChartSvg(cum.labels,
-    { label: labelA, color: '#1d4ed8', values: cum.teamA },
-    { label: labelB, color: '#b91c1c', values: cum.teamB });
-  return _section(T('report.progression'), '<div class="chart-svg">' + svg + '</div>');
+  var svg = buildMultiProgressionChartSvg(cum.labels,
+    { label: labelA, color: '#1d4ed8' },
+    { label: labelB, color: '#b91c1c' },
+    cum.series);
+  var metricLabels = (metrics || ['goals']).map(progressionMetricLabel).join(', ');
+  var title = T('report.progression') + ' — ' + metricLabels;
+  return _section(title, '<div class="chart-svg">' + svg + '</div>');
 }
 
 function _sectionCmpGeneral(d, f) {
@@ -7234,6 +7424,11 @@ function _sectionAnalyticsSummary(s, filtered, f) {
   if (s.manUp)     rows.push(['Man-up',     s.manUp]);
   if (s.manDown)   rows.push(['Man-down',   s.manDown]);
   if (s.fastBreak) rows.push(['Fast break', s.fastBreak]);
+
+  var drawsWon    = filtered.filter(function(e) { return e.event_type === 'draw'; }).length;
+  var groundballs = filtered.filter(function(e) { return e.event_type === 'groundball'; }).length;
+  if (drawsWon)    rows.push([T('report.rows.draws'), drawsWon]);
+  if (groundballs) rows.push([T('report.rows.groundballs'), groundballs]);
 
   var cells = rows.map(function(r) {
     return '<div class="sum-cell"><div class="sum-val">' + r[1] + '</div><div class="sum-lbl">' + r[0] + '</div></div>';
@@ -7687,6 +7882,15 @@ function renderGoalieRetroactiveModal() {
 
 // HANDLERS map (data-action → fn) + global event delegation listeners (click + change).
 
+// Progression chart metric checkboxes: adds/removes `metric` from `list` in place,
+// refusing to drop the last one so the chart never ends up empty.
+function _toggleProgressionMetric(list, metric) {
+  const idx = list.indexOf(metric);
+  if (idx === -1) list.push(metric);
+  else if (list.length > 1) list.splice(idx, 1);
+  return list;
+}
+
 const HANDLERS = {
   'open-admin':     () => goAdmin(),
   'open-analytics': () => goAnalytics(),
@@ -7736,6 +7940,14 @@ const HANDLERS = {
   'go-home-from-analytics': () => goHome(),
   'analytics-heatmap-toggle': (mode) => {
     APP.analyticsHeatmapMode = mode;
+    render();
+  },
+  'analytics-set-progression-metric': (metric) => {
+    _toggleProgressionMetric(APP.analyticsProgressionMetrics, metric);
+    render();
+  },
+  'compare-set-progression-metric': (metric) => {
+    _toggleProgressionMetric(APP.compareProgressionMetrics, metric);
     render();
   },
   'analytics-goalie-sort': (col) => {
@@ -8088,6 +8300,7 @@ const HANDLERS = {
   // Viewer controls
   'viewer-set-mode':           (mode) => { APP.viewer.view_mode    = mode; render(); },
   'viewer-set-display':        (mode) => { APP.viewer.display_mode = mode; render(); },
+  'viewer-set-progression-metric': (metric) => { _toggleProgressionMetric(APP.viewer.progression_metrics, metric); render(); },
   'viewer-set-period-filter':  () => {
     const sel = document.getElementById('filter-period');
     if (sel) APP.viewer.filter_period = sel.value;

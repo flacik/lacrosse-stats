@@ -2,6 +2,15 @@
 
 // HANDLERS map (data-action → fn) + global event delegation listeners (click + change).
 
+// Progression chart metric checkboxes: adds/removes `metric` from `list` in place,
+// refusing to drop the last one so the chart never ends up empty.
+function _toggleProgressionMetric(list, metric) {
+  const idx = list.indexOf(metric);
+  if (idx === -1) list.push(metric);
+  else if (list.length > 1) list.splice(idx, 1);
+  return list;
+}
+
 const HANDLERS = {
   'open-admin':     () => goAdmin(),
   'open-analytics': () => goAnalytics(),
@@ -51,6 +60,14 @@ const HANDLERS = {
   'go-home-from-analytics': () => goHome(),
   'analytics-heatmap-toggle': (mode) => {
     APP.analyticsHeatmapMode = mode;
+    render();
+  },
+  'analytics-set-progression-metric': (metric) => {
+    _toggleProgressionMetric(APP.analyticsProgressionMetrics, metric);
+    render();
+  },
+  'compare-set-progression-metric': (metric) => {
+    _toggleProgressionMetric(APP.compareProgressionMetrics, metric);
     render();
   },
   'analytics-goalie-sort': (col) => {
@@ -403,6 +420,7 @@ const HANDLERS = {
   // Viewer controls
   'viewer-set-mode':           (mode) => { APP.viewer.view_mode    = mode; render(); },
   'viewer-set-display':        (mode) => { APP.viewer.display_mode = mode; render(); },
+  'viewer-set-progression-metric': (metric) => { _toggleProgressionMetric(APP.viewer.progression_metrics, metric); render(); },
   'viewer-set-period-filter':  () => {
     const sel = document.getElementById('filter-period');
     if (sel) APP.viewer.filter_period = sel.value;

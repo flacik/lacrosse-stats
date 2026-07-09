@@ -45,6 +45,9 @@ let APP = {
     period:     '',
   },
   analyticsHeatmapMode: 'fired',  // 'fired' | 'conceded'
+  // Progression chart — which metrics are plotted at once; each is 'goals' | 'shots' | 'onTarget' | 'accuracy' | 'groundballs'
+  analyticsProgressionMetrics: ['goals'],
+  compareProgressionMetrics:   ['goals'],
 
   // CSV bulk import (panel admin)
   csvImport: null,  // null | { rows: [], importing: bool }
@@ -367,7 +370,8 @@ function initViewerSession() {
     view_mode: 'full',
     display_mode: 'markers',
     filter_period: 'all',
-    filter_result: 'all'
+    filter_result: 'all',
+    progression_metrics: ['goals']
   };
 }
 

@@ -477,7 +477,8 @@ function _renderOffenseDefenseComparison(filteredTeamEvents, allEvents, f) {
 
 // ── Stats computation ─────────────────────────────────────────────────────────
 
-function computeAnalyticsStats(events) {
+function computeAnalyticsStats(allEvents) {
+  const events = allEvents.filter(isShotEvent);
   const total     = events.length;
   const goals     = events.filter(e => e.result === 'gol').length;
   const onTarget  = events.filter(e => e.result === 'celny' || e.result === 'gol').length;
@@ -648,6 +649,8 @@ function _renderAnalyticsStats(filtered, f) {
   const s = computeAnalyticsStats(filtered);
   const teamLabel = f.team || T('select.all_teams');
   const matchCount = new Set(filtered.map(e => String(e.match_id))).size;
+  const drawsWon    = filtered.filter(e => e.event_type === 'draw').length;
+  const groundballs = filtered.filter(e => e.event_type === 'groundball').length;
 
   const zoneOrder = ['attack-center','attack-left','attack-right',
                      'midfield-center','midfield-left','midfield-right','own-half'];
@@ -692,6 +695,8 @@ function _renderAnalyticsStats(filtered, f) {
         ${s.manUp     ? `<div class="stat-box"><div class="stat-val">${s.manUp}</div><div class="stat-lbl">Man-up</div></div>` : ''}
         ${s.manDown   ? `<div class="stat-box"><div class="stat-val">${s.manDown}</div><div class="stat-lbl">Man-down</div></div>` : ''}
         ${s.fastBreak ? `<div class="stat-box"><div class="stat-val">${s.fastBreak}</div><div class="stat-lbl">Fast break</div></div>` : ''}
+        ${drawsWon    ? `<div class="stat-box"><div class="stat-val">${drawsWon}</div><div class="stat-lbl">${T('analytics.stats.draws')}</div></div>` : ''}
+        ${groundballs ? `<div class="stat-box"><div class="stat-val">${groundballs}</div><div class="stat-lbl">${T('analytics.stats.groundballs')}</div></div>` : ''}
       </div>
       ${zoneRows ? `
         <h3>${T('analytics.zones.title')}</h3>
@@ -710,22 +715,26 @@ function _renderAnalyticsStats(filtered, f) {
       ${Object.keys(s.periods).length > 0 ? `
         <h3>${T('analytics.eff_period')}</h3>
         ${_renderPeriodBarChart(s.periods)}` : ''}
-      ${_renderAnalyticsProgressionChart(s, filtered, f)}
+      ${_renderAnalyticsProgressionChart(filtered, f)}
     </section>`;
 }
 
-function _renderAnalyticsProgressionChart(s, filtered, f) {
+function _renderAnalyticsProgressionChart(filtered, f) {
   if (!f.team) {
     return `<h3>${T('analytics.progression.title')}</h3><p class="empty">${T('analytics.progression.select_team')}</p>`;
   }
-  const conceded   = _buildConcededEvents(filtered, APP.analyticsData.events, f);
-  const sConceded  = computeAnalyticsStats(conceded).periods;
-  const cum        = cumulativeFromPeriodTotals(s.periods, sConceded);
-  if (cum.labels.length <= 1) return '';
-  const svg = buildProgressionChartSvg(cum.labels,
-    { label: T('analytics.progression.scored'),   color: '#1d4ed8', values: cum.teamA },
-    { label: T('analytics.progression.conceded'), color: '#b91c1c', values: cum.teamB });
-  return `<h3>${T('analytics.progression.title')}</h3><div class="progression-chart-wrapper">${svg}</div>`;
+  const metrics        = APP.analyticsProgressionMetrics;
+  const conceded        = _buildConcededEvents(filtered, APP.analyticsData.events, f);
+  const periodsScored   = computePeriodMetricStats(filtered);
+  const periodsConceded = computePeriodMetricStats(conceded);
+  const cum = buildCumulativeMetricSeries(periodsScored, periodsConceded, metrics);
+  const toggle = progressionMetricToggle('analytics-set-progression-metric', metrics);
+  if (cum.labels.length <= 1) return `<h3>${T('analytics.progression.title')}</h3>${toggle}`;
+  const svg = buildMultiProgressionChartSvg(cum.labels,
+    { label: T('analytics.progression.scored'),   color: '#1d4ed8' },
+    { label: T('analytics.progression.conceded'), color: '#b91c1c' },
+    cum.series);
+  return `<h3>${T('analytics.progression.title')}</h3>${toggle}<div class="progression-chart-wrapper">${svg}</div>`;
 }
 
 // ── Heatmap ───────────────────────────────────────────────────────────────────
@@ -973,7 +982,7 @@ function _renderAnalyticsCompareBody(f, events, matches) {
     ${_renderCmpHeatmaps(d.e1, d.e2, d.conc1, d.conc2, f)}
     ${d.h2hMatches.length > 0 ? _renderCmpH2H(d.h2hMatches, d.h2hE1, d.h2hE2, f, events) : _renderCmpH2HEmpty(f)}
     ${_renderCmpGoalies(d.e1, d.e2, f, events, matches)}
-    ${_renderCmpPeriods(d.s1, d.s2, f)}`;
+    ${_renderCmpPeriods(d, f)}`;
 }
 
 function _cmpRow(label, v1, v2, lowerIsBetter) {
@@ -1202,7 +1211,8 @@ function _renderCmpGoalies(e1, e2, f, allEvents, allMatches) {
     </section>`;
 }
 
-function _renderCmpPeriods(s1, s2, f) {
+function _renderCmpPeriods(d, f) {
+  const s1 = d.s1, s2 = d.s2;
   const t1 = escapeHtml(f.team);
   const t2 = escapeHtml(f.team2);
 
@@ -1212,6 +1222,10 @@ function _renderCmpPeriods(s1, s2, f) {
   const chart1 = _renderPeriodBarChart(s1.periods);
   const chart2 = _renderPeriodBarChart(s2.periods);
   if (!chart1 && !chart2) return '';
+
+  const metrics = APP.compareProgressionMetrics;
+  const toggle = progressionMetricToggle('compare-set-progression-metric', metrics);
+  const progressionSvg = _buildCmpProgressionSvg(d.e1, d.e2, f, metrics);
 
   return `
     <section class="analytics-section">
@@ -1227,15 +1241,19 @@ function _renderCmpPeriods(s1, s2, f) {
         </div>
       </div>
       <h3>${T('compare.progression.title')}</h3>
-      ${_buildCmpProgressionSvg(s1, s2, f) || `<p class="empty" style="font-size:13px">${T('compare.no_data')}</p>`}
+      ${toggle}
+      ${progressionSvg || `<p class="empty" style="font-size:13px">${T('compare.no_data')}</p>`}
     </section>`;
 }
 
-function _buildCmpProgressionSvg(s1, s2, f) {
-  const cum = cumulativeFromPeriodTotals(s1.periods, s2.periods);
+function _buildCmpProgressionSvg(e1, e2, f, metrics) {
+  const periods1 = computePeriodMetricStats(e1);
+  const periods2 = computePeriodMetricStats(e2);
+  const cum = buildCumulativeMetricSeries(periods1, periods2, metrics);
   if (cum.labels.length <= 1) return '';
-  const svg = buildProgressionChartSvg(cum.labels,
-    { label: f.team,  color: '#1d4ed8', values: cum.teamA },
-    { label: f.team2, color: '#b91c1c', values: cum.teamB });
+  const svg = buildMultiProgressionChartSvg(cum.labels,
+    { label: f.team,  color: '#1d4ed8' },
+    { label: f.team2, color: '#b91c1c' },
+    cum.series);
   return `<div class="progression-chart-wrapper">${svg}</div>`;
 }
