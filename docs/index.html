@@ -4417,8 +4417,6 @@ function _niceIntegerTicks(maxVal, desiredCount) {
   return { step, topTick, ticks };
 }
 
-const PROGRESSION_METRICS = ['goals', 'shots', 'onTarget', 'accuracy', 'groundballs'];
-
 function progressionMetricLabel(metric) {
   switch (metric) {
     case 'shots':       return T('progression.metric.shots');
@@ -4427,16 +4425,6 @@ function progressionMetricLabel(metric) {
     case 'groundballs': return T('progression.metric.groundballs');
     default:            return T('progression.metric.goals');
   }
-}
-
-function progressionMetricToggle(actionName, activeMetrics) {
-  const buttons = PROGRESSION_METRICS.map(m =>
-    `<button class="btn ${activeMetrics.includes(m) ? 'btn-active' : ''}" data-action="${actionName}" data-arg="${m}">${progressionMetricLabel(m)}</button>`
-  ).join('');
-  return `<div class="viewer-controls" style="margin-bottom:8px;">
-    <span class="ctrl-label">${T('progression.metric.label')}</span>
-    <div class="toggle-group">${buttons}</div>
-  </div>`;
 }
 
 // Dash pattern per metric — lets several metrics share one chart/axis while
@@ -6627,9 +6615,7 @@ function _renderCmpPeriods(d, f) {
   const chart2 = _renderPeriodBarChart(s2.periods);
   if (!chart1 && !chart2) return '';
 
-  const metrics = APP.compareProgressionMetrics;
-  const toggle = progressionMetricToggle('compare-set-progression-metric', metrics);
-  const progressionSvg = _buildCmpProgressionSvg(d.e1, d.e2, f, metrics);
+  const progressionSvg = _buildCmpProgressionSvg(d.e1, d.e2, f);
 
   return `
     <section class="analytics-section">
@@ -6645,20 +6631,20 @@ function _renderCmpPeriods(d, f) {
         </div>
       </div>
       <h3>${T('compare.progression.title')}</h3>
-      ${toggle}
       ${progressionSvg || `<p class="empty" style="font-size:13px">${T('compare.no_data')}</p>`}
     </section>`;
 }
 
-function _buildCmpProgressionSvg(e1, e2, f, metrics) {
+function _buildCmpProgressionSvg(e1, e2, f) {
   const periods1 = computePeriodMetricStats(e1);
   const periods2 = computePeriodMetricStats(e2);
-  const cum = buildCumulativeMetricSeries(periods1, periods2, metrics);
+  const cum = buildCumulativeMetricSeries(periods1, periods2, ['shots', 'onTarget', 'goals', 'groundballs']);
   if (cum.labels.length <= 1) return '';
-  const svg = buildMultiProgressionChartSvg(cum.labels,
-    { label: f.team,  color: '#1d4ed8' },
-    { label: f.team2, color: '#b91c1c' },
-    cum.series);
+  const bySide = {};
+  cum.series.forEach(s => { bySide[s.metric] = s; });
+  const team1Vals = { shots: bySide.shots.valuesA, onTarget: bySide.onTarget.valuesA, goals: bySide.goals.valuesA, groundballs: bySide.groundballs.valuesA };
+  const team2Vals = { shots: bySide.shots.valuesB, onTarget: bySide.onTarget.valuesB, goals: bySide.goals.valuesB, groundballs: bySide.groundballs.valuesB };
+  const svg = buildLayeredProgressionChartSvg(cum.labels, team1Vals, team2Vals, f.team, f.team2);
   return `<div class="progression-chart-wrapper">${svg}</div>`;
 }
 

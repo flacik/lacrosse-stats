@@ -1223,9 +1223,7 @@ function _renderCmpPeriods(d, f) {
   const chart2 = _renderPeriodBarChart(s2.periods);
   if (!chart1 && !chart2) return '';
 
-  const metrics = APP.compareProgressionMetrics;
-  const toggle = progressionMetricToggle('compare-set-progression-metric', metrics);
-  const progressionSvg = _buildCmpProgressionSvg(d.e1, d.e2, f, metrics);
+  const progressionSvg = _buildCmpProgressionSvg(d.e1, d.e2, f);
 
   return `
     <section class="analytics-section">
@@ -1241,19 +1239,19 @@ function _renderCmpPeriods(d, f) {
         </div>
       </div>
       <h3>${T('compare.progression.title')}</h3>
-      ${toggle}
       ${progressionSvg || `<p class="empty" style="font-size:13px">${T('compare.no_data')}</p>`}
     </section>`;
 }
 
-function _buildCmpProgressionSvg(e1, e2, f, metrics) {
+function _buildCmpProgressionSvg(e1, e2, f) {
   const periods1 = computePeriodMetricStats(e1);
   const periods2 = computePeriodMetricStats(e2);
-  const cum = buildCumulativeMetricSeries(periods1, periods2, metrics);
+  const cum = buildCumulativeMetricSeries(periods1, periods2, ['shots', 'onTarget', 'goals', 'groundballs']);
   if (cum.labels.length <= 1) return '';
-  const svg = buildMultiProgressionChartSvg(cum.labels,
-    { label: f.team,  color: '#1d4ed8' },
-    { label: f.team2, color: '#b91c1c' },
-    cum.series);
+  const bySide = {};
+  cum.series.forEach(s => { bySide[s.metric] = s; });
+  const team1Vals = { shots: bySide.shots.valuesA, onTarget: bySide.onTarget.valuesA, goals: bySide.goals.valuesA, groundballs: bySide.groundballs.valuesA };
+  const team2Vals = { shots: bySide.shots.valuesB, onTarget: bySide.onTarget.valuesB, goals: bySide.goals.valuesB, groundballs: bySide.groundballs.valuesB };
+  const svg = buildLayeredProgressionChartSvg(cum.labels, team1Vals, team2Vals, f.team, f.team2);
   return `<div class="progression-chart-wrapper">${svg}</div>`;
 }

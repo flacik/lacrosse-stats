@@ -20,8 +20,6 @@ function _niceIntegerTicks(maxVal, desiredCount) {
   return { step, topTick, ticks };
 }
 
-const PROGRESSION_METRICS = ['goals', 'shots', 'onTarget', 'accuracy', 'groundballs'];
-
 function progressionMetricLabel(metric) {
   switch (metric) {
     case 'shots':       return T('progression.metric.shots');
@@ -30,16 +28,6 @@ function progressionMetricLabel(metric) {
     case 'groundballs': return T('progression.metric.groundballs');
     default:            return T('progression.metric.goals');
   }
-}
-
-function progressionMetricToggle(actionName, activeMetrics) {
-  const buttons = PROGRESSION_METRICS.map(m =>
-    `<button class="btn ${activeMetrics.includes(m) ? 'btn-active' : ''}" data-action="${actionName}" data-arg="${m}">${progressionMetricLabel(m)}</button>`
-  ).join('');
-  return `<div class="viewer-controls" style="margin-bottom:8px;">
-    <span class="ctrl-label">${T('progression.metric.label')}</span>
-    <div class="toggle-group">${buttons}</div>
-  </div>`;
 }
 
 // Dash pattern per metric — lets several metrics share one chart/axis while
