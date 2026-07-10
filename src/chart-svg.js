@@ -233,9 +233,12 @@ function _layeredPanelSvg(labels, values, side, width, height) {
   </svg>`;
 }
 
-// scored/conceded: { shots: number[], onTarget: number[], goals: number[], groundballs: number[] }
-// (all cumulative, same length as labels).
-function buildLayeredProgressionChartSvg(labels, scored, conceded, opts) {
+// dataA/dataB: { shots: number[], onTarget: number[], goals: number[], groundballs: number[] }
+// (all cumulative, same length as labels). labelA/labelB are the panel headings — either
+// "Strzelone"/"Stracone" (Analytics, one team's offense vs defense) or two team names
+// (Viewer, team A vs team B in a single match). Colors always follow the blue/red ramp
+// regardless of what the panels are labeled.
+function buildLayeredProgressionChartSvg(labels, dataA, dataB, labelA, labelB, opts) {
   opts = opts || {};
   const width  = opts.width  || 560;
   const height = opts.height || 190;
@@ -244,12 +247,12 @@ function buildLayeredProgressionChartSvg(labels, scored, conceded, opts) {
   }
   return `<div class="layered-progression">
     <div class="layered-progression-panel">
-      <div class="layered-progression-panel-title">${T('analytics.progression.scored')}</div>
-      ${_layeredPanelSvg(labels, scored, 'scored', width, height)}
+      <div class="layered-progression-panel-title">${escapeHtml(labelA)}</div>
+      ${_layeredPanelSvg(labels, dataA, 'scored', width, height)}
     </div>
     <div class="layered-progression-panel">
-      <div class="layered-progression-panel-title">${T('analytics.progression.conceded')}</div>
-      ${_layeredPanelSvg(labels, conceded, 'conceded', width, height)}
+      <div class="layered-progression-panel-title">${escapeHtml(labelB)}</div>
+      ${_layeredPanelSvg(labels, dataB, 'conceded', width, height)}
     </div>
   </div>`;
 }

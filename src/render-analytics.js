@@ -732,7 +732,8 @@ function _renderAnalyticsProgressionChart(filtered, f) {
   cum.series.forEach(s => { bySide[s.metric] = s; });
   const scoredVals   = { shots: bySide.shots.valuesA, onTarget: bySide.onTarget.valuesA, goals: bySide.goals.valuesA, groundballs: bySide.groundballs.valuesA };
   const concededVals = { shots: bySide.shots.valuesB, onTarget: bySide.onTarget.valuesB, goals: bySide.goals.valuesB, groundballs: bySide.groundballs.valuesB };
-  const svg = buildLayeredProgressionChartSvg(cum.labels, scoredVals, concededVals);
+  const svg = buildLayeredProgressionChartSvg(cum.labels, scoredVals, concededVals,
+    T('analytics.progression.scored'), T('analytics.progression.conceded'));
   return `<h3>${T('analytics.progression.title')}</h3><div class="progression-chart-wrapper">${svg}</div>`;
 }
 

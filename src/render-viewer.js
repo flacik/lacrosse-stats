@@ -297,18 +297,21 @@ function renderViewerPerPeriodCard(perPeriod, match) {
 }
 
 function renderViewerProgressionCard(match) {
-  const metrics = APP.viewer.progression_metrics;
-  const cum = computeCumulativeScore(match.id, match, metrics);
-  const body = cum.labels.length <= 1
-    ? `<p class="empty">${T('viewer.progression.no_data')}</p>`
-    : `<div class="progression-chart-wrapper">${buildMultiProgressionChartSvg(cum.labels,
-        { label: match.team_A, color: '#1d4ed8' },
-        { label: match.team_B, color: '#b91c1c' },
-        cum.series)}</div>`;
+  const cum = computeCumulativeScore(match.id, match, ['shots', 'onTarget', 'goals', 'groundballs']);
+  let body;
+  if (cum.labels.length <= 1) {
+    body = `<p class="empty">${T('viewer.progression.no_data')}</p>`;
+  } else {
+    const bySide = {};
+    cum.series.forEach(s => { bySide[s.metric] = s; });
+    const teamAVals = { shots: bySide.shots.valuesA, onTarget: bySide.onTarget.valuesA, goals: bySide.goals.valuesA, groundballs: bySide.groundballs.valuesA };
+    const teamBVals = { shots: bySide.shots.valuesB, onTarget: bySide.onTarget.valuesB, goals: bySide.goals.valuesB, groundballs: bySide.groundballs.valuesB };
+    const svg = buildLayeredProgressionChartSvg(cum.labels, teamAVals, teamBVals, match.team_A, match.team_B);
+    body = `<div class="progression-chart-wrapper">${svg}</div>`;
+  }
   return `
     <div class="viewer-card progression">
       <h3>${T('viewer.progression.title')}</h3>
-      ${progressionMetricToggle('viewer-set-progression-metric', metrics)}
       ${body}
     </div>`;
 }

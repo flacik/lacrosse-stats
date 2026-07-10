@@ -4631,9 +4631,12 @@ function _layeredPanelSvg(labels, values, side, width, height) {
   </svg>`;
 }
 
-// scored/conceded: { shots: number[], onTarget: number[], goals: number[], groundballs: number[] }
-// (all cumulative, same length as labels).
-function buildLayeredProgressionChartSvg(labels, scored, conceded, opts) {
+// dataA/dataB: { shots: number[], onTarget: number[], goals: number[], groundballs: number[] }
+// (all cumulative, same length as labels). labelA/labelB are the panel headings — either
+// "Strzelone"/"Stracone" (Analytics, one team's offense vs defense) or two team names
+// (Viewer, team A vs team B in a single match). Colors always follow the blue/red ramp
+// regardless of what the panels are labeled.
+function buildLayeredProgressionChartSvg(labels, dataA, dataB, labelA, labelB, opts) {
   opts = opts || {};
   const width  = opts.width  || 560;
   const height = opts.height || 190;
@@ -4642,12 +4645,12 @@ function buildLayeredProgressionChartSvg(labels, scored, conceded, opts) {
   }
   return `<div class="layered-progression">
     <div class="layered-progression-panel">
-      <div class="layered-progression-panel-title">${T('analytics.progression.scored')}</div>
-      ${_layeredPanelSvg(labels, scored, 'scored', width, height)}
+      <div class="layered-progression-panel-title">${escapeHtml(labelA)}</div>
+      ${_layeredPanelSvg(labels, dataA, 'scored', width, height)}
     </div>
     <div class="layered-progression-panel">
-      <div class="layered-progression-panel-title">${T('analytics.progression.conceded')}</div>
-      ${_layeredPanelSvg(labels, conceded, 'conceded', width, height)}
+      <div class="layered-progression-panel-title">${escapeHtml(labelB)}</div>
+      ${_layeredPanelSvg(labels, dataB, 'conceded', width, height)}
     </div>
   </div>`;
 }
@@ -5336,18 +5339,21 @@ function renderViewerPerPeriodCard(perPeriod, match) {
 }
 
 function renderViewerProgressionCard(match) {
-  const metrics = APP.viewer.progression_metrics;
-  const cum = computeCumulativeScore(match.id, match, metrics);
-  const body = cum.labels.length <= 1
-    ? `<p class="empty">${T('viewer.progression.no_data')}</p>`
-    : `<div class="progression-chart-wrapper">${buildMultiProgressionChartSvg(cum.labels,
-        { label: match.team_A, color: '#1d4ed8' },
-        { label: match.team_B, color: '#b91c1c' },
-        cum.series)}</div>`;
+  const cum = computeCumulativeScore(match.id, match, ['shots', 'onTarget', 'goals', 'groundballs']);
+  let body;
+  if (cum.labels.length <= 1) {
+    body = `<p class="empty">${T('viewer.progression.no_data')}</p>`;
+  } else {
+    const bySide = {};
+    cum.series.forEach(s => { bySide[s.metric] = s; });
+    const teamAVals = { shots: bySide.shots.valuesA, onTarget: bySide.onTarget.valuesA, goals: bySide.goals.valuesA, groundballs: bySide.groundballs.valuesA };
+    const teamBVals = { shots: bySide.shots.valuesB, onTarget: bySide.onTarget.valuesB, goals: bySide.goals.valuesB, groundballs: bySide.groundballs.valuesB };
+    const svg = buildLayeredProgressionChartSvg(cum.labels, teamAVals, teamBVals, match.team_A, match.team_B);
+    body = `<div class="progression-chart-wrapper">${svg}</div>`;
+  }
   return `
     <div class="viewer-card progression">
       <h3>${T('viewer.progression.title')}</h3>
-      ${progressionMetricToggle('viewer-set-progression-metric', metrics)}
       ${body}
     </div>`;
 }
@@ -6131,7 +6137,8 @@ function _renderAnalyticsProgressionChart(filtered, f) {
   cum.series.forEach(s => { bySide[s.metric] = s; });
   const scoredVals   = { shots: bySide.shots.valuesA, onTarget: bySide.onTarget.valuesA, goals: bySide.goals.valuesA, groundballs: bySide.groundballs.valuesA };
   const concededVals = { shots: bySide.shots.valuesB, onTarget: bySide.onTarget.valuesB, goals: bySide.goals.valuesB, groundballs: bySide.groundballs.valuesB };
-  const svg = buildLayeredProgressionChartSvg(cum.labels, scoredVals, concededVals);
+  const svg = buildLayeredProgressionChartSvg(cum.labels, scoredVals, concededVals,
+    T('analytics.progression.scored'), T('analytics.progression.conceded'));
   return `<h3>${T('analytics.progression.title')}</h3><div class="progression-chart-wrapper">${svg}</div>`;
 }
 
