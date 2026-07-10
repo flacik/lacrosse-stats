@@ -1471,6 +1471,19 @@ table.stats-table td.num {
   flex: 1;
 }
 
+.counter-team-v2 {
+  font-size: 10px;
+  font-weight: 700;
+  max-width: 72px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex-shrink: 1;
+}
+
+.counter-bar-v2 .team-A-color { color: #1d4ed8; }
+.counter-bar-v2 .team-B-color { color: #b91c1c; }
+
 .counter-label-v2 {
   font-size: 10px;
   font-weight: 700;
@@ -1516,6 +1529,9 @@ table.stats-table td.num {
   background: #1c2128;
   border-color: #21262d;
 }
+
+[data-theme="dark"] .counter-bar-v2 .team-A-color { color: #58a6ff; }
+[data-theme="dark"] .counter-bar-v2 .team-B-color { color: #f85149; }
 
 [data-theme="dark"] .counter-label-v2 { color: #8b949e; }
 [data-theme="dark"] .counter-sep-v2 { color: #484f58; }
@@ -4814,6 +4830,7 @@ function renderMatchInput(root) {
             <button data-action="open-goalie-retroactive" class="btn-link goalie-retroactive-v2">${T('goalie.edit_retro')}</button>
           </div>
           <div class="counter-bar counter-bar-v2">
+            <span class="counter-team-v2 team-A-color" title="${escapeHtml(match.team_A)}">${escapeHtml(match.team_A)}</span>
             <div class="counter-cell-v2">
               <button data-action="record-groundball" data-arg="A" class="counter-btn team-A-color">+</button>
               <span class="counter-label-v2">GB</span>
@@ -4831,6 +4848,7 @@ function renderMatchInput(root) {
               <span class="counter-val-v2 team-B-color">${counters.drawB}</span>
               <button data-action="record-draw" data-arg="B" class="counter-btn team-B-color">+</button>
             </div>
+            <span class="counter-team-v2 team-B-color" title="${escapeHtml(match.team_B)}">${escapeHtml(match.team_B)}</span>
           </div>
         </div>
 

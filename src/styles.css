@@ -1457,6 +1457,19 @@ table.stats-table td.num {
   flex: 1;
 }
 
+.counter-team-v2 {
+  font-size: 10px;
+  font-weight: 700;
+  max-width: 72px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex-shrink: 1;
+}
+
+.counter-bar-v2 .team-A-color { color: #1d4ed8; }
+.counter-bar-v2 .team-B-color { color: #b91c1c; }
+
 .counter-label-v2 {
   font-size: 10px;
   font-weight: 700;
@@ -1502,6 +1515,9 @@ table.stats-table td.num {
   background: #1c2128;
   border-color: #21262d;
 }
+
+[data-theme="dark"] .counter-bar-v2 .team-A-color { color: #58a6ff; }
+[data-theme="dark"] .counter-bar-v2 .team-B-color { color: #f85149; }
 
 [data-theme="dark"] .counter-label-v2 { color: #8b949e; }
 [data-theme="dark"] .counter-sep-v2 { color: #484f58; }

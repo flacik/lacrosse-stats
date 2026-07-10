@@ -163,6 +163,7 @@ function renderMatchInput(root) {
             <button data-action="open-goalie-retroactive" class="btn-link goalie-retroactive-v2">${T('goalie.edit_retro')}</button>
           </div>
           <div class="counter-bar counter-bar-v2">
+            <span class="counter-team-v2 team-A-color" title="${escapeHtml(match.team_A)}">${escapeHtml(match.team_A)}</span>
             <div class="counter-cell-v2">
               <button data-action="record-groundball" data-arg="A" class="counter-btn team-A-color">+</button>
               <span class="counter-label-v2">GB</span>
@@ -180,6 +181,7 @@ function renderMatchInput(root) {
               <span class="counter-val-v2 team-B-color">${counters.drawB}</span>
               <button data-action="record-draw" data-arg="B" class="counter-btn team-B-color">+</button>
             </div>
+            <span class="counter-team-v2 team-B-color" title="${escapeHtml(match.team_B)}">${escapeHtml(match.team_B)}</span>
           </div>
         </div>
 
