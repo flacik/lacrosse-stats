@@ -2529,9 +2529,6 @@ let APP = {
     period:     '',
   },
   analyticsHeatmapMode: 'fired',  // 'fired' | 'conceded'
-  // Progression chart — which metrics are plotted at once; each is 'goals' | 'shots' | 'onTarget' | 'accuracy' | 'groundballs'
-  analyticsProgressionMetrics: ['goals'],
-  compareProgressionMetrics:   ['goals'],
 
   // CSV bulk import (panel admin)
   csvImport: null,  // null | { rows: [], importing: bool }
@@ -2854,8 +2851,7 @@ function initViewerSession() {
     view_mode: 'full',
     display_mode: 'markers',
     filter_period: 'all',
-    filter_result: 'all',
-    progression_metrics: ['goals']
+    filter_result: 'all'
   };
 }
 
@@ -3292,9 +3288,8 @@ const STRINGS = {
     'viewer.period.goal': 'gol', 'viewer.period.goals': 'goli',
     'viewer.progression.title': 'Progresja wyniku',
     'viewer.progression.no_data': 'Brak jeszcze danych o okresach.',
-    'progression.metric.label': 'Metryka:',
     'progression.metric.goals': 'Gole', 'progression.metric.shots': 'Strzały',
-    'progression.metric.on_target': 'Celne', 'progression.metric.accuracy': 'Skuteczność %',
+    'progression.metric.on_target': 'Celne',
     'progression.metric.groundballs': 'Groundballs',
     'viewer.chart.title': 'Shot chart', 'viewer.chart.view': 'Widok:',
     'viewer.chart.mode': 'Tryb:', 'viewer.chart.period': 'Okres:', 'viewer.chart.result': 'Rezultat:',
@@ -3307,7 +3302,6 @@ const STRINGS = {
     'viewer.chart.from_half': 'Zza połowy: ',
     'status.live': 'LIVE', 'status.finished': 'Zakończony', 'status.planned': 'Planowany',
     'status.scheduled_short': 'Zaplanowany', 'status.in_progress': 'W trakcie',
-    'progression.start': 'Start',
     'modal.shot.title': 'Strzał', 'modal.shot.subtitle': 'Wybierz rezultat',
     'modal.edit.title': 'Edytuj event',
     'modal.edit.subtitle': 'Pozycja na boisku jest zachowana — żeby ją zmienić, usuń event i dodaj nowy.',
@@ -3538,9 +3532,8 @@ const STRINGS = {
     'viewer.period.goal': 'goal', 'viewer.period.goals': 'goals',
     'viewer.progression.title': 'Score progression',
     'viewer.progression.no_data': 'No period data yet.',
-    'progression.metric.label': 'Metric:',
     'progression.metric.goals': 'Goals', 'progression.metric.shots': 'Shots',
-    'progression.metric.on_target': 'On target', 'progression.metric.accuracy': 'Accuracy %',
+    'progression.metric.on_target': 'On target',
     'progression.metric.groundballs': 'Ground balls',
     'viewer.chart.title': 'Shot chart', 'viewer.chart.view': 'View:',
     'viewer.chart.mode': 'Mode:', 'viewer.chart.period': 'Period:', 'viewer.chart.result': 'Result:',
@@ -3553,7 +3546,6 @@ const STRINGS = {
     'viewer.chart.from_half': 'From half: ',
     'status.live': 'LIVE', 'status.finished': 'Finished', 'status.planned': 'Planned',
     'status.scheduled_short': 'Scheduled', 'status.in_progress': 'In progress',
-    'progression.start': 'Start',
     'modal.shot.title': 'Shot', 'modal.shot.subtitle': 'Choose result',
     'modal.edit.title': 'Edit event',
     'modal.edit.subtitle': 'Field position is preserved — to change it, delete the event and add a new one.',
@@ -4415,118 +4407,6 @@ function _niceIntegerTicks(maxVal, desiredCount) {
   const ticks = [];
   for (let v = 0; v <= topTick; v += step) ticks.push(v);
   return { step, topTick, ticks };
-}
-
-function progressionMetricLabel(metric) {
-  switch (metric) {
-    case 'shots':       return T('progression.metric.shots');
-    case 'onTarget':    return T('progression.metric.on_target');
-    case 'accuracy':    return T('progression.metric.accuracy');
-    case 'groundballs': return T('progression.metric.groundballs');
-    default:            return T('progression.metric.goals');
-  }
-}
-
-// Dash pattern per metric — lets several metrics share one chart/axis while
-// staying visually distinct (color is reserved for team A vs team B).
-const METRIC_DASH = {
-  goals:       '',
-  shots:       '6,4',
-  onTarget:    '2,3',
-  accuracy:    '9,3,2,3',
-  groundballs: '12,4',
-};
-
-// Renders 1..N metrics × team A/B on one chart. Count-based metrics (goals,
-// shots, onTarget, groundballs) share a single auto-scaled left axis since
-// they're all "number of events"; accuracy (%) gets its own fixed 0–100 axis
-// on the right because it isn't the same unit and would flatten the rest.
-function buildMultiProgressionChartSvg(labels, teamA, teamB, metricSeries, opts) {
-  opts = opts || {};
-  const width  = opts.width  || 560;
-  const height = opts.height || 240;
-
-  if (!labels || labels.length < 2 || !metricSeries || metricSeries.length === 0) {
-    return `<svg width="${width}" height="60" viewBox="0 0 ${width} 60"></svg>`;
-  }
-
-  const leftMetrics  = metricSeries.filter(m => m.metric !== 'accuracy');
-  const rightMetrics = metricSeries.filter(m => m.metric === 'accuracy');
-  const hasLeft  = leftMetrics.length > 0;
-  const hasRight = rightMetrics.length > 0;
-
-  const legendRows   = Math.ceil(metricSeries.length / 3);
-  const marginLeft   = 34;
-  const marginRight  = hasRight ? 34 : 14;
-  const marginTop    = 24 + legendRows * 14 + 14;
-  const marginBottom = 26;
-  const plotW      = width - marginLeft - marginRight;
-  const plotH      = height - marginTop - marginBottom;
-  const plotTop    = marginTop;
-  const plotBottom = plotTop + plotH;
-
-  const leftVals = hasLeft ? leftMetrics.flatMap(m => [...m.valuesA, ...m.valuesB]) : [0];
-  const { ticks: leftTicks, topTick: leftTop } = _niceIntegerTicks(Math.max(...leftVals, 1));
-  const rightTop   = 100;
-  const rightTicks = [0, 20, 40, 60, 80, 100];
-
-  const yScaleLeft  = v => plotBottom - (v / leftTop) * plotH;
-  const yScaleRight = v => plotBottom - (v / rightTop) * plotH;
-  const xScale      = i => marginLeft + i * (plotW / (labels.length - 1));
-
-  const leftGrid = hasLeft ? leftTicks.map(t => `
-    <line x1="${marginLeft}" y1="${yScaleLeft(t)}" x2="${marginLeft + plotW}" y2="${yScaleLeft(t)}" stroke="#e5e7eb" stroke-width="1"/>
-    <text x="${marginLeft - 8}" y="${yScaleLeft(t) + 4}" text-anchor="end" font-size="10" fill="#9ca3af">${t}</text>`).join('') : '';
-
-  const rightAxis = hasRight ? rightTicks.map(t => `
-    <text x="${marginLeft + plotW + 8}" y="${yScaleRight(t) + 4}" text-anchor="start" font-size="10" fill="#9ca3af">${t}%</text>`).join('') : '';
-
-  const xLabels = labels.map((lab, i) => {
-    const text = periodLabel(lab);
-    const anchor = i === 0 ? 'start' : (i === labels.length - 1 ? 'end' : 'middle');
-    return `<text x="${xScale(i)}" y="${plotBottom + 16}" text-anchor="${anchor}" font-size="10" fill="#6b7280">${escapeHtml(text)}</text>`;
-  }).join('');
-
-  function seriesLine(values, color, metric) {
-    const scale = metric === 'accuracy' ? yScaleRight : yScaleLeft;
-    const dash  = METRIC_DASH[metric] || '';
-    const points  = values.map((v, i) => `${xScale(i)},${scale(v)}`).join(' ');
-    const markers = values.map((v, i) => `<circle cx="${xScale(i)}" cy="${scale(v)}" r="2.5" fill="${color}"/>`).join('');
-    const dashAttr = dash ? ` stroke-dasharray="${dash}"` : '';
-    return `<polyline points="${points}" fill="none" stroke="${color}" stroke-width="2"${dashAttr}/>${markers}`;
-  }
-
-  const lines = metricSeries.map(m =>
-    seriesLine(m.valuesA, teamA.color, m.metric) + seriesLine(m.valuesB, teamB.color, m.metric)
-  ).join('');
-
-  const teamLegend = `
-    <g>
-      <rect x="0" y="6" width="12" height="3" fill="${teamA.color}"/>
-      <text x="16" y="12" font-size="11" fill="#374151">${escapeHtml(teamA.label)}</text>
-      <rect x="${width / 2}" y="6" width="12" height="3" fill="${teamB.color}"/>
-      <text x="${width / 2 + 16}" y="12" font-size="11" fill="#374151">${escapeHtml(teamB.label)}</text>
-    </g>`;
-
-  const metricLegend = metricSeries.map((m, i) => {
-    const col = i % 3, row = Math.floor(i / 3);
-    const x = 4 + col * (width / 3);
-    const y = 26 + row * 14;
-    const dash = METRIC_DASH[m.metric] || '';
-    const dashAttr = dash ? ` stroke-dasharray="${dash}"` : '';
-    return `<line x1="${x}" y1="${y}" x2="${x + 18}" y2="${y}" stroke="#6b7280" stroke-width="2"${dashAttr}/>
-      <text x="${x + 22}" y="${y + 3}" font-size="10" fill="#374151">${progressionMetricLabel(m.metric)}${m.metric === 'accuracy' ? ' (%)' : ''}</text>`;
-  }).join('');
-
-  return `
-    <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
-      ${teamLegend}
-      ${metricLegend}
-      ${leftGrid}
-      ${rightAxis}
-      ${xLabels}
-      ${lines}
-    </svg>`;
 }
 
 // ── Layered shooting-funnel chart (Analytics "Progresja strzelecka") ──────────
@@ -7204,8 +7084,7 @@ function openMatchReport(matchId) {
   var perPeriod = computePerPeriodStats(matchId, match);
   var situation = computeSituationStats(matchId, match, shotEvents);
   var counters  = computeCounterStats(matchId, match, null);
-  var progressionMetrics = (APP.viewer && APP.viewer.progression_metrics) || ['goals'];
-  var cumScore  = computeCumulativeScore(matchId, match, progressionMetrics);
+  var cumScore  = computeCumulativeScore(matchId, match, ['shots', 'onTarget', 'goals', 'groundballs']);
 
   var evA = shotEvents.filter(function(e) { return e.team_event === match.team_A; });
   var evB = shotEvents.filter(function(e) { return e.team_event === match.team_B; });
@@ -7222,7 +7101,7 @@ function openMatchReport(matchId) {
     _sectionCounters(counters, match),
     _sectionGoalies(goalies, match),
     _sectionPerPeriod(perPeriod, match),
-    _sectionProgression(cumScore, match.team_A, match.team_B, progressionMetrics),
+    _sectionLayeredProgression(cumScore, match.team_A, match.team_B, T('report.progression')),
     _sectionShotCharts(svgA, svgB, match),
   ]);
 
@@ -7258,10 +7137,9 @@ function openAnalyticsReport() {
 
   var progressionSection = '';
   if (f.team) {
-    var progressionMetrics = APP.analyticsProgressionMetrics || ['goals'];
     var concededEvents = _buildConcededEvents(filtered, data.events, f);
-    var cum = buildCumulativeMetricSeries(computePeriodMetricStats(filtered), computePeriodMetricStats(concededEvents), progressionMetrics);
-    progressionSection = _sectionProgression(cum, T('analytics.progression.scored'), T('analytics.progression.conceded'), progressionMetrics);
+    var cum = buildCumulativeMetricSeries(computePeriodMetricStats(filtered), computePeriodMetricStats(concededEvents), ['shots', 'onTarget', 'goals', 'groundballs']);
+    progressionSection = _sectionLayeredProgression(cum, T('analytics.progression.scored'), T('analytics.progression.conceded'), T('analytics.progression.title'));
   }
 
   var html = _reportShell(T('report.analytics') + ' — ' + escapeHtml(teamLabel), subtitle, [
@@ -7289,13 +7167,12 @@ function openCompareReport() {
 
   var parts    = [f.tournament, f.period ? periodLabel(f.period) : '', f.dateFrom, f.dateTo].filter(Boolean);
   var subtitle = parts.join(' · ');
-  var progressionMetrics = APP.compareProgressionMetrics || ['goals'];
-  var cum      = buildCumulativeMetricSeries(computePeriodMetricStats(d.e1), computePeriodMetricStats(d.e2), progressionMetrics);
+  var cum = buildCumulativeMetricSeries(computePeriodMetricStats(d.e1), computePeriodMetricStats(d.e2), ['shots', 'onTarget', 'goals', 'groundballs']);
 
   var html = _reportShell(T('report.compare') + ' — ' + escapeHtml(f.team) + ' vs ' + escapeHtml(f.team2), subtitle, [
     _sectionCmpGeneral(d, f),
     d.h2hMatches.length > 0 ? _sectionCmpH2H(d.h2hMatches, data.events, f) : '',
-    _sectionProgression(cum, f.team, f.team2, progressionMetrics),
+    _sectionLayeredProgression(cum, f.team, f.team2, T('compare.progression.title')),
   ]);
 
   _openPrintWindow(html);
@@ -7433,14 +7310,13 @@ function _sectionPerPeriod(perPeriod, match) {
     '<tbody>' + rows + '</tbody></table>');
 }
 
-function _sectionProgression(cum, labelA, labelB, metrics) {
+function _sectionLayeredProgression(cum, labelA, labelB, title) {
   if (!cum || cum.labels.length <= 1) return '';
-  var svg = buildMultiProgressionChartSvg(cum.labels,
-    { label: labelA, color: '#1d4ed8' },
-    { label: labelB, color: '#b91c1c' },
-    cum.series);
-  var metricLabels = (metrics || ['goals']).map(progressionMetricLabel).join(', ');
-  var title = T('report.progression') + ' — ' + metricLabels;
+  var bySide = {};
+  cum.series.forEach(function(s) { bySide[s.metric] = s; });
+  var dataA = { shots: bySide.shots.valuesA, onTarget: bySide.onTarget.valuesA, goals: bySide.goals.valuesA, groundballs: bySide.groundballs.valuesA };
+  var dataB = { shots: bySide.shots.valuesB, onTarget: bySide.onTarget.valuesB, goals: bySide.goals.valuesB, groundballs: bySide.groundballs.valuesB };
+  var svg = buildLayeredProgressionChartSvg(cum.labels, dataA, dataB, labelA, labelB);
   return _section(title, '<div class="chart-svg">' + svg + '</div>');
 }
 
@@ -7724,6 +7600,8 @@ function _reportCss() {
     '.chart-label{font-weight:700;font-size:10pt;margin-bottom:4pt}',
     '.chart-sublabel{font-size:9pt;color:#6b7280;margin-bottom:3pt;text-align:center}',
     '.chart-svg svg{width:100%;height:auto}',
+    '.layered-progression{display:flex;flex-direction:column;gap:10pt}',
+    '.layered-progression-panel-title{font-size:9pt;font-weight:700;color:#374151;margin-bottom:2pt}',
     '.chart-team-row{margin-bottom:10pt;page-break-inside:avoid}',
     '.chart-team-label{font-weight:700;font-size:10pt;margin-bottom:5pt;padding-bottom:2pt;border-bottom:1px solid #e5e7eb}',
     '.field-legend{display:flex;gap:10pt;flex-wrap:wrap;font-size:8pt;color:#6b7280;margin-top:4pt;padding-top:4pt;border-top:1px solid #e5e7eb}',
@@ -7987,15 +7865,6 @@ function renderGoalieRetroactiveModal() {
 
 // HANDLERS map (data-action → fn) + global event delegation listeners (click + change).
 
-// Progression chart metric checkboxes: adds/removes `metric` from `list` in place,
-// refusing to drop the last one so the chart never ends up empty.
-function _toggleProgressionMetric(list, metric) {
-  const idx = list.indexOf(metric);
-  if (idx === -1) list.push(metric);
-  else if (list.length > 1) list.splice(idx, 1);
-  return list;
-}
-
 const HANDLERS = {
   'open-admin':     () => goAdmin(),
   'open-analytics': () => goAnalytics(),
@@ -8045,14 +7914,6 @@ const HANDLERS = {
   'go-home-from-analytics': () => goHome(),
   'analytics-heatmap-toggle': (mode) => {
     APP.analyticsHeatmapMode = mode;
-    render();
-  },
-  'analytics-set-progression-metric': (metric) => {
-    _toggleProgressionMetric(APP.analyticsProgressionMetrics, metric);
-    render();
-  },
-  'compare-set-progression-metric': (metric) => {
-    _toggleProgressionMetric(APP.compareProgressionMetrics, metric);
     render();
   },
   'analytics-goalie-sort': (col) => {
@@ -8405,7 +8266,6 @@ const HANDLERS = {
   // Viewer controls
   'viewer-set-mode':           (mode) => { APP.viewer.view_mode    = mode; render(); },
   'viewer-set-display':        (mode) => { APP.viewer.display_mode = mode; render(); },
-  'viewer-set-progression-metric': (metric) => { _toggleProgressionMetric(APP.viewer.progression_metrics, metric); render(); },
   'viewer-set-period-filter':  () => {
     const sel = document.getElementById('filter-period');
     if (sel) APP.viewer.filter_period = sel.value;
