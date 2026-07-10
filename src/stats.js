@@ -202,10 +202,9 @@ function buildCumulativeMetricSeries(periodsA, periodsB, metrics) {
   metrics = Array.isArray(metrics) ? metrics : [metrics || 'goals'];
   const keys = new Set([...Object.keys(periodsA || {}), ...Object.keys(periodsB || {})]);
   const sorted = Array.from(keys).sort((a, b) => getPeriodOrder(a) - getPeriodOrder(b));
-  const labels = ['start', ...sorted];
   const cumA = { total: 0, goals: 0, onTarget: 0, gb: 0 };
   const cumB = { total: 0, goals: 0, onTarget: 0, gb: 0 };
-  const series = metrics.map(m => ({ metric: m, valuesA: [0], valuesB: [0] }));
+  const series = metrics.map(m => ({ metric: m, valuesA: [], valuesB: [] }));
   sorted.forEach(p => {
     const a = (periodsA && periodsA[p]) || { total: 0, goals: 0, onTarget: 0, gb: 0 };
     const b = (periodsB && periodsB[p]) || { total: 0, goals: 0, onTarget: 0, gb: 0 };
@@ -216,7 +215,7 @@ function buildCumulativeMetricSeries(periodsA, periodsB, metrics) {
       s.valuesB.push(_progressionMetricValue(s.metric, cumB));
     });
   });
-  return { labels, series };
+  return { labels: sorted, series };
 }
 
 function computeCumulativeScore(matchId, match, metrics) {

@@ -97,7 +97,7 @@ function buildMultiProgressionChartSvg(labels, teamA, teamB, metricSeries, opts)
     <text x="${marginLeft + plotW + 8}" y="${yScaleRight(t) + 4}" text-anchor="start" font-size="10" fill="#9ca3af">${t}%</text>`).join('') : '';
 
   const xLabels = labels.map((lab, i) => {
-    const text = lab === 'start' ? T('progression.start') : periodLabel(lab);
+    const text = periodLabel(lab);
     const anchor = i === 0 ? 'start' : (i === labels.length - 1 ? 'end' : 'middle');
     return `<text x="${xScale(i)}" y="${plotBottom + 16}" text-anchor="${anchor}" font-size="10" fill="#6b7280">${escapeHtml(text)}</text>`;
   }).join('');
@@ -181,7 +181,7 @@ function _layeredPanelSvg(labels, values, side, width, height) {
     <text x="${marginLeft - 8}" y="${yScale(t) + 4}" text-anchor="end" font-size="10" fill="#9ca3af">${t}</text>`).join('');
 
   const xLabels = labels.map((lab, i) => {
-    const text = lab === 'start' ? T('progression.start') : periodLabel(lab);
+    const text = periodLabel(lab);
     const anchor = i === 0 ? 'start' : (i === labels.length - 1 ? 'end' : 'middle');
     return `<text x="${xScale(i)}" y="${plotBottom + 16}" text-anchor="${anchor}" font-size="10" fill="#6b7280">${escapeHtml(text)}</text>`;
   }).join('');
