@@ -723,18 +723,17 @@ function _renderAnalyticsProgressionChart(filtered, f) {
   if (!f.team) {
     return `<h3>${T('analytics.progression.title')}</h3><p class="empty">${T('analytics.progression.select_team')}</p>`;
   }
-  const metrics        = APP.analyticsProgressionMetrics;
-  const conceded        = _buildConcededEvents(filtered, APP.analyticsData.events, f);
-  const periodsScored   = computePeriodMetricStats(filtered);
-  const periodsConceded = computePeriodMetricStats(conceded);
-  const cum = buildCumulativeMetricSeries(periodsScored, periodsConceded, metrics);
-  const toggle = progressionMetricToggle('analytics-set-progression-metric', metrics);
-  if (cum.labels.length <= 1) return `<h3>${T('analytics.progression.title')}</h3>${toggle}`;
-  const svg = buildMultiProgressionChartSvg(cum.labels,
-    { label: T('analytics.progression.scored'),   color: '#1d4ed8' },
-    { label: T('analytics.progression.conceded'), color: '#b91c1c' },
-    cum.series);
-  return `<h3>${T('analytics.progression.title')}</h3>${toggle}<div class="progression-chart-wrapper">${svg}</div>`;
+  const conceded         = _buildConcededEvents(filtered, APP.analyticsData.events, f);
+  const periodsScored    = computePeriodMetricStats(filtered);
+  const periodsConceded  = computePeriodMetricStats(conceded);
+  const cum = buildCumulativeMetricSeries(periodsScored, periodsConceded, ['shots', 'onTarget', 'goals', 'groundballs']);
+  if (cum.labels.length <= 1) return `<h3>${T('analytics.progression.title')}</h3>`;
+  const bySide = {};
+  cum.series.forEach(s => { bySide[s.metric] = s; });
+  const scoredVals   = { shots: bySide.shots.valuesA, onTarget: bySide.onTarget.valuesA, goals: bySide.goals.valuesA, groundballs: bySide.groundballs.valuesA };
+  const concededVals = { shots: bySide.shots.valuesB, onTarget: bySide.onTarget.valuesB, goals: bySide.goals.valuesB, groundballs: bySide.groundballs.valuesB };
+  const svg = buildLayeredProgressionChartSvg(cum.labels, scoredVals, concededVals);
+  return `<h3>${T('analytics.progression.title')}</h3><div class="progression-chart-wrapper">${svg}</div>`;
 }
 
 // ── Heatmap ───────────────────────────────────────────────────────────────────
