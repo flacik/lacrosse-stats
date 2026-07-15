@@ -176,6 +176,11 @@ cd src/
 
 Each entry is tagged with the deployment(s) it affects: `[all]` ships to every deployment (liga, reprezentacja, mistrzostwa, demo), `[mistrzostwa]` is field-lacrosse-only, `[liga]`/`[reprezentacja]` are box-lacrosse-only. Untagged legacy entries below predate the multi-deployment split and applied to all instances.
 
+**v2.3.4 (2026-07-15)** `[all]` — analytics PDF report: per-match readability:
+
+- New "quarter comparison across matches" table in the team analytics PDF — one row per match so the same quarter (Q1, Q2…) can be compared across a whole tournament at a glance, plus a totals row
+- Team analytics PDF shot chart: once a filter spans more than one match, the single combined shot map (which turned into an unreadable pile of markers) is replaced by one small offense/defense map per match, labeled by opponent and date
+
 **v2.3.3 (2026-06-10)** — heatmap and PDF legend translation fix:
 
 - Shot chart legend labels (Goal, On target, Off target, Assisted, Man-up, Man-down, Fast break) now use the active language — previously always rendered in Polish regardless of the selected language

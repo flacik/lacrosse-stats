@@ -3463,6 +3463,10 @@ const STRINGS = {
     'report.shots_fired': 'Strzały oddane', 'report.shots_conceded': 'Strzały stracone',
     'report.summary': 'Podsumowanie', 'report.zones': 'Rozkład po strefach',
     'report.periods': 'Rozkład po kwartach', 'report.periods.rate': 'Skuteczność',
+    'report.periods_by_match': 'Porównanie kwart pomiędzy meczami',
+    'report.periods_by_match.opponent': 'Przeciwnik', 'report.periods_by_match.total': 'Razem',
+    'report.periods_by_match.legend': 'Format komórki: strzały/bramki (skuteczność%)',
+    'report.shot_chart_by_match': 'Mapy strzałów — podział na mecze',
     'report.situations_lbl': 'Sytuacje specjalne', 'report.history': 'Historia meczów',
     'report.rows.shots': 'Strzały łącznie', 'report.rows.goals': 'Bramki',
     'report.rows.on_target': 'Celne (z bramkami)', 'report.rows.off_target': 'Niecelne',
@@ -3707,6 +3711,10 @@ const STRINGS = {
     'report.shots_fired': 'Shots fired', 'report.shots_conceded': 'Shots conceded',
     'report.summary': 'Summary', 'report.zones': 'Zone distribution',
     'report.periods': 'Period distribution', 'report.periods.rate': 'Efficiency',
+    'report.periods_by_match': 'Quarter comparison across matches',
+    'report.periods_by_match.opponent': 'Opponent', 'report.periods_by_match.total': 'Total',
+    'report.periods_by_match.legend': 'Cell format: shots/goals (efficiency%)',
+    'report.shot_chart_by_match': 'Shot charts — by match',
     'report.situations_lbl': 'Special situations', 'report.history': 'Match history',
     'report.rows.shots': 'Shots total', 'report.rows.goals': 'Goals',
     'report.rows.on_target': 'On target (incl. goals)', 'report.rows.off_target': 'Off target',
@@ -7136,21 +7144,29 @@ function openAnalyticsReport() {
 
   var s          = computeAnalyticsStats(filtered);
   var goalieData = _computeGoalieAnalytics(filtered, data.events, data.matches, f, APP.analyticsGoalieSort);
+  var matchCount = new Set(filtered.map(function(e) { return String(e.match_id); })).size;
 
   var teamLabel = f.team || T('report.all_teams');
   var parts     = [f.tournament, teamLabel, f.period ? periodLabel(f.period) : '', f.dateFrom, f.dateTo].filter(Boolean);
   var subtitle  = parts.join(' · ');
 
-  var svgOff = '', svgDef = '';
+  // A single combined map gets unreadable once shots from several matches are
+  // overlaid on it — split into one small map per match instead.
+  var shotChartsSection = '';
   if (f.team) {
-    svgOff = filtered.length > 0 ? _reportHalfFieldSvg(filtered, f.team) : '';
-    var matchIds  = new Set(filtered.map(function(e) { return String(e.match_id); }));
-    var conceded  = data.events.filter(function(e) {
-      return matchIds.has(String(e.match_id)) &&
-             e.team_event !== f.team &&
-             isShotEvent(e);
-    });
-    svgDef = conceded.length > 0 ? _reportHalfFieldSvg(conceded, conceded[0].team_event || '__opp__', true) : '';
+    if (matchCount > 1) {
+      shotChartsSection = _sectionAnalyticsShotChartsByMatch(filtered, data.events, data.matches, f);
+    } else {
+      var svgOff = filtered.length > 0 ? _reportHalfFieldSvg(filtered, f.team) : '';
+      var matchIds  = new Set(filtered.map(function(e) { return String(e.match_id); }));
+      var conceded  = data.events.filter(function(e) {
+        return matchIds.has(String(e.match_id)) &&
+               e.team_event !== f.team &&
+               isShotEvent(e);
+      });
+      var svgDef = conceded.length > 0 ? _reportHalfFieldSvg(conceded, conceded[0].team_event || '__opp__', true) : '';
+      shotChartsSection = (svgOff || svgDef) ? _sectionAnalyticsShotCharts(svgOff, svgDef, f.team) : '';
+    }
   }
 
   var progressionSection = '';
@@ -7160,14 +7176,17 @@ function openAnalyticsReport() {
     progressionSection = _sectionLayeredProgression(cum, T('analytics.progression.scored'), T('analytics.progression.conceded'), T('analytics.progression.title'));
   }
 
+  var periodsByMatchSection = (f.team && matchCount > 1) ? _sectionAnalyticsPeriodsByMatch(filtered, data.matches, f, s) : '';
+
   var html = _reportShell(T('report.analytics') + ' — ' + escapeHtml(teamLabel), subtitle, [
     _sectionAnalyticsSummary(s, filtered, f),
     _sectionAnalyticsZones(s),
     _sectionAnalyticsPeriods(s),
+    periodsByMatchSection,
     progressionSection,
     _sectionAnalyticsSituations(s),
     _sectionAnalyticsGoalies(goalieData),
-    (svgOff || svgDef) ? _sectionAnalyticsShotCharts(svgOff, svgDef, f.team) : '',
+    shotChartsSection,
     _sectionMatchHistory(filtered, data.events, data.matches, f),
   ]);
 
@@ -7478,6 +7497,55 @@ function _sectionAnalyticsPeriods(s) {
     '<tbody>' + rows + '</tbody></table>');
 }
 
+// Per-period comparison across every match in the filtered set, one row per
+// match so the same quarter can be scanned column-wise across the tournament.
+function _sectionAnalyticsPeriodsByMatch(filteredTeamEvents, allMatches, f, overallStats) {
+  var byMatch = {};
+  filteredTeamEvents.forEach(function(e) {
+    var mid = String(e.match_id);
+    (byMatch[mid] = byMatch[mid] || []).push(e);
+  });
+
+  var rows = Object.keys(byMatch).map(function(mid) {
+    var m   = allMatches.find(function(mm) { return String(mm.id) === mid; });
+    var opp = m ? (m.team_A === f.team ? m.team_B : m.team_A) : '?';
+    var st  = computeAnalyticsStats(byMatch[mid]);
+    return { date: m ? String(m.match_date || '') : '', opponent: opp, periods: st.periods };
+  }).sort(function(a, b) { return a.date.localeCompare(b.date); });
+  if (rows.length < 2) return '';
+
+  var periodSet = new Set();
+  rows.forEach(function(r) { Object.keys(r.periods).forEach(function(p) { periodSet.add(p); }); });
+  Object.keys(overallStats.periods).forEach(function(p) { periodSet.add(p); });
+  var periodList = Array.from(periodSet).sort(function(a, b) { return getPeriodOrder(a) - getPeriodOrder(b); });
+  if (!periodList.length) return '';
+
+  function cell(bucket, p) {
+    var v = bucket[p];
+    if (!v || v.total === 0) return '—';
+    var pct = Math.round(v.goals / v.total * 100);
+    return v.total + '/' + v.goals + ' (' + pct + '%)';
+  }
+
+  var thead = '<tr><th class="lbl">' + T('report.periods_by_match.opponent') + '</th>' +
+    periodList.map(function(p) { return '<th class="num">' + periodLabel(p) + '</th>'; }).join('') + '</tr>';
+
+  var tbody = rows.map(function(r) {
+    return '<tr><td class="lbl">' + escapeHtml(r.opponent) +
+      (r.date ? ' <span class="muted">· ' + escapeHtml(r.date) + '</span>' : '') + '</td>' +
+      periodList.map(function(p) { return '<td class="num">' + cell(r.periods, p) + '</td>'; }).join('') + '</tr>';
+  }).join('');
+
+  var totalRow = '<tr class="total-row"><td class="lbl">' + T('report.periods_by_match.total') + '</td>' +
+    periodList.map(function(p) { return '<td class="num">' + cell(overallStats.periods, p) + '</td>'; }).join('') + '</tr>';
+
+  return _section(T('report.periods_by_match'),
+    '<table class="data-table periods-by-match-table">' +
+    '<thead>' + thead + '</thead>' +
+    '<tbody>' + tbody + totalRow + '</tbody></table>' +
+    '<div class="table-note">' + T('report.periods_by_match.legend') + '</div>');
+}
+
 function _sectionAnalyticsSituations(s) {
   var sits = [
     s.situations.manUp,
@@ -7520,6 +7588,49 @@ function _sectionAnalyticsShotCharts(svgOff, svgDef, teamName) {
       (svgOff ? '<div class="chart-col"><div class="chart-sublabel">' + T('report.shots_fired') + '</div><div class="chart-svg">' + svgOff + '</div></div>' : '') +
       (svgDef ? '<div class="chart-col"><div class="chart-sublabel">' + T('report.shots_conceded') + '</div><div class="chart-svg">' + svgDef + '</div></div>' : '') +
     '</div>' +
+    buildFieldLegend(null, {}).outerHTML +
+  '</div>';
+}
+
+// One small offense/defense map per match instead of every match's shots
+// overlaid on a single map, which turns unreadable past a couple of games.
+function _sectionAnalyticsShotChartsByMatch(filteredTeamEvents, allEvents, allMatches, f) {
+  var byMatch = {};
+  filteredTeamEvents.forEach(function(e) {
+    var mid = String(e.match_id);
+    (byMatch[mid] = byMatch[mid] || []).push(e);
+  });
+  var matchIds = Object.keys(byMatch);
+  if (!matchIds.length) return '';
+
+  var cards = matchIds.map(function(mid) {
+    var m    = allMatches.find(function(mm) { return String(mm.id) === mid; });
+    var opp  = m ? (m.team_A === f.team ? m.team_B : m.team_A) : '?';
+    var date = m ? String(m.match_date || '') : '';
+    var offEvents  = byMatch[mid];
+    var concededEv = allEvents.filter(function(e) {
+      return String(e.match_id) === mid && e.team_event !== f.team && isShotEvent(e);
+    });
+    var svgOff = _reportHalfFieldSvg(offEvents, f.team);
+    var svgDef = concededEv.length > 0 ? _reportHalfFieldSvg(concededEv, concededEv[0].team_event || '__opp__', true) : '';
+    var title = escapeHtml(f.team) + ' — ' + escapeHtml(opp) +
+      (date ? ' <span class="muted">· ' + escapeHtml(date) + '</span>' : '');
+    return {
+      date: date,
+      html: '<div class="shot-match-card">' +
+        '<div class="shot-match-title">' + title + '</div>' +
+        '<div class="shot-charts">' +
+          '<div class="chart-col"><div class="chart-sublabel">' + T('report.shots_fired') + '</div><div class="chart-svg">' + svgOff + '</div></div>' +
+          (svgDef ? '<div class="chart-col"><div class="chart-sublabel">' + T('report.shots_conceded') + '</div><div class="chart-svg">' + svgDef + '</div></div>' : '') +
+        '</div>' +
+      '</div>',
+    };
+  }).sort(function(a, b) { return a.date.localeCompare(b.date); })
+    .map(function(c) { return c.html; }).join('');
+
+  return '<div class="section page-break">' +
+    '<h2>' + T('report.shot_chart_by_match') + ' — ' + escapeHtml(f.team) + '</h2>' +
+    '<div class="shot-match-grid">' + cards + '</div>' +
     buildFieldLegend(null, {}).outerHTML +
   '</div>';
 }
@@ -7618,6 +7729,14 @@ function _reportCss() {
     '.chart-label{font-weight:700;font-size:10pt;margin-bottom:4pt}',
     '.chart-sublabel{font-size:9pt;color:#6b7280;margin-bottom:3pt;text-align:center}',
     '.chart-svg svg{width:100%;height:auto}',
+    '.shot-match-grid{display:flex;flex-direction:column;gap:10pt}',
+    '.shot-match-card{page-break-inside:avoid;border:1px solid #e5e7eb;border-radius:4pt;padding:6pt 8pt}',
+    '.shot-match-title{font-weight:700;font-size:9.5pt;margin-bottom:4pt;color:#374151}',
+    '.shot-match-card .chart-svg svg{max-width:78mm;margin:0 auto;display:block}',
+    '.muted{color:#6b7280;font-weight:400;font-size:8pt}',
+    '.total-row{font-weight:700;background:#f9fafb}',
+    '.table-note{font-size:7.5pt;color:#9ca3af;margin-top:3pt}',
+    '.periods-by-match-table td.num,.periods-by-match-table th.num{text-align:center}',
     '.layered-progression{display:flex;flex-direction:column;gap:10pt}',
     '.layered-progression-panel-title{font-size:9pt;font-weight:700;color:#374151;margin-bottom:2pt}',
     '.chart-team-row{margin-bottom:10pt;page-break-inside:avoid}',
