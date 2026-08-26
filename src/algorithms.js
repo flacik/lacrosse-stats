@@ -93,6 +93,68 @@ function getTeamForHalf(half, team_A_side) {
   return half === 'right' ? 'B' : 'A';
 }
 
+// ── Klastrowanie markerów (bąble) ────────────────────────────────────────────
+// Scala markery tej samej drużyny, które leżałyby na tyle blisko siebie, że by się
+// wizualnie nakładały. Działa bezpośrednio w jednostkach viewBox danego widoku
+// (1100×600 pełne boisko, 540×600 połowa) — te jednostki są skalowane przez SVG
+// proporcjonalnie do realnego rozmiaru na ekranie, więc odległości liczone w nich
+// zawsze odpowiadają rzeczywistym proporcjom (bez ResizeObserver).
+//
+// Próg scalania (CLUSTER_MERGE_DIST) jest CELOWO stały, niezależny od tego, ile
+// zdarzeń już jest w klastrze. Gdyby rósł z rozmiarem klastra (tak jak promień
+// rysowanego bąbla), powstawałby efekt łańcuchowy: duży bąbel miałby coraz
+// większy "zasięg grawitacji" i wciągałby coraz dalsze, luźno powiązane
+// zdarzenia — dokładnie to widać było przy realnych danych (jeden bąbel zjadał
+// cały obszar przy kole bramkowym). Rozmiar rysowanego bąbla (clusterBubbleRadius)
+// nadal rośnie z liczbą zdarzeń — to tylko wizualne skalowanie, nie wpływa na to,
+// co się z czym łączy.
+const CLUSTER_MERGE_DIST  = 22;  // maks. odległość środków, żeby dwa markery/klastry się scaliły
+const CLUSTER_RADIUS_MAX  = 26;
+const CLUSTER_RADIUS_BASE = 9;
+const CLUSTER_RADIUS_STEP = 2;
+
+function clusterBubbleRadius(count) {
+  return Math.min(CLUSTER_RADIUS_MAX, CLUSTER_RADIUS_BASE + count * CLUSTER_RADIUS_STEP);
+}
+
+// items: [{ team, cx, cy, ...dowolne dodatkowe pola }]
+// zwraca: [{ team, cx, cy, count, members: [item, ...] }]
+function clusterMarkers(items) {
+  function clusterGroup(group) {
+    let merged = true;
+    while (merged) {
+      merged = false;
+      for (let i = 0; i < group.length && !merged; i++) {
+        for (let j = i + 1; j < group.length; j++) {
+          const a = group[i], b = group[j];
+          const dist = Math.hypot(a.cx - b.cx, a.cy - b.cy);
+          if (dist < CLUSTER_MERGE_DIST) {
+            const n = a.count + b.count;
+            group.splice(j, 1);
+            group[i] = {
+              team: a.team,
+              cx: (a.cx * a.count + b.cx * b.count) / n,
+              cy: (a.cy * a.count + b.cy * b.count) / n,
+              count: n,
+              members: a.members.concat(b.members),
+            };
+            merged = true;
+            break;
+          }
+        }
+      }
+    }
+    return group;
+  }
+
+  const byTeam = {};
+  items.forEach(it => {
+    (byTeam[it.team] = byTeam[it.team] || []).push({ team: it.team, cx: it.cx, cy: it.cy, count: 1, members: [it] });
+  });
+
+  return Object.values(byTeam).flatMap(clusterGroup);
+}
+
 const ZONE_COLORS = {
   'A-attack-left':     '#1e3a8a', 'A-attack-center':   '#1e40af', 'A-attack-right':    '#1e3a8a',
   'A-midfield-left':   '#3b82f6', 'A-midfield-center': '#2563eb', 'A-midfield-right':  '#3b82f6',

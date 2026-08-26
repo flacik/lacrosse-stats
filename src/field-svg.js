@@ -318,12 +318,19 @@ function drawHalfFieldChart(svg, match, filtered, viewer) {
   // Rotation mapping: attacker shot_x (0→1, center→end) → cy = (1 − shot_x) × 600 (bottom→top).
   //                   attacker shot_y (0→1, attacker-left→right) → cx = shot_y × 540.
   const chartShots = teamShots.filter(e => e.shot_x >= 0);
-  chartShots.forEach(e => {
-    const cx = e.shot_y * 540;
-    const cy = (1 - e.shot_x) * 600;
-    if (viewer.display_mode === 'heatmap') drawHeatBlob(fieldG, cx, cy, teamColor);
-    else                                    drawShotMarker(fieldG, cx, cy, teamColor, e.result, false, e.man_up, e.man_down, e.assisted, e.fast_break, e.free_position, e.penalty_shot, e.event_type);
-  });
+  if (viewer.display_mode === 'heatmap') {
+    chartShots.forEach(e => drawHeatBlob(fieldG, e.shot_y * 540, (1 - e.shot_x) * 600, teamColor));
+  } else {
+    const items = chartShots.map(e => ({ event: e, team: teamSlot_, color: teamColor, cx: e.shot_y * 540, cy: (1 - e.shot_x) * 600 }));
+    clusterMarkers(items).forEach(cluster => {
+      if (cluster.count === 1) {
+        const it = cluster.members[0], e = it.event;
+        drawShotMarker(fieldG, it.cx, it.cy, it.color, e.result, false, e.man_up, e.man_down, e.assisted, e.fast_break, e.free_position, e.penalty_shot, e.event_type);
+      } else {
+        drawClusterBubble(fieldG, cluster.cx, cluster.cy, cluster.count, cluster.members[0].color);
+      }
+    });
+  }
 
   svg.appendChild(fieldG);
 }
@@ -349,14 +356,25 @@ function drawFieldMarkings(g, w, h) {
 
 function drawShotsFullField(g, events, match, displayMode) {
   // Canonical orientation: A on left attacking right (team_A_side='left')
-  events.forEach(e => {
+  const items = events.map(e => {
     const slot = teamSlot(match.id, e.team_event);
     const color = slot === 'A' ? '#1d4ed8' : '#b91c1c';
     const { physical_x, physical_y } = attackerToPhysical(e.shot_x, e.shot_y, slot, 'left');
-    const cx = physical_x * 1100;
-    const cy = physical_y * 600;
-    if (displayMode === 'heatmap') drawHeatBlob(g, cx, cy, color);
-    else                            drawShotMarker(g, cx, cy, color, e.result, e.zone_name === 'own-half', e.man_up, e.man_down, e.assisted, e.fast_break, e.free_position, e.penalty_shot, e.event_type);
+    return { event: e, team: slot, color, cx: physical_x * 1100, cy: physical_y * 600 };
+  });
+
+  if (displayMode === 'heatmap') {
+    items.forEach(it => drawHeatBlob(g, it.cx, it.cy, it.color));
+    return;
+  }
+
+  clusterMarkers(items).forEach(cluster => {
+    if (cluster.count === 1) {
+      const it = cluster.members[0], e = it.event;
+      drawShotMarker(g, it.cx, it.cy, it.color, e.result, e.zone_name === 'own-half', e.man_up, e.man_down, e.assisted, e.fast_break, e.free_position, e.penalty_shot, e.event_type);
+    } else {
+      drawClusterBubble(g, cluster.cx, cluster.cy, cluster.count, cluster.members[0].color);
+    }
   });
 }
 
@@ -693,4 +711,16 @@ function drawHeatBlob(g, cx, cy, color) {
   const rgb = color === '#1d4ed8' ? '29, 78, 216' : '185, 28, 28';
   g.appendChild(svgEl('circle', { cx, cy, r: 35, fill: `rgba(${rgb}, 0.18)`, stroke: 'none' }));
   g.appendChild(svgEl('circle', { cx, cy, r: 3,  fill: `rgba(${rgb}, 0.7)`,  stroke: 'none' }));
+}
+
+// Zbiorczy bąbel dla klastra >1 zdarzenia (patrz clusterMarkers w algorithms.js).
+function drawClusterBubble(g, cx, cy, count, color) {
+  const r = clusterBubbleRadius(count);
+  g.appendChild(svgEl('circle', { cx, cy, r, fill: color, opacity: 0.6, stroke: 'white', 'stroke-width': 2 }));
+  const t = svgEl('text', {
+    x: cx, y: cy, 'text-anchor': 'middle', 'dominant-baseline': 'middle',
+    'font-size': 12, 'font-weight': 700, fill: 'white'
+  });
+  t.textContent = String(count);
+  g.appendChild(t);
 }
