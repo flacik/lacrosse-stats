@@ -94,11 +94,37 @@ function computeTeamStats(matchId, teamName, events) {
   const saves      = teamEvents.filter(e => e.result === 'celny').length;     // strzały obronione (per A.4: także trafienia w słupek)
   const onTarget   = teamEvents.filter(e => e.result === 'celny' || e.result === 'gol').length;
   const offTarget  = teamEvents.filter(e => e.result === 'niecelny').length;
+  const distances  = teamEvents
+    .filter(e => typeof e.shot_x === 'number' && typeof e.shot_y === 'number')
+    .map(e => shotDistanceMeters(e.shot_x, e.shot_y));
+  const avgDistance = distances.length > 0
+    ? (distances.reduce((a, b) => a + b, 0) / distances.length).toFixed(1)
+    : '—';
   return {
-    total, goals, saves, onTarget, offTarget,
+    total, goals, saves, onTarget, offTarget, avgDistance,
     goalRate:     total > 0 ? (goals    / total * 100).toFixed(1) : '—',
     onTargetRate: total > 0 ? (onTarget / total * 100).toFixed(1) : '—'
   };
+}
+
+const DISTANCE_BINS = [
+  { min: 0,  max: 5,        label: '0–5m' },
+  { min: 5,  max: 10,       label: '5–10m' },
+  { min: 10, max: 15,       label: '10–15m' },
+  { min: 15, max: Infinity, label: '15m+' },
+];
+
+// Histogram dystansu strzałów jednej drużyny — zamiast samej średniej pokazuje
+// profil strzelecki (np. "dużo z bliska" vs "dużo zza obrony").
+function computeDistanceHistogram(events, teamName) {
+  const distances = events
+    .filter(e => e.team_event === teamName && typeof e.shot_x === 'number' && typeof e.shot_y === 'number')
+    .map(e => shotDistanceMeters(e.shot_x, e.shot_y));
+  const bins = DISTANCE_BINS.map(b => {
+    const count = distances.filter(d => d >= b.min && d < b.max).length;
+    return { label: b.label, count, pct: distances.length > 0 ? Math.round(count / distances.length * 100) : 0 };
+  });
+  return { total: distances.length, bins };
 }
 
 function computeGoalieStats(match, allEvents) {

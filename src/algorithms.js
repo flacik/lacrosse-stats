@@ -69,6 +69,32 @@ function attackerToPhysical(shot_x, shot_y, team_slot, team_A_side) {
   return { physical_x, physical_y };
 }
 
+// ── Realny dystans strzału do bramki (metry) ────────────────────────────────
+// shot_x/shot_y są znormalizowane (0..1) i nie mają jednostki same w sobie —
+// żeby policzyć prawdziwe metry, trzeba znać rzeczywiste wymiary boiska, które
+// RÓŻNIĄ SIĘ między wariantami: field lacrosse (mistrzostwa) gra na 110×60 m
+// wg World Lacrosse (goal 15 m od linii końcowej → 40 m od linii środkowej,
+// czyli attacker_progress 40/55), lacrosse sixes (reprezentacja/liga) na
+// 70×36 m (goal 25 m od linii środkowej — World Lacrosse Sixes rules).
+// halfLength = dystans linia środkowa→końcowa (shot_x=0→1), goalFromMidline =
+// gdzie na tej osi stoi bramka, width = pełna szerokość boiska (bramka na środku).
+const FIELD_DIMENSIONS = {
+  field: { halfLength: 55, goalFromMidline: 40, width: 60 },
+  sixes: { halfLength: 35, goalFromMidline: 25, width: 36 },
+};
+
+function currentFieldDimensions() {
+  const isField = typeof APP_CONFIG !== 'undefined' && APP_CONFIG.variant === 'field';
+  return isField ? FIELD_DIMENSIONS.field : FIELD_DIMENSIONS.sixes;
+}
+
+function shotDistanceMeters(shot_x, shot_y) {
+  const d = currentFieldDimensions();
+  const dx = shot_x * d.halfLength - d.goalFromMidline;
+  const dy = (shot_y - 0.5) * d.width;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
 // SVG zone overlay rectangles (12 cells, physical positions on 1100×600 grid).
 function getZoneLayout() {
   const TX = 790, TM = 310, T1 = 200, T2 = 400;

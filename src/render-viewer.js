@@ -140,6 +140,35 @@ function renderViewerClusterDetailCard(match, filtered) {
     </div>`;
 }
 
+// Profil strzelecki wg dystansu do bramki (w metrach — patrz shotDistanceMeters
+// w algorithms.js), liczony z tych samych `filtered` zdarzeń co mapa, więc
+// respektuje aktywne filtry okresu/rezultatu tak samo jak "strzałów na widoku".
+function renderDistanceHistogram(match, filtered) {
+  const histA = computeDistanceHistogram(filtered, match.team_A);
+  const histB = computeDistanceHistogram(filtered, match.team_B);
+  if (histA.total === 0 && histB.total === 0) return '';
+
+  const col = (hist, teamClass) => hist.bins.map(b => `
+    <div class="dist-row">
+      <span class="dist-label">${b.label}</span>
+      <div class="dist-bar-track"><div class="dist-bar ${teamClass}" style="width:${b.pct}%"></div></div>
+      <span class="dist-count">${b.count}</span>
+    </div>`).join('');
+
+  return `
+    <h4 class="distance-histogram-title">${T('viewer.chart.distance_title')}</h4>
+    <div class="distance-histogram">
+      <div class="dist-col">
+        <div class="dist-team-label team-A-color">${escapeHtml(match.team_A)}</div>
+        ${col(histA, 'dist-bar-A')}
+      </div>
+      <div class="dist-col">
+        <div class="dist-team-label team-B-color">${escapeHtml(match.team_B)}</div>
+        ${col(histB, 'dist-bar-B')}
+      </div>
+    </div>`;
+}
+
 function _viewerRefreshLabel() {
   if (!APP.lastViewerRefresh) return T('viewer.last_update') + '—';
   const h = APP.lastViewerRefresh.getHours().toString().padStart(2, '0');
@@ -188,6 +217,8 @@ function renderViewerStatsCard(statsA, statsB, match) {
           ${_splitBar(statsA.goalRate, statsB.goalRate)}
           <tr class="summary-row"><td class="num team-A">${fmt(statsA.onTargetRate, true)}</td><td class="label" style="text-align:center;">${T('viewer.shots.on_rate')}</td><td class="num team-B">${fmt(statsB.onTargetRate, true)}</td></tr>
           ${_splitBar(statsA.onTargetRate, statsB.onTargetRate)}
+          <tr class="summary-row"><td class="num team-A">${statsA.avgDistance}</td><td class="label" style="text-align:center;">${T('viewer.shots.avg_distance')}</td><td class="num team-B">${statsB.avgDistance}</td></tr>
+          ${_splitBar(statsA.avgDistance, statsB.avgDistance)}
         </tbody>
       </table>
     </div>`;
@@ -398,6 +429,7 @@ function renderViewerShotChartCard(match, filtered, periodOptions) {
       </div>
       <div id="viewer-chart-host"></div>
       ${renderViewerClusterDetailCard(match, filtered)}
+      ${renderDistanceHistogram(match, filtered)}
       <div class="shot-chart-stats">
         <span><strong>${filtered.length}</strong> ${T('viewer.chart.shots_on_view')}${(v.filter_period !== 'all' || v.filter_result !== 'all') ? T('viewer.chart.after_filters') : ''}</span>
         <span>•</span>

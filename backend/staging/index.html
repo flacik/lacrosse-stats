@@ -414,6 +414,20 @@ label.field input:focus, label.field select:focus {
   text-transform: uppercase; letter-spacing: 0.05em; color: #666;
   display: flex; align-items: center;
 }
+.distance-histogram-title {
+  margin: 14px 0 8px 0; font-size: 12px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.05em; color: #666;
+}
+.distance-histogram { display: flex; gap: 20px; }
+.dist-col { flex: 1; min-width: 0; }
+.dist-team-label { font-size: 12px; font-weight: 700; margin-bottom: 6px; }
+.dist-row { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+.dist-label { width: 44px; flex-shrink: 0; font-size: 11px; color: #888; }
+.dist-bar-track { flex: 1; height: 8px; background: #eee; border-radius: 4px; overflow: hidden; }
+.dist-bar { height: 100%; border-radius: 4px; }
+.dist-bar-A { background: #1d4ed8; }
+.dist-bar-B { background: #b91c1c; }
+.dist-count { width: 18px; flex-shrink: 0; text-align: right; font-size: 11px; color: #888; }
 .refresh-tag {
   display: inline-flex; align-items: center; gap: 6px;
   font-size: 11px; color: #15803d; background: #f0fdf4;
@@ -853,6 +867,10 @@ table.stats-table td.num {
 [data-theme="dark"] .viewer-card h3 { color: #8b949e; }
 [data-theme="dark"] .cluster-detail-inline { background: #0d1117; border-color: #21262d; }
 [data-theme="dark"] .cluster-detail-inline h4 { color: #8b949e; }
+[data-theme="dark"] .distance-histogram-title { color: #8b949e; }
+[data-theme="dark"] .dist-bar-track { background: #21262d; }
+[data-theme="dark"] .dist-label,
+[data-theme="dark"] .dist-count { color: #8b949e; }
 [data-theme="dark"] .refresh-tag { color: #3fb950; background: #0f2d1c; border-color: #1f5235; }
 [data-theme="dark"] .refresh-tag.refreshing { color: #d29922; background: #2d2500; border-color: #3d3000; }
 [data-theme="dark"] .refresh-tag .dot { background: #3fb950; }
@@ -2239,6 +2257,32 @@ function attackerToPhysical(shot_x, shot_y, team_slot, team_A_side) {
   return { physical_x, physical_y };
 }
 
+// ── Realny dystans strzału do bramki (metry) ────────────────────────────────
+// shot_x/shot_y są znormalizowane (0..1) i nie mają jednostki same w sobie —
+// żeby policzyć prawdziwe metry, trzeba znać rzeczywiste wymiary boiska, które
+// RÓŻNIĄ SIĘ między wariantami: field lacrosse (mistrzostwa) gra na 110×60 m
+// wg World Lacrosse (goal 15 m od linii końcowej → 40 m od linii środkowej,
+// czyli attacker_progress 40/55), lacrosse sixes (reprezentacja/liga) na
+// 70×36 m (goal 25 m od linii środkowej — World Lacrosse Sixes rules).
+// halfLength = dystans linia środkowa→końcowa (shot_x=0→1), goalFromMidline =
+// gdzie na tej osi stoi bramka, width = pełna szerokość boiska (bramka na środku).
+const FIELD_DIMENSIONS = {
+  field: { halfLength: 55, goalFromMidline: 40, width: 60 },
+  sixes: { halfLength: 35, goalFromMidline: 25, width: 36 },
+};
+
+function currentFieldDimensions() {
+  const isField = typeof APP_CONFIG !== 'undefined' && APP_CONFIG.variant === 'field';
+  return isField ? FIELD_DIMENSIONS.field : FIELD_DIMENSIONS.sixes;
+}
+
+function shotDistanceMeters(shot_x, shot_y) {
+  const d = currentFieldDimensions();
+  const dx = shot_x * d.halfLength - d.goalFromMidline;
+  const dy = (shot_y - 0.5) * d.width;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
 // SVG zone overlay rectangles (12 cells, physical positions on 1100×600 grid).
 function getZoneLayout() {
   const TX = 790, TM = 310, T1 = 200, T2 = 400;
@@ -2431,11 +2475,37 @@ function computeTeamStats(matchId, teamName, events) {
   const saves      = teamEvents.filter(e => e.result === 'celny').length;     // strzały obronione (per A.4: także trafienia w słupek)
   const onTarget   = teamEvents.filter(e => e.result === 'celny' || e.result === 'gol').length;
   const offTarget  = teamEvents.filter(e => e.result === 'niecelny').length;
+  const distances  = teamEvents
+    .filter(e => typeof e.shot_x === 'number' && typeof e.shot_y === 'number')
+    .map(e => shotDistanceMeters(e.shot_x, e.shot_y));
+  const avgDistance = distances.length > 0
+    ? (distances.reduce((a, b) => a + b, 0) / distances.length).toFixed(1)
+    : '—';
   return {
-    total, goals, saves, onTarget, offTarget,
+    total, goals, saves, onTarget, offTarget, avgDistance,
     goalRate:     total > 0 ? (goals    / total * 100).toFixed(1) : '—',
     onTargetRate: total > 0 ? (onTarget / total * 100).toFixed(1) : '—'
   };
+}
+
+const DISTANCE_BINS = [
+  { min: 0,  max: 5,        label: '0–5m' },
+  { min: 5,  max: 10,       label: '5–10m' },
+  { min: 10, max: 15,       label: '10–15m' },
+  { min: 15, max: Infinity, label: '15m+' },
+];
+
+// Histogram dystansu strzałów jednej drużyny — zamiast samej średniej pokazuje
+// profil strzelecki (np. "dużo z bliska" vs "dużo zza obrony").
+function computeDistanceHistogram(events, teamName) {
+  const distances = events
+    .filter(e => e.team_event === teamName && typeof e.shot_x === 'number' && typeof e.shot_y === 'number')
+    .map(e => shotDistanceMeters(e.shot_x, e.shot_y));
+  const bins = DISTANCE_BINS.map(b => {
+    const count = distances.filter(d => d >= b.min && d < b.max).length;
+    return { label: b.label, count, pct: distances.length > 0 ? Math.round(count / distances.length * 100) : 0 };
+  });
+  return { total: distances.length, bins };
 }
 
 function computeGoalieStats(match, allEvents) {
@@ -3395,6 +3465,8 @@ const STRINGS = {
     'viewer.shots.off_target': 'strzały niecelne',
     'viewer.shots.goal_rate': '% skuteczność (gole/strzały)',
     'viewer.shots.on_rate': '% strzałów celnych',
+    'viewer.shots.avg_distance': 'śr. odległość strzału (m)',
+    'viewer.chart.distance_title': 'Dystans strzałów',
     'viewer.sit.title': 'Sytuacje specjalne',
     'viewer.sit.man_up': 'przewaga', 'viewer.sit.equal': 'równa liczba',
     'viewer.sit.man_down': 'osłabienie', 'viewer.sit.fast_break': 'fast break',
@@ -3650,6 +3722,8 @@ const STRINGS = {
     'viewer.shots.off_target': 'off-target shots',
     'viewer.shots.goal_rate': '% shot efficiency (goals/shots)',
     'viewer.shots.on_rate': '% on-target shots',
+    'viewer.shots.avg_distance': 'avg. shot distance (m)',
+    'viewer.chart.distance_title': 'Shot distance',
     'viewer.sit.title': 'Special situations',
     'viewer.sit.man_up': 'man-up', 'viewer.sit.equal': 'even strength',
     'viewer.sit.man_down': 'man-down', 'viewer.sit.fast_break': 'fast break',
@@ -5356,6 +5430,35 @@ function renderViewerClusterDetailCard(match, filtered) {
     </div>`;
 }
 
+// Profil strzelecki wg dystansu do bramki (w metrach — patrz shotDistanceMeters
+// w algorithms.js), liczony z tych samych `filtered` zdarzeń co mapa, więc
+// respektuje aktywne filtry okresu/rezultatu tak samo jak "strzałów na widoku".
+function renderDistanceHistogram(match, filtered) {
+  const histA = computeDistanceHistogram(filtered, match.team_A);
+  const histB = computeDistanceHistogram(filtered, match.team_B);
+  if (histA.total === 0 && histB.total === 0) return '';
+
+  const col = (hist, teamClass) => hist.bins.map(b => `
+    <div class="dist-row">
+      <span class="dist-label">${b.label}</span>
+      <div class="dist-bar-track"><div class="dist-bar ${teamClass}" style="width:${b.pct}%"></div></div>
+      <span class="dist-count">${b.count}</span>
+    </div>`).join('');
+
+  return `
+    <h4 class="distance-histogram-title">${T('viewer.chart.distance_title')}</h4>
+    <div class="distance-histogram">
+      <div class="dist-col">
+        <div class="dist-team-label team-A-color">${escapeHtml(match.team_A)}</div>
+        ${col(histA, 'dist-bar-A')}
+      </div>
+      <div class="dist-col">
+        <div class="dist-team-label team-B-color">${escapeHtml(match.team_B)}</div>
+        ${col(histB, 'dist-bar-B')}
+      </div>
+    </div>`;
+}
+
 function _viewerRefreshLabel() {
   if (!APP.lastViewerRefresh) return T('viewer.last_update') + '—';
   const h = APP.lastViewerRefresh.getHours().toString().padStart(2, '0');
@@ -5404,6 +5507,8 @@ function renderViewerStatsCard(statsA, statsB, match) {
           ${_splitBar(statsA.goalRate, statsB.goalRate)}
           <tr class="summary-row"><td class="num team-A">${fmt(statsA.onTargetRate, true)}</td><td class="label" style="text-align:center;">${T('viewer.shots.on_rate')}</td><td class="num team-B">${fmt(statsB.onTargetRate, true)}</td></tr>
           ${_splitBar(statsA.onTargetRate, statsB.onTargetRate)}
+          <tr class="summary-row"><td class="num team-A">${statsA.avgDistance}</td><td class="label" style="text-align:center;">${T('viewer.shots.avg_distance')}</td><td class="num team-B">${statsB.avgDistance}</td></tr>
+          ${_splitBar(statsA.avgDistance, statsB.avgDistance)}
         </tbody>
       </table>
     </div>`;
@@ -5614,6 +5719,7 @@ function renderViewerShotChartCard(match, filtered, periodOptions) {
       </div>
       <div id="viewer-chart-host"></div>
       ${renderViewerClusterDetailCard(match, filtered)}
+      ${renderDistanceHistogram(match, filtered)}
       <div class="shot-chart-stats">
         <span><strong>${filtered.length}</strong> ${T('viewer.chart.shots_on_view')}${(v.filter_period !== 'all' || v.filter_result !== 'all') ? T('viewer.chart.after_filters') : ''}</span>
         <span>•</span>
