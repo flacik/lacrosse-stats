@@ -200,6 +200,7 @@ svg.field.field-half {
 .match-banner.swap-question { background: #eff6ff; border-color: #bfdbfe; color: #1e40af; }
 .match-banner.period-end { background: #f5f3ff; border-color: #ddd6fe; color: #5b21b6; }
 .match-banner.delete-undo { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
+.match-banner.video-ts-duplicate { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
 .match-banner button {
   font-family: inherit; font-size: 12px; padding: 4px 10px;
   border: 1px solid currentColor; background: white; color: inherit;
@@ -350,6 +351,24 @@ svg.field.field-half {
   padding: 2px 0;
 }
 .flag-row input[type="checkbox"] { width: 20px; height: 20px; margin: 0; cursor: pointer; }
+
+.video-ts-field {
+  margin-bottom: 16px; background: #f7f7f5; padding: 12px 14px; border-radius: 8px;
+}
+.video-ts-field .field-label {
+  display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;
+  color: #666; margin-bottom: 6px; font-weight: 600;
+}
+.video-ts-toggle {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 13px; cursor: pointer; user-select: none;
+}
+.video-ts-toggle input[type="checkbox"] { width: 18px; height: 18px; margin: 0; cursor: pointer; }
+.video-ts-hint { font-size: 12px; color: #888; margin-top: 6px; }
+.video-ts-manual {
+  width: 100%; margin-top: 8px; padding: 8px 10px; font-family: inherit; font-size: 14px;
+  border: 1px solid #d4d4d0; border-radius: 6px; background: white;
+}
 
 .modal-actions {
   display: flex; gap: 8px; justify-content: flex-end;
@@ -832,6 +851,11 @@ table.stats-table td.num {
 [data-theme="dark"] .counter-action-btn.team-B { color: #f85149; border-color: #8b1a1a; background: #2d0f0f; }
 [data-theme="dark"] .counter-action-btn.team-B:hover { background: #3d1414; }
 [data-theme="dark"] .flag-row { background: #1c2128; }
+[data-theme="dark"] .video-ts-field { background: #1c2128; }
+[data-theme="dark"] .video-ts-field .field-label { color: #8b949e; }
+[data-theme="dark"] .video-ts-hint { color: #8b949e; }
+[data-theme="dark"] .video-ts-manual { background: #0d1117; border-color: #30363d; color: #e6edf3; }
+[data-theme="dark"] .match-banner.video-ts-duplicate { background: #3d0e0e; border-color: #7f1d1d; color: #f87171; }
 [data-theme="dark"] .modal-actions { border-top-color: #21262d; }
 
 /* Form fields */

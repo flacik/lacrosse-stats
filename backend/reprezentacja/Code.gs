@@ -54,7 +54,7 @@ var EVENT_COLS = [
   'shot_x', 'shot_y', 'zone_name',
   'result', 'man_up', 'man_down',
   'created_at', 'assisted', 'fast_break',
-  'event_type', 'goalie_number',
+  'event_type', 'goalie_number', 'video_ts',
 ];
 
 var MATCH_COLS = [

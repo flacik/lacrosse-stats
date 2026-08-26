@@ -79,6 +79,12 @@ function renderMatchInput(root) {
           <div class="period-picker-options">${btns}</div>
           <button class="cancel" data-action="cancel-pick-period">✕</button>
         </div>`;
+    } else if (APP.banner.type === 'video-ts-duplicate') {
+      bannerHtml = `
+        <div class="match-banner video-ts-duplicate">
+          <span>⚠ ${T('banner.video_ts_duplicate')}</span>
+          <button class="cancel" data-action="cancel-banner">${T('btn.ok')}</button>
+        </div>`;
     } else if (APP.banner.type === 'delete-undo') {
       const n = APP.banner.count;
       bannerHtml = `
@@ -122,6 +128,7 @@ function renderMatchInput(root) {
         <span class="period-pill-v2">${periodLabel(APP.match.period)}</span>
         <span class="tournament-pill-v2">${escapeHtml(match.tournament)}</span>
         ${match.video_url ? `<a class="btn-video-pill-v2" href="${escapeHtml(match.video_url)}" target="_blank" rel="noopener">▶ ${APP.lang === 'pl' ? 'Nagranie' : 'Recording'}</a>` : ''}
+        ${match.video_url ? `<button class="btn" data-action="open-video-review" data-arg="${escapeHtml(match.video_url)}" title="${T('btn.video_review_hint')}">🎬 ${T('btn.video_review')}</button>` : ''}
       </div>
       <span class="sides-tag-v2">A: ${A_left ? T('sides.left') : T('sides.right')}</span>
       ${retryAllBtn}
@@ -234,6 +241,9 @@ function renderHistoryRow(e, match) {
       <div class="flags">${flags.join('')}${syncBadge}</div>
       <div class="actions">
         ${retryBtn}
+        ${(match.video_url && e.video_ts !== undefined && e.video_ts !== '' && e.video_ts !== null)
+          ? `<a class="icon-btn" href="${escapeHtml(appendYtTimestamp(match.video_url, e.video_ts))}" target="_blank" rel="noopener" title="${T('btn.watch_moment')}">▶</a>`
+          : ''}
         <button class="icon-btn"        title="${APP.lang === 'pl' ? 'Edytuj' : 'Edit'}" data-action="edit-event"   data-arg="${e.id}">✎</button>
         <button class="icon-btn delete" title="${APP.lang === 'pl' ? 'Usuń' : 'Delete'}" data-action="delete-event" data-arg="${e.id}">🗑</button>
       </div>

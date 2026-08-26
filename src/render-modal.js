@@ -72,6 +72,10 @@ function renderResultModal(pending) {
 function renderEditEventModal(e) {
   const match = DATA.scheduledMatches.find(m => m.id === APP.matchId);
   const isCounterEvent = e.event_type === 'groundball' || e.event_type === 'draw';
+  const playerReady = isVideoPlayerAvailable();
+  const playerErrored = !!videoPlayerErrorReason();
+  const videoMode = (APP.modal && APP.modal.videoMode) || (playerReady ? 'player' : 'manual');
+  const hasVideoUrl = !!match.video_url;
   return `
     <div class="modal" data-stop-propagation="true">
       <h2>${T('modal.edit.title')}</h2>
@@ -111,6 +115,20 @@ function renderEditEventModal(e) {
         <label><input type="checkbox" id="edit-free-position" ${e.free_position ? 'checked' : ''}> ${T('flag.free_position')}</label>
         <label><input type="checkbox" id="edit-penalty-shot" ${e.penalty_shot ? 'checked' : ''}> ${T('flag.penalty_shot')}</label>
       </div>
+      ${hasVideoUrl ? `
+      <div class="field video-ts-field">
+        <span class="field-label">🎬 ${T('field.video_ts')}</span>
+        <label class="video-ts-toggle">
+          <input type="checkbox" id="edit-video-use-player" data-action="toggle-video-mode"
+            ${videoMode === 'player' ? 'checked' : ''} ${playerReady ? '' : 'disabled'}>
+          ${T('field.video_use_player')}
+        </label>
+        ${videoMode === 'player'
+          ? `<div class="video-ts-hint">${playerReady ? T('field.video_player_ready') : T('field.video_player_missing')}</div>`
+          : `${playerErrored ? `<div class="video-ts-hint">${T('field.video_player_error')}</div>` : ''}
+             <input type="text" id="edit-video-manual" class="video-ts-manual" placeholder="${T('field.video_manual_placeholder')}" value="${e.video_ts !== undefined && e.video_ts !== '' && e.video_ts !== null ? e.video_ts : ''}">`
+        }
+      </div>` : ''}
       <div class="modal-actions">
         <button class="btn" data-action="cancel-modal">${T('btn.cancel')}</button>
         <button class="btn btn-primary" data-action="submit-edit" data-arg="${e.id}">${T('btn.save_changes')}</button>

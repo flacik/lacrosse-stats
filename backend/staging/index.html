@@ -214,6 +214,7 @@ svg.field.field-half {
 .match-banner.swap-question { background: #eff6ff; border-color: #bfdbfe; color: #1e40af; }
 .match-banner.period-end { background: #f5f3ff; border-color: #ddd6fe; color: #5b21b6; }
 .match-banner.delete-undo { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
+.match-banner.video-ts-duplicate { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
 .match-banner button {
   font-family: inherit; font-size: 12px; padding: 4px 10px;
   border: 1px solid currentColor; background: white; color: inherit;
@@ -364,6 +365,24 @@ svg.field.field-half {
   padding: 2px 0;
 }
 .flag-row input[type="checkbox"] { width: 20px; height: 20px; margin: 0; cursor: pointer; }
+
+.video-ts-field {
+  margin-bottom: 16px; background: #f7f7f5; padding: 12px 14px; border-radius: 8px;
+}
+.video-ts-field .field-label {
+  display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;
+  color: #666; margin-bottom: 6px; font-weight: 600;
+}
+.video-ts-toggle {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 13px; cursor: pointer; user-select: none;
+}
+.video-ts-toggle input[type="checkbox"] { width: 18px; height: 18px; margin: 0; cursor: pointer; }
+.video-ts-hint { font-size: 12px; color: #888; margin-top: 6px; }
+.video-ts-manual {
+  width: 100%; margin-top: 8px; padding: 8px 10px; font-family: inherit; font-size: 14px;
+  border: 1px solid #d4d4d0; border-radius: 6px; background: white;
+}
 
 .modal-actions {
   display: flex; gap: 8px; justify-content: flex-end;
@@ -846,6 +865,11 @@ table.stats-table td.num {
 [data-theme="dark"] .counter-action-btn.team-B { color: #f85149; border-color: #8b1a1a; background: #2d0f0f; }
 [data-theme="dark"] .counter-action-btn.team-B:hover { background: #3d1414; }
 [data-theme="dark"] .flag-row { background: #1c2128; }
+[data-theme="dark"] .video-ts-field { background: #1c2128; }
+[data-theme="dark"] .video-ts-field .field-label { color: #8b949e; }
+[data-theme="dark"] .video-ts-hint { color: #8b949e; }
+[data-theme="dark"] .video-ts-manual { background: #0d1117; border-color: #30363d; color: #e6edf3; }
+[data-theme="dark"] .match-banner.video-ts-duplicate { background: #3d0e0e; border-color: #7f1d1d; color: #f87171; }
 [data-theme="dark"] .modal-actions { border-top-color: #21262d; }
 
 /* Form fields */
@@ -3526,6 +3550,16 @@ const STRINGS = {
     'flag.assisted': 'Asysta', 'flag.fast_break': 'Fast break',
     'flag.free_position': 'Wolna pozycja', 'flag.penalty_shot': 'Karny',
     'flag.man_up_short': 'Przewaga', 'flag.man_down_short': 'Osłabienie',
+    'field.video_ts': 'Moment w nagraniu',
+    'field.video_use_player': 'Ustaw z odtwarzacza (drugi ekran)',
+    'field.video_player_ready': 'Przy zapisie zostanie ustawiony aktualny czas z otwartego okna wideo.',
+    'field.video_player_missing': 'Okno z odtwarzaczem nie jest otwarte — otwórz je przyciskiem „🎬" w nagłówku, albo wpisz czas ręcznie.',
+    'field.video_player_error': 'Ten film nie pozwala na osadzenie w zewnętrznym odtwarzaczu (blokada właściciela filmu) — wpisz czas ręcznie albo wklej link z YouTube (prawy klik na filmie → „Kopiuj URL filmu z bieżącym czasem").',
+    'field.video_manual_placeholder': 'sekundy albo link z &t=...',
+    'btn.video_review': 'Przejrzyj (2. ekran)',
+    'btn.video_review_hint': 'Otwiera nagranie w osobnym oknie odtwarzacza — można przenieść na drugi ekran',
+    'btn.watch_moment': 'Zobacz ten moment w nagraniu',
+    'banner.video_ts_duplicate': 'To samo miejsce w filmie co poprzednio wprowadzone zdarzenie tego meczu — sprawdź, czy przewinąłeś nagranie.',
     'result.miss': 'Niecelny', 'result.save': 'Celny', 'result.goal': '⚽ Gol',
     'select.all': '— wszystkie —', 'select.all_tournaments': 'Wszystkie turnieje',
     'select.all_teams': 'Wszystkie drużyny', 'select.all_periods': 'Wszystkie okresy',
@@ -3783,6 +3817,16 @@ const STRINGS = {
     'flag.assisted': 'Assisted', 'flag.fast_break': 'Fast break',
     'flag.free_position': 'Free position', 'flag.penalty_shot': 'Penalty shot',
     'flag.man_up_short': 'Man-up', 'flag.man_down_short': 'Man-down',
+    'field.video_ts': 'Video moment',
+    'field.video_use_player': 'Set from player (second screen)',
+    'field.video_player_ready': 'On save, this will capture the current time from the open video window.',
+    'field.video_player_missing': 'The video player window isn\'t open — open it with the "🎬" button in the header, or type the time manually.',
+    'field.video_player_error': 'This video does not allow embedding in an external player (owner-level restriction) — type the time manually, or paste a link from YouTube (right-click the video → "Copy video URL at current time").',
+    'field.video_manual_placeholder': 'seconds, or a URL with &t=...',
+    'btn.video_review': 'Review (2nd screen)',
+    'btn.video_review_hint': 'Opens the recording in a separate player window — can be moved to a second screen',
+    'btn.watch_moment': 'Watch this moment in the recording',
+    'banner.video_ts_duplicate': 'Same moment in the video as the previously entered event for this match — check whether you scrubbed the recording forward.',
     'result.miss': 'Miss', 'result.save': 'On target', 'result.goal': '⚽ Goal',
     'select.all': '— all —', 'select.all_tournaments': 'All tournaments',
     'select.all_teams': 'All teams', 'select.all_periods': 'All periods',
@@ -4917,6 +4961,135 @@ function buildLayeredProgressionChartSvg(labels, dataA, dataB, labelA, labelB, o
 }
 
 // ==============================================================================
+// video-review.js
+// ==============================================================================
+
+
+// Przypisywanie zdarzeń do konkretnego momentu w nagraniu YouTube — retroaktywnie,
+// podczas przeglądania filmu po meczu. Nie modelujemy czasu meczowego (timeSec) —
+// jedno nagranie czasem obejmuje kilka meczów pod rząd, więc "czas meczu → czas
+// filmu" nie da się wiarygodnie policzyć. Zamiast tego każde zdarzenie dostaje
+// wprost bezwzględny znacznik czasu w filmie (video_ts, sekundy).
+//
+// Odtwarzacz żyje w osobnym oknie, wypełnianym przez YouTube IFrame API —
+// dzięki temu mamy bezpośredni dostęp do jego aktualnego czasu odtwarzania
+// (ten sam origin co strona główna, więc bez postMessage).
+//
+// WAŻNE: window.open() dostaje jawny literał 'about:blank', NIE pusty string.
+// Aplikacja działa wewnątrz sandboxowego iframe'a GAS (*.googleusercontent.com);
+// pusty string w window.open('', ...) rozwiązuje się tam do bieżącego, PEŁNEGO
+// URL-a aplikacji (nie do about:blank), więc document.write ścigał się z
+// nawigacją do kopii całej appki — to powodowało crash renderera w Safari.
+// Blob URL (wcześniejsza próba naprawy) usuwał ten wyścig, ale Safari w tym
+// samym sandboxowanym kontekście blokuje window.open na nietypowe schematy
+// (blob:/data:) niezależnie od ustawienia "Pozwól" dla wyskakujących okien —
+// stąd powrót do klasycznego, szeroko kompatybilnego about:blank + document.write.
+
+function extractYouTubeId(url) {
+  if (!url) return null;
+  // 'live/' — transmisje na żywo (częste dla turniejów: jedna transmisja na cały dzień).
+  const m = String(url).match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/|live\/))([\w-]{6,})/);
+  return m ? m[1] : null;
+}
+
+// Jeśli video_url meczu już niesie swój własny &t=/?start= (typowe dla linku
+// wskazującego z grubsza początek meczu w wielogodzinnej transmisji dnia),
+// użyj go jako punktu startowego odtwarzacza — nie ma sensu zaczynać od 0:00.
+function extractStartHint(url) {
+  const seconds = parseVideoTimestampInput(url || '');
+  return seconds !== null ? seconds : 0;
+}
+
+function openVideoReviewWindow(videoUrl) {
+  const videoId = extractYouTubeId(videoUrl);
+  if (!videoId) {
+    alert(APP.lang === 'pl'
+      ? 'Nie rozpoznano ID filmu YouTube w linku meczu.'
+      : 'Could not parse a YouTube video ID from the match link.');
+    return;
+  }
+
+  if (APP.videoReviewWindow && !APP.videoReviewWindow.closed) {
+    APP.videoReviewWindow.focus();
+    return;
+  }
+
+  const popup = window.open('about:blank', 'lacrosse-video-review', 'width=960,height=640');
+  if (!popup) {
+    alert(APP.lang === 'pl'
+      ? 'Przeglądarka zablokowała otwarcie okna z odtwarzaczem (popup blocker) — pozwól na wyskakujące okna dla tej strony.'
+      : 'The browser blocked the video review popup — allow pop-ups for this site.');
+    return;
+  }
+
+  const startHint = extractStartHint(videoUrl);
+  popup.document.open();
+  popup.document.write(
+    '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Lacrosse Stats — wideo</title>' +
+    '<style>html,body{margin:0;height:100%;background:#000;}#player{width:100%;height:100%;}</style>' +
+    '</head><body>' +
+    '<div id="player"></div>' +
+    '<script src="https://www.youtube.com/iframe_api"><' + '/script>' +
+    '<script>' +
+    'window.onYouTubeIframeAPIReady = function() {' +
+    '  window.ytPlayer = new YT.Player("player", { videoId: ' + JSON.stringify(videoId) +
+    ', playerVars: { autoplay: 1, start: ' + startHint + ' },' +
+    ' events: { onError: function(e) { window.ytPlayerError = e.data; } } });' +
+    '};' +
+    '<' + '/script>' +
+    '</body></html>'
+  );
+  popup.document.close();
+  APP.videoReviewWindow = popup;
+}
+
+function isVideoPlayerAvailable() {
+  const w = APP.videoReviewWindow;
+  return !!(w && !w.closed && w.ytPlayer && typeof w.ytPlayer.getCurrentTime === 'function' && !w.ytPlayerError);
+}
+
+// Ten film odrzucił osadzenie (np. właściciel wyłączył embedding — częste dla
+// transmisji na żywo spoza naszego kanału) — odróżniamy to od "okno niegotowe",
+// żeby pokazać trafniejszą podpowiedź i nie proponować trybu "z odtwarzacza",
+// który i tak niczego by nie przechwycił.
+function videoPlayerErrorReason() {
+  const w = APP.videoReviewWindow;
+  return (w && !w.closed && w.ytPlayerError) ? w.ytPlayerError : null;
+}
+
+function getCurrentPlayerTime() {
+  if (!isVideoPlayerAvailable()) return null;
+  try {
+    const t = APP.videoReviewWindow.ytPlayer.getCurrentTime();
+    return Number.isFinite(t) ? Math.floor(t) : null;
+  } catch (err) {
+    return null;
+  }
+}
+
+// Ręczne wpisanie: albo gołe sekundy, albo wklejony pełny URL z &t=/?start=.
+function parseVideoTimestampInput(str) {
+  if (!str) return null;
+  str = String(str).trim();
+  if (/^\d+$/.test(str)) return parseInt(str, 10);
+  const m = str.match(/[?&](?:t|start)=(\d+)/);
+  return m ? parseInt(m[1], 10) : null;
+}
+
+// Ustawia/nadpisuje parametr t= — video_url meczu (linki do transmisji dnia)
+// często już ma swoje własne &t=, więc zwykłe doklejenie dawałoby dwa "t=" naraz.
+function appendYtTimestamp(url, seconds) {
+  try {
+    const u = new URL(url);
+    u.searchParams.set('t', Math.floor(seconds) + 's');
+    return u.toString();
+  } catch (err) {
+    const sep = url.indexOf('?') === -1 ? '?' : '&';
+    return url + sep + 't=' + Math.floor(seconds) + 's';
+  }
+}
+
+// ==============================================================================
 // render-home.js
 // ==============================================================================
 
@@ -5124,6 +5297,12 @@ function renderMatchInput(root) {
           <div class="period-picker-options">${btns}</div>
           <button class="cancel" data-action="cancel-pick-period">✕</button>
         </div>`;
+    } else if (APP.banner.type === 'video-ts-duplicate') {
+      bannerHtml = `
+        <div class="match-banner video-ts-duplicate">
+          <span>⚠ ${T('banner.video_ts_duplicate')}</span>
+          <button class="cancel" data-action="cancel-banner">${T('btn.ok')}</button>
+        </div>`;
     } else if (APP.banner.type === 'delete-undo') {
       const n = APP.banner.count;
       bannerHtml = `
@@ -5167,6 +5346,7 @@ function renderMatchInput(root) {
         <span class="period-pill-v2">${periodLabel(APP.match.period)}</span>
         <span class="tournament-pill-v2">${escapeHtml(match.tournament)}</span>
         ${match.video_url ? `<a class="btn-video-pill-v2" href="${escapeHtml(match.video_url)}" target="_blank" rel="noopener">▶ ${APP.lang === 'pl' ? 'Nagranie' : 'Recording'}</a>` : ''}
+        ${match.video_url ? `<button class="btn" data-action="open-video-review" data-arg="${escapeHtml(match.video_url)}" title="${T('btn.video_review_hint')}">🎬 ${T('btn.video_review')}</button>` : ''}
       </div>
       <span class="sides-tag-v2">A: ${A_left ? T('sides.left') : T('sides.right')}</span>
       ${retryAllBtn}
@@ -5279,6 +5459,9 @@ function renderHistoryRow(e, match) {
       <div class="flags">${flags.join('')}${syncBadge}</div>
       <div class="actions">
         ${retryBtn}
+        ${(match.video_url && e.video_ts !== undefined && e.video_ts !== '' && e.video_ts !== null)
+          ? `<a class="icon-btn" href="${escapeHtml(appendYtTimestamp(match.video_url, e.video_ts))}" target="_blank" rel="noopener" title="${T('btn.watch_moment')}">▶</a>`
+          : ''}
         <button class="icon-btn"        title="${APP.lang === 'pl' ? 'Edytuj' : 'Edit'}" data-action="edit-event"   data-arg="${e.id}">✎</button>
         <button class="icon-btn delete" title="${APP.lang === 'pl' ? 'Usuń' : 'Delete'}" data-action="delete-event" data-arg="${e.id}">🗑</button>
       </div>
@@ -8272,6 +8455,10 @@ function renderResultModal(pending) {
 function renderEditEventModal(e) {
   const match = DATA.scheduledMatches.find(m => m.id === APP.matchId);
   const isCounterEvent = e.event_type === 'groundball' || e.event_type === 'draw';
+  const playerReady = isVideoPlayerAvailable();
+  const playerErrored = !!videoPlayerErrorReason();
+  const videoMode = (APP.modal && APP.modal.videoMode) || (playerReady ? 'player' : 'manual');
+  const hasVideoUrl = !!match.video_url;
   return `
     <div class="modal" data-stop-propagation="true">
       <h2>${T('modal.edit.title')}</h2>
@@ -8311,6 +8498,20 @@ function renderEditEventModal(e) {
         <label><input type="checkbox" id="edit-free-position" ${e.free_position ? 'checked' : ''}> ${T('flag.free_position')}</label>
         <label><input type="checkbox" id="edit-penalty-shot" ${e.penalty_shot ? 'checked' : ''}> ${T('flag.penalty_shot')}</label>
       </div>
+      ${hasVideoUrl ? `
+      <div class="field video-ts-field">
+        <span class="field-label">🎬 ${T('field.video_ts')}</span>
+        <label class="video-ts-toggle">
+          <input type="checkbox" id="edit-video-use-player" data-action="toggle-video-mode"
+            ${videoMode === 'player' ? 'checked' : ''} ${playerReady ? '' : 'disabled'}>
+          ${T('field.video_use_player')}
+        </label>
+        ${videoMode === 'player'
+          ? `<div class="video-ts-hint">${playerReady ? T('field.video_player_ready') : T('field.video_player_missing')}</div>`
+          : `${playerErrored ? `<div class="video-ts-hint">${T('field.video_player_error')}</div>` : ''}
+             <input type="text" id="edit-video-manual" class="video-ts-manual" placeholder="${T('field.video_manual_placeholder')}" value="${e.video_ts !== undefined && e.video_ts !== '' && e.video_ts !== null ? e.video_ts : ''}">`
+        }
+      </div>` : ''}
       <div class="modal-actions">
         <button class="btn" data-action="cancel-modal">${T('btn.cancel')}</button>
         <button class="btn btn-primary" data-action="submit-edit" data-arg="${e.id}">${T('btn.save_changes')}</button>
@@ -9048,9 +9249,16 @@ const HANDLERS = {
   'edit-event': (id) => {
     const e = DATA.events.find(x => String(x.id) === String(id));
     if (!e) return;
-    APP.modal = { type: 'edit-event', event: e };
+    APP.modal = { type: 'edit-event', event: e, videoMode: isVideoPlayerAvailable() ? 'player' : 'manual' };
     render();
   },
+  'toggle-video-mode': () => {
+    const cb = document.getElementById('edit-video-use-player');
+    if (!APP.modal) return;
+    APP.modal.videoMode = (cb && cb.checked) ? 'player' : 'manual';
+    render();
+  },
+  'open-video-review': (url) => { openVideoReviewWindow(url); },
   'submit-edit': (id) => {
     const team     = document.getElementById('edit-team').value;
     const period   = document.getElementById('edit-period').value;
@@ -9061,7 +9269,33 @@ const HANDLERS = {
     const fastBreak    = document.getElementById('edit-fast-break')?.checked ?? false;
     const freePosition = document.getElementById('edit-free-position')?.checked ?? false;
     const penaltyShot  = document.getElementById('edit-penalty-shot')?.checked ?? false;
-    updateEvent(id, { team_event: team, period, result, man_up: manUp, man_down: manDown, assisted, fast_break: fastBreak, free_position: freePosition, penalty_shot: penaltyShot });
+
+    const updates = { team_event: team, period, result, man_up: manUp, man_down: manDown, assisted, fast_break: fastBreak, free_position: freePosition, penalty_shot: penaltyShot };
+
+    const videoMode = APP.modal && APP.modal.videoMode;
+    let newVideoTs = null;
+    if (videoMode === 'player') {
+      newVideoTs = getCurrentPlayerTime();
+      if (newVideoTs !== null) updates.video_ts = newVideoTs;
+    } else {
+      const raw = document.getElementById('edit-video-manual')?.value ?? '';
+      if (raw.trim() === '') {
+        updates.video_ts = '';
+      } else {
+        const parsed = parseVideoTimestampInput(raw);
+        if (parsed !== null) { newVideoTs = parsed; updates.video_ts = parsed; }
+      }
+    }
+
+    if (newVideoTs !== null) {
+      const prevWithTs = eventsForMatch(APP.matchId).find(ev =>
+        String(ev.id) !== String(id) && ev.video_ts !== undefined && ev.video_ts !== '' && ev.video_ts !== null);
+      if (prevWithTs && Number(prevWithTs.video_ts) === Number(newVideoTs)) {
+        APP.banner = { type: 'video-ts-duplicate' };
+      }
+    }
+
+    updateEvent(id, updates);
     APP.modal = null;
     render();
   },

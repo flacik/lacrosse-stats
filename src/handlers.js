@@ -589,9 +589,16 @@ const HANDLERS = {
   'edit-event': (id) => {
     const e = DATA.events.find(x => String(x.id) === String(id));
     if (!e) return;
-    APP.modal = { type: 'edit-event', event: e };
+    APP.modal = { type: 'edit-event', event: e, videoMode: isVideoPlayerAvailable() ? 'player' : 'manual' };
     render();
   },
+  'toggle-video-mode': () => {
+    const cb = document.getElementById('edit-video-use-player');
+    if (!APP.modal) return;
+    APP.modal.videoMode = (cb && cb.checked) ? 'player' : 'manual';
+    render();
+  },
+  'open-video-review': (url) => { openVideoReviewWindow(url); },
   'submit-edit': (id) => {
     const team     = document.getElementById('edit-team').value;
     const period   = document.getElementById('edit-period').value;
@@ -602,7 +609,33 @@ const HANDLERS = {
     const fastBreak    = document.getElementById('edit-fast-break')?.checked ?? false;
     const freePosition = document.getElementById('edit-free-position')?.checked ?? false;
     const penaltyShot  = document.getElementById('edit-penalty-shot')?.checked ?? false;
-    updateEvent(id, { team_event: team, period, result, man_up: manUp, man_down: manDown, assisted, fast_break: fastBreak, free_position: freePosition, penalty_shot: penaltyShot });
+
+    const updates = { team_event: team, period, result, man_up: manUp, man_down: manDown, assisted, fast_break: fastBreak, free_position: freePosition, penalty_shot: penaltyShot };
+
+    const videoMode = APP.modal && APP.modal.videoMode;
+    let newVideoTs = null;
+    if (videoMode === 'player') {
+      newVideoTs = getCurrentPlayerTime();
+      if (newVideoTs !== null) updates.video_ts = newVideoTs;
+    } else {
+      const raw = document.getElementById('edit-video-manual')?.value ?? '';
+      if (raw.trim() === '') {
+        updates.video_ts = '';
+      } else {
+        const parsed = parseVideoTimestampInput(raw);
+        if (parsed !== null) { newVideoTs = parsed; updates.video_ts = parsed; }
+      }
+    }
+
+    if (newVideoTs !== null) {
+      const prevWithTs = eventsForMatch(APP.matchId).find(ev =>
+        String(ev.id) !== String(id) && ev.video_ts !== undefined && ev.video_ts !== '' && ev.video_ts !== null);
+      if (prevWithTs && Number(prevWithTs.video_ts) === Number(newVideoTs)) {
+        APP.banner = { type: 'video-ts-duplicate' };
+      }
+    }
+
+    updateEvent(id, updates);
     APP.modal = null;
     render();
   },

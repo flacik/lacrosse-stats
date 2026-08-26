@@ -8,7 +8,7 @@ set -euo pipefail
 DIR="$(cd "$(dirname "$0")" && pwd)"
 OUT="${1:-$DIR/dist.html}"
 
-# Order matters: gas-client → helpers → data → algorithms → stats → state → field-svg → chart-svg → render-{home,input,viewer,admin,modal} → handlers → app
+# Order matters: gas-client → helpers → data → algorithms → stats → state → field-svg → chart-svg → video-review → render-{home,input,viewer,admin,modal} → handlers → app
 JS_FILES=(
   gas-client.js
   helpers.js
@@ -19,6 +19,7 @@ JS_FILES=(
   i18n.js
   field-svg.js
   chart-svg.js
+  video-review.js
   render-home.js
   render-input.js
   render-viewer.js
