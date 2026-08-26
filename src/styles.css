@@ -391,6 +391,15 @@ label.field input:focus, label.field select:focus {
   text-transform: uppercase; letter-spacing: 0.05em; color: #666;
 }
 .viewer-card.shot-chart { padding-bottom: 12px; }
+.cluster-detail-inline {
+  margin: 12px 0; padding: 10px 14px; background: #f8f8f6;
+  border: 1px solid #e5e5e0; border-radius: 6px;
+}
+.cluster-detail-inline h4 {
+  margin: 0 0 8px 0; font-size: 12px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.05em; color: #666;
+  display: flex; align-items: center;
+}
 .refresh-tag {
   display: inline-flex; align-items: center; gap: 6px;
   font-size: 11px; color: #15803d; background: #f0fdf4;
@@ -828,6 +837,8 @@ table.stats-table td.num {
 /* Viewer */
 [data-theme="dark"] .viewer-card { background: #161b22; border-color: #21262d; }
 [data-theme="dark"] .viewer-card h3 { color: #8b949e; }
+[data-theme="dark"] .cluster-detail-inline { background: #0d1117; border-color: #21262d; }
+[data-theme="dark"] .cluster-detail-inline h4 { color: #8b949e; }
 [data-theme="dark"] .refresh-tag { color: #3fb950; background: #0f2d1c; border-color: #1f5235; }
 [data-theme="dark"] .refresh-tag.refreshing { color: #d29922; background: #2d2500; border-color: #3d3000; }
 [data-theme="dark"] .refresh-tag .dot { background: #3fb950; }

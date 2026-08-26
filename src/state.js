@@ -367,7 +367,9 @@ function initViewerSession() {
     view_mode: 'full',
     display_mode: 'markers',
     filter_period: 'all',
-    filter_result: 'all'
+    filter_result: 'all',
+    expandedClusterId: null,
+    clustering_enabled: true
   };
 }
 

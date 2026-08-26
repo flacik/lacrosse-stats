@@ -401,16 +401,27 @@ const HANDLERS = {
   },
 
   // Viewer controls
-  'viewer-set-mode':           (mode) => { APP.viewer.view_mode    = mode; render(); },
-  'viewer-set-display':        (mode) => { APP.viewer.display_mode = mode; render(); },
+  'viewer-set-mode':           (mode) => { APP.viewer.view_mode    = mode; APP.viewer.expandedClusterId = null; render(); },
+  'viewer-set-display':        (mode) => { APP.viewer.display_mode = mode; APP.viewer.expandedClusterId = null; render(); },
   'viewer-set-period-filter':  () => {
     const sel = document.getElementById('filter-period');
     if (sel) APP.viewer.filter_period = sel.value;
+    APP.viewer.expandedClusterId = null;
     render();
   },
   'viewer-set-result-filter':  () => {
     const sel = document.getElementById('filter-result');
     if (sel) APP.viewer.filter_result = sel.value;
+    APP.viewer.expandedClusterId = null;
+    render();
+  },
+  'viewer-toggle-cluster':     (clusterId) => {
+    APP.viewer.expandedClusterId = APP.viewer.expandedClusterId === clusterId ? null : clusterId;
+    render();
+  },
+  'viewer-set-clustering':     (mode) => {
+    APP.viewer.clustering_enabled = mode === 'on';
+    APP.viewer.expandedClusterId = null;
     render();
   },
 

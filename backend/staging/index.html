@@ -405,6 +405,15 @@ label.field input:focus, label.field select:focus {
   text-transform: uppercase; letter-spacing: 0.05em; color: #666;
 }
 .viewer-card.shot-chart { padding-bottom: 12px; }
+.cluster-detail-inline {
+  margin: 12px 0; padding: 10px 14px; background: #f8f8f6;
+  border: 1px solid #e5e5e0; border-radius: 6px;
+}
+.cluster-detail-inline h4 {
+  margin: 0 0 8px 0; font-size: 12px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.05em; color: #666;
+  display: flex; align-items: center;
+}
 .refresh-tag {
   display: inline-flex; align-items: center; gap: 6px;
   font-size: 11px; color: #15803d; background: #f0fdf4;
@@ -842,6 +851,8 @@ table.stats-table td.num {
 /* Viewer */
 [data-theme="dark"] .viewer-card { background: #161b22; border-color: #21262d; }
 [data-theme="dark"] .viewer-card h3 { color: #8b949e; }
+[data-theme="dark"] .cluster-detail-inline { background: #0d1117; border-color: #21262d; }
+[data-theme="dark"] .cluster-detail-inline h4 { color: #8b949e; }
 [data-theme="dark"] .refresh-tag { color: #3fb950; background: #0f2d1c; border-color: #1f5235; }
 [data-theme="dark"] .refresh-tag.refreshing { color: #d29922; background: #2d2500; border-color: #3d3000; }
 [data-theme="dark"] .refresh-tag .dot { background: #3fb950; }
@@ -2252,6 +2263,68 @@ function getTeamForHalf(half, team_A_side) {
   return half === 'right' ? 'B' : 'A';
 }
 
+// ── Klastrowanie markerów (bąble) ────────────────────────────────────────────
+// Scala markery tej samej drużyny, które leżałyby na tyle blisko siebie, że by się
+// wizualnie nakładały. Działa bezpośrednio w jednostkach viewBox danego widoku
+// (1100×600 pełne boisko, 540×600 połowa) — te jednostki są skalowane przez SVG
+// proporcjonalnie do realnego rozmiaru na ekranie, więc odległości liczone w nich
+// zawsze odpowiadają rzeczywistym proporcjom (bez ResizeObserver).
+//
+// Próg scalania (CLUSTER_MERGE_DIST) jest CELOWO stały, niezależny od tego, ile
+// zdarzeń już jest w klastrze. Gdyby rósł z rozmiarem klastra (tak jak promień
+// rysowanego bąbla), powstawałby efekt łańcuchowy: duży bąbel miałby coraz
+// większy "zasięg grawitacji" i wciągałby coraz dalsze, luźno powiązane
+// zdarzenia — dokładnie to widać było przy realnych danych (jeden bąbel zjadał
+// cały obszar przy kole bramkowym). Rozmiar rysowanego bąbla (clusterBubbleRadius)
+// nadal rośnie z liczbą zdarzeń — to tylko wizualne skalowanie, nie wpływa na to,
+// co się z czym łączy.
+const CLUSTER_MERGE_DIST  = 22;  // maks. odległość środków, żeby dwa markery/klastry się scaliły
+const CLUSTER_RADIUS_MAX  = 26;
+const CLUSTER_RADIUS_BASE = 9;
+const CLUSTER_RADIUS_STEP = 2;
+
+function clusterBubbleRadius(count) {
+  return Math.min(CLUSTER_RADIUS_MAX, CLUSTER_RADIUS_BASE + count * CLUSTER_RADIUS_STEP);
+}
+
+// items: [{ team, cx, cy, ...dowolne dodatkowe pola }]
+// zwraca: [{ team, cx, cy, count, members: [item, ...] }]
+function clusterMarkers(items) {
+  function clusterGroup(group) {
+    let merged = true;
+    while (merged) {
+      merged = false;
+      for (let i = 0; i < group.length && !merged; i++) {
+        for (let j = i + 1; j < group.length; j++) {
+          const a = group[i], b = group[j];
+          const dist = Math.hypot(a.cx - b.cx, a.cy - b.cy);
+          if (dist < CLUSTER_MERGE_DIST) {
+            const n = a.count + b.count;
+            group.splice(j, 1);
+            group[i] = {
+              team: a.team,
+              cx: (a.cx * a.count + b.cx * b.count) / n,
+              cy: (a.cy * a.count + b.cy * b.count) / n,
+              count: n,
+              members: a.members.concat(b.members),
+            };
+            merged = true;
+            break;
+          }
+        }
+      }
+    }
+    return group;
+  }
+
+  const byTeam = {};
+  items.forEach(it => {
+    (byTeam[it.team] = byTeam[it.team] || []).push({ team: it.team, cx: it.cx, cy: it.cy, count: 1, members: [it] });
+  });
+
+  return Object.values(byTeam).flatMap(clusterGroup);
+}
+
 const ZONE_COLORS = {
   'A-attack-left':     '#1e3a8a', 'A-attack-center':   '#1e40af', 'A-attack-right':    '#1e3a8a',
   'A-midfield-left':   '#3b82f6', 'A-midfield-center': '#2563eb', 'A-midfield-right':  '#3b82f6',
@@ -2899,7 +2972,9 @@ function initViewerSession() {
     view_mode: 'full',
     display_mode: 'markers',
     filter_period: 'all',
-    filter_result: 'all'
+    filter_result: 'all',
+    expandedClusterId: null,
+    clustering_enabled: true
   };
 }
 
@@ -3348,6 +3423,11 @@ const STRINGS = {
     'viewer.chart.shots_on_view': 'strzałów na widoku',
     'viewer.chart.after_filters': ' (po filtrach)',
     'viewer.chart.from_half': 'Zza połowy: ',
+    'viewer.cluster.title': 'Rozwinięty bąbel',
+    'viewer.cluster.close': '✕ Zwiń',
+    'viewer.chart.clustering': 'Bąble:',
+    'viewer.chart.clustering_on': 'Wł.',
+    'viewer.chart.clustering_off': 'Wył.',
     'status.live': 'LIVE', 'status.finished': 'Zakończony', 'status.planned': 'Planowany',
     'status.scheduled_short': 'Zaplanowany', 'status.in_progress': 'W trakcie',
     'modal.shot.title': 'Strzał', 'modal.shot.subtitle': 'Wybierz rezultat',
@@ -3598,6 +3678,11 @@ const STRINGS = {
     'viewer.chart.shots_on_view': 'shots in view',
     'viewer.chart.after_filters': ' (filtered)',
     'viewer.chart.from_half': 'From half: ',
+    'viewer.cluster.title': 'Expanded bubble',
+    'viewer.cluster.close': '✕ Collapse',
+    'viewer.chart.clustering': 'Bubbles:',
+    'viewer.chart.clustering_on': 'On',
+    'viewer.chart.clustering_off': 'Off',
     'status.live': 'LIVE', 'status.finished': 'Finished', 'status.planned': 'Planned',
     'status.scheduled_short': 'Scheduled', 'status.in_progress': 'In progress',
     'modal.shot.title': 'Shot', 'modal.shot.subtitle': 'Choose result',
@@ -4044,6 +4129,28 @@ function buildViewerChart(match, filtered) {
   return svg;
 }
 
+// Klastry dla aktualnego widoku (view_mode/display_mode) — używane zarówno przy
+// rysowaniu mapy, jak i przez kartę szczegółów rozwiniętego klastra w panelu
+// bocznym (renderViewerClusterDetailCard), żeby obie strony widziały te same ID.
+function computeViewerClusters(match, filtered, viewer) {
+  if (viewer.display_mode === 'heatmap') return [];
+  let items;
+  if (viewer.view_mode === 'full') {
+    items = buildFullFieldItems(filtered, match);
+  } else {
+    const teamSlot_ = viewer.view_mode === 'half-A' ? 'A' : 'B';
+    const teamName  = teamSlot_ === 'A' ? match.team_A : match.team_B;
+    const teamColor = teamSlot_ === 'A' ? '#1d4ed8' : '#b91c1c';
+    const teamShots = filtered.filter(e => e.team_event === teamName && e.shot_x >= 0);
+    items = buildHalfFieldItems(teamShots, teamSlot_, teamColor);
+  }
+  const clusters = clusteringEnabled()
+    ? clusterMarkers(items)
+    : items.map(it => ({ team: it.team, cx: it.cx, cy: it.cy, count: 1, members: [it] }));
+  clusters.forEach(c => { c.id = clusterIdFor(c); });
+  return clusters;
+}
+
 function drawFullFieldChart(svg, match, filtered, viewer) {
   const sideLabels = svgEl('g');
   const lLab = svgEl('text', { x: 100, y: 35, 'font-size': 22, 'font-weight': 700, fill: '#1d4ed8' });
@@ -4102,12 +4209,11 @@ function drawHalfFieldChart(svg, match, filtered, viewer) {
   // Rotation mapping: attacker shot_x (0→1, center→end) → cy = (1 − shot_x) × 600 (bottom→top).
   //                   attacker shot_y (0→1, attacker-left→right) → cx = shot_y × 540.
   const chartShots = teamShots.filter(e => e.shot_x >= 0);
-  chartShots.forEach(e => {
-    const cx = e.shot_y * 540;
-    const cy = (1 - e.shot_x) * 600;
-    if (viewer.display_mode === 'heatmap') drawHeatBlob(fieldG, cx, cy, teamColor);
-    else                                    drawShotMarker(fieldG, cx, cy, teamColor, e.result, false, e.man_up, e.man_down, e.assisted, e.fast_break, e.free_position, e.penalty_shot, e.event_type);
-  });
+  if (viewer.display_mode === 'heatmap') {
+    chartShots.forEach(e => drawHeatBlob(fieldG, e.shot_y * 540, (1 - e.shot_x) * 600, teamColor));
+  } else {
+    renderClusteredMarkers(fieldG, buildHalfFieldItems(chartShots, teamSlot_, teamColor), 540, 600);
+  }
 
   svg.appendChild(fieldG);
 }
@@ -4131,17 +4237,74 @@ function drawFieldMarkings(g, w, h) {
   }
 }
 
-function drawShotsFullField(g, events, match, displayMode) {
+function buildFullFieldItems(events, match) {
   // Canonical orientation: A on left attacking right (team_A_side='left')
-  events.forEach(e => {
+  return events.map(e => {
     const slot = teamSlot(match.id, e.team_event);
     const color = slot === 'A' ? '#1d4ed8' : '#b91c1c';
     const { physical_x, physical_y } = attackerToPhysical(e.shot_x, e.shot_y, slot, 'left');
-    const cx = physical_x * 1100;
-    const cy = physical_y * 600;
-    if (displayMode === 'heatmap') drawHeatBlob(g, cx, cy, color);
-    else                            drawShotMarker(g, cx, cy, color, e.result, e.zone_name === 'own-half', e.man_up, e.man_down, e.assisted, e.fast_break, e.free_position, e.penalty_shot, e.event_type);
+    return { event: e, team: slot, color, cx: physical_x * 1100, cy: physical_y * 600 };
   });
+}
+
+function buildHalfFieldItems(chartShots, teamSlot_, teamColor) {
+  return chartShots.map(e => ({ event: e, team: teamSlot_, color: teamColor, cx: e.shot_y * 540, cy: (1 - e.shot_x) * 600 }));
+}
+
+// Stabilny (per skład członków) identyfikator klastra — używany do zapamiętania,
+// który bąbel jest rozwinięty (APP.viewer.expandedClusterId), mimo że klastry są
+// przeliczane od zera przy każdym renderze.
+function clusterIdFor(cluster) {
+  return cluster.members.map(it => String(it.event.id)).sort().join('|');
+}
+
+// Współdzielone przez pełne boisko i połówkę: pojedyncze markery i bąble bez
+// zmian, a bąbel wskazany w APP.viewer.expandedClusterId renderuje się jako
+// rozwinięty wachlarz (drawExpandedCluster) — reszta markerów/bąbli na widoku
+// zostaje przygaszona, żeby wachlarz był jednoznacznie na pierwszym planie.
+function clusteringEnabled() {
+  return !APP.viewer || APP.viewer.clustering_enabled !== false;
+}
+
+function renderClusteredMarkers(g, items, fieldW, fieldH) {
+  const clusters = clusteringEnabled()
+    ? clusterMarkers(items)
+    : items.map(it => ({ team: it.team, cx: it.cx, cy: it.cy, count: 1, members: [it] }));
+  clusters.forEach(c => { c.id = clusterIdFor(c); });
+
+  const expandedId = APP.viewer && APP.viewer.expandedClusterId;
+  let expandedCluster = null;
+  const collapsedEls = [];
+
+  clusters.forEach(cluster => {
+    if (cluster.count > 1 && cluster.id === expandedId) {
+      expandedCluster = cluster;
+      return;
+    }
+    const wrap = svgEl('g');
+    if (cluster.count === 1) {
+      const it = cluster.members[0], e = it.event;
+      drawShotMarker(wrap, it.cx, it.cy, it.color, e.result, e.zone_name === 'own-half', e.man_up, e.man_down, e.assisted, e.fast_break, e.free_position, e.penalty_shot, e.event_type);
+    } else {
+      drawClusterBubble(wrap, cluster.cx, cluster.cy, cluster.count, cluster.members[0].color, cluster.id);
+    }
+    g.appendChild(wrap);
+    collapsedEls.push(wrap);
+  });
+
+  if (expandedCluster) {
+    drawExpandedCluster(g, expandedCluster, fieldW, fieldH);
+    collapsedEls.forEach(el => el.setAttribute('opacity', '0.25'));
+  }
+}
+
+function drawShotsFullField(g, events, match, displayMode) {
+  const items = buildFullFieldItems(events, match);
+  if (displayMode === 'heatmap') {
+    items.forEach(it => drawHeatBlob(g, it.cx, it.cy, it.color));
+    return;
+  }
+  renderClusteredMarkers(g, items, 1100, 600);
 }
 
 function drawShotMarker(g, cx, cy, color, result, isOwnHalf, manUp, manDown, hasAssist, fastBreak, freePosition, penaltyShot, eventType) {
@@ -4477,6 +4640,68 @@ function drawHeatBlob(g, cx, cy, color) {
   const rgb = color === '#1d4ed8' ? '29, 78, 216' : '185, 28, 28';
   g.appendChild(svgEl('circle', { cx, cy, r: 35, fill: `rgba(${rgb}, 0.18)`, stroke: 'none' }));
   g.appendChild(svgEl('circle', { cx, cy, r: 3,  fill: `rgba(${rgb}, 0.7)`,  stroke: 'none' }));
+}
+
+// Zbiorczy bąbel dla klastra >1 zdarzenia (patrz clusterMarkers w algorithms.js).
+function drawClusterBubble(g, cx, cy, count, color, clusterId) {
+  const r = clusterBubbleRadius(count);
+  const circle = svgEl('circle', {
+    cx, cy, r, fill: color, opacity: 0.6, stroke: 'white', 'stroke-width': 2,
+    style: 'cursor:pointer'
+  });
+  if (clusterId) {
+    circle.setAttribute('data-action', 'viewer-toggle-cluster');
+    circle.setAttribute('data-arg', clusterId);
+  }
+  g.appendChild(circle);
+  const t = svgEl('text', {
+    x: cx, y: cy, 'text-anchor': 'middle', 'dominant-baseline': 'middle',
+    'font-size': 12, 'font-weight': 700, fill: 'white', 'pointer-events': 'none'
+  });
+  t.textContent = String(count);
+  g.appendChild(t);
+}
+
+// Rozwinięcie bąbla: biały hub z liczbą w centroidzie klastra, człony rozstawione
+// po okręgu wokół huba i połączone przerywanymi liniami. Pozycje na okręgu są
+// czysto wizualne (do rozdzielenia nakładających się punktów) — nie są prawdziwą
+// lokalizacją strzału. Hub jest odsuwany od krawędzi boiska, żeby wachlarz nigdy
+// nie wychodził poza pole gry.
+function drawExpandedCluster(g, cluster, fieldW, fieldH) {
+  const n = cluster.count;
+  const fanR = Math.min(90, 30 + n * 4);
+  const margin = fanR + 16;
+  const hubX = Math.min(fieldW - margin, Math.max(margin, cluster.cx));
+  const hubY = Math.min(fieldH - margin, Math.max(margin, cluster.cy));
+  const color = cluster.members[0].color;
+
+  const fanG = svgEl('g', { class: 'cluster-expanded' });
+
+  cluster.members.forEach((it, i) => {
+    const angle = (i / n) * Math.PI * 2 - Math.PI / 2;
+    const mx = hubX + fanR * Math.cos(angle);
+    const my = hubY + fanR * Math.sin(angle);
+    fanG.appendChild(svgEl('line', {
+      x1: hubX, y1: hubY, x2: mx, y2: my,
+      stroke: 'white', 'stroke-width': 1.5, 'stroke-dasharray': '3,3', opacity: 0.8
+    }));
+    const e = it.event;
+    drawShotMarker(fanG, mx, my, it.color, e.result, e.zone_name === 'own-half', e.man_up, e.man_down, e.assisted, e.fast_break, e.free_position, e.penalty_shot, e.event_type);
+  });
+
+  const hub = svgEl('circle', {
+    cx: hubX, cy: hubY, r: 16, fill: 'white', stroke: color, 'stroke-width': 3,
+    style: 'cursor:pointer', 'data-action': 'viewer-toggle-cluster', 'data-arg': cluster.id
+  });
+  fanG.appendChild(hub);
+  const hubText = svgEl('text', {
+    x: hubX, y: hubY, 'text-anchor': 'middle', 'dominant-baseline': 'middle',
+    'font-size': 13, 'font-weight': 700, fill: color, 'pointer-events': 'none'
+  });
+  hubText.textContent = String(n);
+  fanG.appendChild(hubText);
+
+  g.appendChild(fanG);
 }
 
 // ==============================================================================
@@ -5092,6 +5317,45 @@ function renderMatchViewer(root) {
   }
 }
 
+// Lista akcji ukrytych w rozwiniętym bąblu (patrz drawExpandedCluster w
+// field-svg.js). Karta w prawej kolumnie zamiast popovera nad boiskiem, żeby
+// mapa zostawała w pełni widoczna, gdy ktoś rozwija klaster.
+function renderViewerClusterDetailCard(match, filtered) {
+  const v = APP.viewer;
+  if (!v.expandedClusterId) return '';
+  const cluster = computeViewerClusters(match, filtered, v).find(c => c.id === v.expandedClusterId && c.count > 1);
+  if (!cluster) return '';
+
+  const rows = cluster.members.map(it => {
+    const e = it.event;
+    const isCounterEvent = e.event_type === 'groundball' || e.event_type === 'draw';
+    const resultLabel = isCounterEvent ? (e.event_type === 'groundball' ? 'GB' : 'Draw') : e.result;
+    const flags = [];
+    if (e.man_up)        flags.push('<span class="flag man-up">man-up</span>');
+    if (e.man_down)      flags.push('<span class="flag man-down">man-down</span>');
+    if (e.assisted)      flags.push('<span class="flag assisted">A</span>');
+    if (e.fast_break)    flags.push('<span class="flag fast-break">FB</span>');
+    if (e.free_position) flags.push('<span class="flag free-position">FP</span>');
+    if (e.penalty_shot)  flags.push('<span class="flag penalty-shot">PEN</span>');
+    return `
+      <div class="history-row">
+        <div class="period">${periodLabel(e.period)}</div>
+        <div class="team-tag ${it.team}">${it.team}</div>
+        <div class="result ${isCounterEvent ? '' : e.result}">${escapeHtml(String(resultLabel))}</div>
+        <div class="flags">${flags.join('')}</div>
+      </div>`;
+  }).join('');
+
+  return `
+    <div class="cluster-detail-inline">
+      <h4>
+        ${T('viewer.cluster.title')} (${cluster.count})
+        <button class="btn" data-action="viewer-toggle-cluster" data-arg="${escapeHtml(cluster.id)}" style="margin-left:auto;font-size:11px;padding:3px 8px;">${T('viewer.cluster.close')}</button>
+      </h4>
+      <div class="history-list">${rows}</div>
+    </div>`;
+}
+
 function _viewerRefreshLabel() {
   if (!APP.lastViewerRefresh) return T('viewer.last_update') + '—';
   const h = APP.lastViewerRefresh.getHours().toString().padStart(2, '0');
@@ -5328,6 +5592,13 @@ function renderViewerShotChartCard(match, filtered, periodOptions) {
           <button class="btn ${v.display_mode === 'markers' ? 'btn-active' : ''}" data-action="viewer-set-display" data-arg="markers">${T('viewer.chart.markers')}</button>
           <button class="btn ${v.display_mode === 'heatmap' ? 'btn-active' : ''}" data-action="viewer-set-display" data-arg="heatmap">${T('viewer.chart.heatmap')}</button>
         </div>
+        ${v.display_mode === 'markers' ? `
+        <span class="ctrl-label" style="margin-left:8px;">${T('viewer.chart.clustering')}</span>
+        <div class="toggle-group">
+          <button class="btn ${v.clustering_enabled !== false ? 'btn-active' : ''}" data-action="viewer-set-clustering" data-arg="on">${T('viewer.chart.clustering_on')}</button>
+          <button class="btn ${v.clustering_enabled === false ? 'btn-active' : ''}" data-action="viewer-set-clustering" data-arg="off">${T('viewer.chart.clustering_off')}</button>
+        </div>
+        ` : ''}
         <span class="ctrl-label" style="margin-left:8px;">${T('viewer.chart.period')}</span>
         <select id="filter-period" data-action="viewer-set-period-filter">
           <option value="all" ${v.filter_period === 'all' ? 'selected' : ''}>${T('viewer.chart.all')}</option>
@@ -5342,6 +5613,7 @@ function renderViewerShotChartCard(match, filtered, periodOptions) {
         </select>
       </div>
       <div id="viewer-chart-host"></div>
+      ${renderViewerClusterDetailCard(match, filtered)}
       <div class="shot-chart-stats">
         <span><strong>${filtered.length}</strong> ${T('viewer.chart.shots_on_view')}${(v.filter_period !== 'all' || v.filter_result !== 'all') ? T('viewer.chart.after_filters') : ''}</span>
         <span>•</span>
@@ -8472,16 +8744,27 @@ const HANDLERS = {
   },
 
   // Viewer controls
-  'viewer-set-mode':           (mode) => { APP.viewer.view_mode    = mode; render(); },
-  'viewer-set-display':        (mode) => { APP.viewer.display_mode = mode; render(); },
+  'viewer-set-mode':           (mode) => { APP.viewer.view_mode    = mode; APP.viewer.expandedClusterId = null; render(); },
+  'viewer-set-display':        (mode) => { APP.viewer.display_mode = mode; APP.viewer.expandedClusterId = null; render(); },
   'viewer-set-period-filter':  () => {
     const sel = document.getElementById('filter-period');
     if (sel) APP.viewer.filter_period = sel.value;
+    APP.viewer.expandedClusterId = null;
     render();
   },
   'viewer-set-result-filter':  () => {
     const sel = document.getElementById('filter-result');
     if (sel) APP.viewer.filter_result = sel.value;
+    APP.viewer.expandedClusterId = null;
+    render();
+  },
+  'viewer-toggle-cluster':     (clusterId) => {
+    APP.viewer.expandedClusterId = APP.viewer.expandedClusterId === clusterId ? null : clusterId;
+    render();
+  },
+  'viewer-set-clustering':     (mode) => {
+    APP.viewer.clustering_enabled = mode === 'on';
+    APP.viewer.expandedClusterId = null;
     render();
   },
 

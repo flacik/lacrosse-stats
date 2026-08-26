@@ -101,6 +101,45 @@ function renderMatchViewer(root) {
   }
 }
 
+// Lista akcji ukrytych w rozwiniętym bąblu (patrz drawExpandedCluster w
+// field-svg.js). Karta w prawej kolumnie zamiast popovera nad boiskiem, żeby
+// mapa zostawała w pełni widoczna, gdy ktoś rozwija klaster.
+function renderViewerClusterDetailCard(match, filtered) {
+  const v = APP.viewer;
+  if (!v.expandedClusterId) return '';
+  const cluster = computeViewerClusters(match, filtered, v).find(c => c.id === v.expandedClusterId && c.count > 1);
+  if (!cluster) return '';
+
+  const rows = cluster.members.map(it => {
+    const e = it.event;
+    const isCounterEvent = e.event_type === 'groundball' || e.event_type === 'draw';
+    const resultLabel = isCounterEvent ? (e.event_type === 'groundball' ? 'GB' : 'Draw') : e.result;
+    const flags = [];
+    if (e.man_up)        flags.push('<span class="flag man-up">man-up</span>');
+    if (e.man_down)      flags.push('<span class="flag man-down">man-down</span>');
+    if (e.assisted)      flags.push('<span class="flag assisted">A</span>');
+    if (e.fast_break)    flags.push('<span class="flag fast-break">FB</span>');
+    if (e.free_position) flags.push('<span class="flag free-position">FP</span>');
+    if (e.penalty_shot)  flags.push('<span class="flag penalty-shot">PEN</span>');
+    return `
+      <div class="history-row">
+        <div class="period">${periodLabel(e.period)}</div>
+        <div class="team-tag ${it.team}">${it.team}</div>
+        <div class="result ${isCounterEvent ? '' : e.result}">${escapeHtml(String(resultLabel))}</div>
+        <div class="flags">${flags.join('')}</div>
+      </div>`;
+  }).join('');
+
+  return `
+    <div class="cluster-detail-inline">
+      <h4>
+        ${T('viewer.cluster.title')} (${cluster.count})
+        <button class="btn" data-action="viewer-toggle-cluster" data-arg="${escapeHtml(cluster.id)}" style="margin-left:auto;font-size:11px;padding:3px 8px;">${T('viewer.cluster.close')}</button>
+      </h4>
+      <div class="history-list">${rows}</div>
+    </div>`;
+}
+
 function _viewerRefreshLabel() {
   if (!APP.lastViewerRefresh) return T('viewer.last_update') + '—';
   const h = APP.lastViewerRefresh.getHours().toString().padStart(2, '0');
@@ -337,6 +376,13 @@ function renderViewerShotChartCard(match, filtered, periodOptions) {
           <button class="btn ${v.display_mode === 'markers' ? 'btn-active' : ''}" data-action="viewer-set-display" data-arg="markers">${T('viewer.chart.markers')}</button>
           <button class="btn ${v.display_mode === 'heatmap' ? 'btn-active' : ''}" data-action="viewer-set-display" data-arg="heatmap">${T('viewer.chart.heatmap')}</button>
         </div>
+        ${v.display_mode === 'markers' ? `
+        <span class="ctrl-label" style="margin-left:8px;">${T('viewer.chart.clustering')}</span>
+        <div class="toggle-group">
+          <button class="btn ${v.clustering_enabled !== false ? 'btn-active' : ''}" data-action="viewer-set-clustering" data-arg="on">${T('viewer.chart.clustering_on')}</button>
+          <button class="btn ${v.clustering_enabled === false ? 'btn-active' : ''}" data-action="viewer-set-clustering" data-arg="off">${T('viewer.chart.clustering_off')}</button>
+        </div>
+        ` : ''}
         <span class="ctrl-label" style="margin-left:8px;">${T('viewer.chart.period')}</span>
         <select id="filter-period" data-action="viewer-set-period-filter">
           <option value="all" ${v.filter_period === 'all' ? 'selected' : ''}>${T('viewer.chart.all')}</option>
@@ -351,6 +397,7 @@ function renderViewerShotChartCard(match, filtered, periodOptions) {
         </select>
       </div>
       <div id="viewer-chart-host"></div>
+      ${renderViewerClusterDetailCard(match, filtered)}
       <div class="shot-chart-stats">
         <span><strong>${filtered.length}</strong> ${T('viewer.chart.shots_on_view')}${(v.filter_period !== 'all' || v.filter_result !== 'all') ? T('viewer.chart.after_filters') : ''}</span>
         <span>•</span>

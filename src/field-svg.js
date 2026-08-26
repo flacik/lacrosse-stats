@@ -260,6 +260,28 @@ function buildViewerChart(match, filtered) {
   return svg;
 }
 
+// Klastry dla aktualnego widoku (view_mode/display_mode) — używane zarówno przy
+// rysowaniu mapy, jak i przez kartę szczegółów rozwiniętego klastra w panelu
+// bocznym (renderViewerClusterDetailCard), żeby obie strony widziały te same ID.
+function computeViewerClusters(match, filtered, viewer) {
+  if (viewer.display_mode === 'heatmap') return [];
+  let items;
+  if (viewer.view_mode === 'full') {
+    items = buildFullFieldItems(filtered, match);
+  } else {
+    const teamSlot_ = viewer.view_mode === 'half-A' ? 'A' : 'B';
+    const teamName  = teamSlot_ === 'A' ? match.team_A : match.team_B;
+    const teamColor = teamSlot_ === 'A' ? '#1d4ed8' : '#b91c1c';
+    const teamShots = filtered.filter(e => e.team_event === teamName && e.shot_x >= 0);
+    items = buildHalfFieldItems(teamShots, teamSlot_, teamColor);
+  }
+  const clusters = clusteringEnabled()
+    ? clusterMarkers(items)
+    : items.map(it => ({ team: it.team, cx: it.cx, cy: it.cy, count: 1, members: [it] }));
+  clusters.forEach(c => { c.id = clusterIdFor(c); });
+  return clusters;
+}
+
 function drawFullFieldChart(svg, match, filtered, viewer) {
   const sideLabels = svgEl('g');
   const lLab = svgEl('text', { x: 100, y: 35, 'font-size': 22, 'font-weight': 700, fill: '#1d4ed8' });
@@ -321,15 +343,7 @@ function drawHalfFieldChart(svg, match, filtered, viewer) {
   if (viewer.display_mode === 'heatmap') {
     chartShots.forEach(e => drawHeatBlob(fieldG, e.shot_y * 540, (1 - e.shot_x) * 600, teamColor));
   } else {
-    const items = chartShots.map(e => ({ event: e, team: teamSlot_, color: teamColor, cx: e.shot_y * 540, cy: (1 - e.shot_x) * 600 }));
-    clusterMarkers(items).forEach(cluster => {
-      if (cluster.count === 1) {
-        const it = cluster.members[0], e = it.event;
-        drawShotMarker(fieldG, it.cx, it.cy, it.color, e.result, false, e.man_up, e.man_down, e.assisted, e.fast_break, e.free_position, e.penalty_shot, e.event_type);
-      } else {
-        drawClusterBubble(fieldG, cluster.cx, cluster.cy, cluster.count, cluster.members[0].color);
-      }
-    });
+    renderClusteredMarkers(fieldG, buildHalfFieldItems(chartShots, teamSlot_, teamColor), 540, 600);
   }
 
   svg.appendChild(fieldG);
@@ -354,28 +368,74 @@ function drawFieldMarkings(g, w, h) {
   }
 }
 
-function drawShotsFullField(g, events, match, displayMode) {
+function buildFullFieldItems(events, match) {
   // Canonical orientation: A on left attacking right (team_A_side='left')
-  const items = events.map(e => {
+  return events.map(e => {
     const slot = teamSlot(match.id, e.team_event);
     const color = slot === 'A' ? '#1d4ed8' : '#b91c1c';
     const { physical_x, physical_y } = attackerToPhysical(e.shot_x, e.shot_y, slot, 'left');
     return { event: e, team: slot, color, cx: physical_x * 1100, cy: physical_y * 600 };
   });
+}
 
+function buildHalfFieldItems(chartShots, teamSlot_, teamColor) {
+  return chartShots.map(e => ({ event: e, team: teamSlot_, color: teamColor, cx: e.shot_y * 540, cy: (1 - e.shot_x) * 600 }));
+}
+
+// Stabilny (per skład członków) identyfikator klastra — używany do zapamiętania,
+// który bąbel jest rozwinięty (APP.viewer.expandedClusterId), mimo że klastry są
+// przeliczane od zera przy każdym renderze.
+function clusterIdFor(cluster) {
+  return cluster.members.map(it => String(it.event.id)).sort().join('|');
+}
+
+// Współdzielone przez pełne boisko i połówkę: pojedyncze markery i bąble bez
+// zmian, a bąbel wskazany w APP.viewer.expandedClusterId renderuje się jako
+// rozwinięty wachlarz (drawExpandedCluster) — reszta markerów/bąbli na widoku
+// zostaje przygaszona, żeby wachlarz był jednoznacznie na pierwszym planie.
+function clusteringEnabled() {
+  return !APP.viewer || APP.viewer.clustering_enabled !== false;
+}
+
+function renderClusteredMarkers(g, items, fieldW, fieldH) {
+  const clusters = clusteringEnabled()
+    ? clusterMarkers(items)
+    : items.map(it => ({ team: it.team, cx: it.cx, cy: it.cy, count: 1, members: [it] }));
+  clusters.forEach(c => { c.id = clusterIdFor(c); });
+
+  const expandedId = APP.viewer && APP.viewer.expandedClusterId;
+  let expandedCluster = null;
+  const collapsedEls = [];
+
+  clusters.forEach(cluster => {
+    if (cluster.count > 1 && cluster.id === expandedId) {
+      expandedCluster = cluster;
+      return;
+    }
+    const wrap = svgEl('g');
+    if (cluster.count === 1) {
+      const it = cluster.members[0], e = it.event;
+      drawShotMarker(wrap, it.cx, it.cy, it.color, e.result, e.zone_name === 'own-half', e.man_up, e.man_down, e.assisted, e.fast_break, e.free_position, e.penalty_shot, e.event_type);
+    } else {
+      drawClusterBubble(wrap, cluster.cx, cluster.cy, cluster.count, cluster.members[0].color, cluster.id);
+    }
+    g.appendChild(wrap);
+    collapsedEls.push(wrap);
+  });
+
+  if (expandedCluster) {
+    drawExpandedCluster(g, expandedCluster, fieldW, fieldH);
+    collapsedEls.forEach(el => el.setAttribute('opacity', '0.25'));
+  }
+}
+
+function drawShotsFullField(g, events, match, displayMode) {
+  const items = buildFullFieldItems(events, match);
   if (displayMode === 'heatmap') {
     items.forEach(it => drawHeatBlob(g, it.cx, it.cy, it.color));
     return;
   }
-
-  clusterMarkers(items).forEach(cluster => {
-    if (cluster.count === 1) {
-      const it = cluster.members[0], e = it.event;
-      drawShotMarker(g, it.cx, it.cy, it.color, e.result, e.zone_name === 'own-half', e.man_up, e.man_down, e.assisted, e.fast_break, e.free_position, e.penalty_shot, e.event_type);
-    } else {
-      drawClusterBubble(g, cluster.cx, cluster.cy, cluster.count, cluster.members[0].color);
-    }
-  });
+  renderClusteredMarkers(g, items, 1100, 600);
 }
 
 function drawShotMarker(g, cx, cy, color, result, isOwnHalf, manUp, manDown, hasAssist, fastBreak, freePosition, penaltyShot, eventType) {
@@ -714,13 +774,63 @@ function drawHeatBlob(g, cx, cy, color) {
 }
 
 // Zbiorczy bąbel dla klastra >1 zdarzenia (patrz clusterMarkers w algorithms.js).
-function drawClusterBubble(g, cx, cy, count, color) {
+function drawClusterBubble(g, cx, cy, count, color, clusterId) {
   const r = clusterBubbleRadius(count);
-  g.appendChild(svgEl('circle', { cx, cy, r, fill: color, opacity: 0.6, stroke: 'white', 'stroke-width': 2 }));
+  const circle = svgEl('circle', {
+    cx, cy, r, fill: color, opacity: 0.6, stroke: 'white', 'stroke-width': 2,
+    style: 'cursor:pointer'
+  });
+  if (clusterId) {
+    circle.setAttribute('data-action', 'viewer-toggle-cluster');
+    circle.setAttribute('data-arg', clusterId);
+  }
+  g.appendChild(circle);
   const t = svgEl('text', {
     x: cx, y: cy, 'text-anchor': 'middle', 'dominant-baseline': 'middle',
-    'font-size': 12, 'font-weight': 700, fill: 'white'
+    'font-size': 12, 'font-weight': 700, fill: 'white', 'pointer-events': 'none'
   });
   t.textContent = String(count);
   g.appendChild(t);
+}
+
+// Rozwinięcie bąbla: biały hub z liczbą w centroidzie klastra, człony rozstawione
+// po okręgu wokół huba i połączone przerywanymi liniami. Pozycje na okręgu są
+// czysto wizualne (do rozdzielenia nakładających się punktów) — nie są prawdziwą
+// lokalizacją strzału. Hub jest odsuwany od krawędzi boiska, żeby wachlarz nigdy
+// nie wychodził poza pole gry.
+function drawExpandedCluster(g, cluster, fieldW, fieldH) {
+  const n = cluster.count;
+  const fanR = Math.min(90, 30 + n * 4);
+  const margin = fanR + 16;
+  const hubX = Math.min(fieldW - margin, Math.max(margin, cluster.cx));
+  const hubY = Math.min(fieldH - margin, Math.max(margin, cluster.cy));
+  const color = cluster.members[0].color;
+
+  const fanG = svgEl('g', { class: 'cluster-expanded' });
+
+  cluster.members.forEach((it, i) => {
+    const angle = (i / n) * Math.PI * 2 - Math.PI / 2;
+    const mx = hubX + fanR * Math.cos(angle);
+    const my = hubY + fanR * Math.sin(angle);
+    fanG.appendChild(svgEl('line', {
+      x1: hubX, y1: hubY, x2: mx, y2: my,
+      stroke: 'white', 'stroke-width': 1.5, 'stroke-dasharray': '3,3', opacity: 0.8
+    }));
+    const e = it.event;
+    drawShotMarker(fanG, mx, my, it.color, e.result, e.zone_name === 'own-half', e.man_up, e.man_down, e.assisted, e.fast_break, e.free_position, e.penalty_shot, e.event_type);
+  });
+
+  const hub = svgEl('circle', {
+    cx: hubX, cy: hubY, r: 16, fill: 'white', stroke: color, 'stroke-width': 3,
+    style: 'cursor:pointer', 'data-action': 'viewer-toggle-cluster', 'data-arg': cluster.id
+  });
+  fanG.appendChild(hub);
+  const hubText = svgEl('text', {
+    x: hubX, y: hubY, 'text-anchor': 'middle', 'dominant-baseline': 'middle',
+    'font-size': 13, 'font-weight': 700, fill: color, 'pointer-events': 'none'
+  });
+  hubText.textContent = String(n);
+  fanG.appendChild(hubText);
+
+  g.appendChild(fanG);
 }
