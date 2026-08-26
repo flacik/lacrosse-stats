@@ -16,7 +16,7 @@ A web application for recording shot statistics during lacrosse matches, with a 
 
 ## Preview
 
-![Lacrosse Stats — home screen](docs/screenshot.png)
+![Lacrosse Stats — stat entry screen with a live match in progress](docs/screenshot.png)
 
 ---
 
@@ -174,14 +174,14 @@ cd src/
 
 ### Changelog
 
-Each entry is tagged with the deployment(s) it affects: `[all]` ships to every deployment (liga, reprezentacja, mistrzostwa, demo), `[mistrzostwa]` is field-lacrosse-only, `[liga]`/`[reprezentacja]` are lacrosse sixes-only. Untagged legacy entries below predate the multi-deployment split and applied to all instances.
+Each entry is tagged with the game variant(s) it affects, not the deployment names: `[all]` ships everywhere, `[field]` is field lacrosse (Mistrzostwa) only, `[sixes]` is lacrosse sixes (Liga, Reprezentacja) only. Untagged legacy entries below predate the multi-deployment split and applied to all instances.
 
-**v2.3.5 (2026-08-26)** `[liga]` `[reprezentacja]` — shot chart marker clustering:
+**v2.3.5 (2026-08-26)** `[sixes]` — shot chart marker clustering:
 
 - Full-match shot charts (live viewer + PDF report) merge overlapping same-team markers into a numbered bubble instead of letting them pile into an unreadable mass; the merge distance is fixed regardless of how many markers are already in a bubble, so one bubble can't keep swallowing farther-away markers as it grows
 - Click a bubble to fan its members out around a hub (dashed spokes, rest of the map dimmed), with a matching detail list docked right under the map — not buried below every other card
 - New "Bubbles: On/Off" toggle in Markers mode to fall back to the classic one-dot-per-shot view
-- Not yet applied to Mistrzostwa (field lacrosse) — pending
+- Not yet applied to field lacrosse (Mistrzostwa) — pending
 
 **v2.3.4 (2026-07-15)** `[all]` — analytics PDF report: per-match readability:
 
