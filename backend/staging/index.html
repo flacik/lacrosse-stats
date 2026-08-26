@@ -6558,16 +6558,26 @@ function _buildZoneEfficiencySvg(events) {
     if (e.result === 'gol') stats[e.zone_name].goals++;
   });
 
-  function effColor(pct) {
-    if (pct === 0) return 'rgba(209,213,219,0.5)';
-    if (pct < 25)  return `rgba(249,115,22,${0.25 + pct / 100})`;
-    return `rgba(22,163,74,${0.3 + pct / 100 * 0.6})`;
+  // Intensywność koloru nie może zależeć tylko od %, bo "100% z 1 strzału"
+  // wygląda identycznie jak "100% z 20 strzałów" i realnie kłamie na mapie.
+  // Zamiast tego skalujemy alpha współczynnikiem zaufania (min(1, strzały/4))
+  // od prawie neutralnego "za mało danych" (NEUTRAL_ALPHA) w stronę pełnej,
+  // dotychczasowej intensywności — przy ≥4 strzałach kolor wygląda tak samo
+  // jak wcześniej (brak regresji dla dobrze próbkowanych stref).
+  const NEUTRAL_ALPHA = 0.12;
+  function effColor(pct, total) {
+    if (total === 0) return 'rgba(209,213,219,0.25)';
+    const confidence = Math.min(1, total / 4);
+    const fullAlpha  = pct < 25 ? (0.25 + pct / 100) : (0.3 + pct / 100 * 0.6);
+    const alpha      = NEUTRAL_ALPHA + confidence * (fullAlpha - NEUTRAL_ALPHA);
+    const rgb        = pct < 25 ? '249,115,22' : '22,163,74';
+    return `rgba(${rgb},${alpha.toFixed(2)})`;
   }
 
   const zoneOverlays = Object.entries(ZONE_RECTS).map(([zone, rect]) => {
     const s = stats[zone];
     const pct = s.total > 0 ? Math.round((s.goals / s.total) * 100) : 0;
-    const color = effColor(pct);
+    const color = effColor(pct, s.total);
     const lx = rect.x + rect.w / 2;
     const ly = rect.y + rect.h / 2;
     return `
