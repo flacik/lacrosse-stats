@@ -305,8 +305,8 @@ function findRowById(sheet, id) {
  * Zwraca null jeśli OK, lub string z opisem błędu.
  */
 function validateEvent(ev) {
-  var isGoalieSet      = ev.event_type === 'goalie_set';
-  var isSimpleCounter  = ev.event_type === 'groundball' || ev.event_type === 'draw';
+  var isGoalieSet    = ev.event_type === 'goalie_set';
+  var isCounterEvent = ev.event_type === 'groundball' || ev.event_type === 'draw';
 
   // 1. Required fields (all event types)
   var required = [
@@ -314,8 +314,11 @@ function validateEvent(ev) {
     'tournament', 'team_A', 'team_B', 'match_date',
     'period', 'team_event',
   ];
-  if (!isGoalieSet && !isSimpleCounter) {
-    required = required.concat(['shot_x', 'shot_y', 'zone_name', 'result']);
+  if (!isGoalieSet) {
+    required = required.concat(['shot_x', 'shot_y', 'zone_name']);
+  }
+  if (!isGoalieSet && !isCounterEvent) {
+    required.push('result');
   }
   for (var i = 0; i < required.length; i++) {
     var f = required[i];
@@ -331,17 +334,8 @@ function validateEvent(ev) {
     return null;
   }
 
-  // groundball / draw: tylko kwarta i drużyna
-  if (isSimpleCounter) {
-    if (!PERIOD_REGEX.test(String(ev.period)))
-      return 'Niepoprawna kwarta: ' + ev.period;
-    if (ev.team_event !== ev.team_A && ev.team_event !== ev.team_B)
-      return 'team_event musi być równy team_A lub team_B';
-    return null;
-  }
-
-  // 2. result
-  if (VALID_RESULTS.indexOf(ev.result) === -1) {
+  // 2. result — groundball/draw nie mają wyniku, pomiń
+  if (!isCounterEvent && VALID_RESULTS.indexOf(ev.result) === -1) {
     return 'Niepoprawny wynik: ' + ev.result + '. Oczekiwane: ' + VALID_RESULTS.join(', ');
   }
 
@@ -628,7 +622,7 @@ function saveEvent(eventObj) {
       if (col === 'man_down')   return eventObj.man_down   ? true : false;
       if (col === 'assisted')   return eventObj.assisted   ? true : false;
       if (col === 'fast_break') return eventObj.fast_break ? true : false;
-      var _nonShot = ['goalie_set', 'groundball', 'draw'];
+      var _nonShot = ['goalie_set'];
       if (col === 'shot_x') return _nonShot.indexOf(eventObj.event_type) >= 0 ? '' : parseFloat(eventObj.shot_x);
       if (col === 'shot_y') return _nonShot.indexOf(eventObj.event_type) >= 0 ? '' : parseFloat(eventObj.shot_y);
       var val = eventObj[col];
@@ -671,7 +665,7 @@ function updateEvent(id, eventObj) {
       if (col === 'man_down')   return eventObj.man_down   ? true : false;
       if (col === 'assisted')   return eventObj.assisted   ? true : false;
       if (col === 'fast_break') return eventObj.fast_break ? true : false;
-      var _nonShot = ['goalie_set', 'groundball', 'draw'];
+      var _nonShot = ['goalie_set'];
       if (col === 'shot_x') return _nonShot.indexOf(eventObj.event_type) >= 0 ? '' : parseFloat(eventObj.shot_x);
       if (col === 'shot_y') return _nonShot.indexOf(eventObj.event_type) >= 0 ? '' : parseFloat(eventObj.shot_y);
       var val = eventObj[col];

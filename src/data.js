@@ -257,11 +257,8 @@ function validateEventPayload(ev) {
     if (!PERIOD_REGEX.test(String(ev.period))) return 'Nieprawidłowy okres: ' + ev.period;
     return null;
   }
-  if (ev.event_type === 'groundball' || ev.event_type === 'draw') {
-    if (!PERIOD_REGEX.test(String(ev.period))) return 'Nieprawidłowy okres: ' + ev.period;
-    return null;
-  }
-  if (!VALID_RESULTS.includes(ev.result))            return 'Nieprawidłowy wynik: ' + ev.result;
+  const isCounterEvent = ev.event_type === 'groundball' || ev.event_type === 'draw';
+  if (!isCounterEvent && !VALID_RESULTS.includes(ev.result)) return 'Nieprawidłowy wynik: ' + ev.result;
   if (typeof ev.shot_x !== 'number' || ev.shot_x < -1 || ev.shot_x > 1) return 'Nieprawidłowa pozycja shot_x';
   if (typeof ev.shot_y !== 'number' || ev.shot_y < 0  || ev.shot_y > 1) return 'Nieprawidłowa pozycja shot_y';
   if (!VALID_ZONES.includes(ev.zone_name))           return 'Nieprawidłowa strefa: ' + ev.zone_name;

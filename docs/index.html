@@ -331,6 +331,28 @@ svg.field.field-half {
 .result-btn.gol { color: white; border-color: #15803d; background: #16a34a; }
 .result-btn.gol:hover { background: #15803d; }
 
+.counter-action-row {
+  display: flex; align-items: center; gap: 10px;
+  margin: 2px 0 10px; color: #999; font-size: 11px;
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
+.counter-action-row::before, .counter-action-row::after {
+  content: ''; flex: 1; height: 1px; background: #e5e7eb;
+}
+.counter-action-buttons {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+  margin-bottom: 16px;
+}
+.counter-action-btn {
+  min-height: 44px; border-radius: 8px; border: 1.5px solid;
+  background: transparent; font-family: inherit;
+  font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.counter-action-btn.team-A { color: #1d4ed8; border-color: #93c5fd; background: #eff6ff; }
+.counter-action-btn.team-A:hover { background: #dbeafe; }
+.counter-action-btn.team-B { color: #b91c1c; border-color: #fca5a5; background: #fef2f2; }
+.counter-action-btn.team-B:hover { background: #fee2e2; }
+
 .flag-row {
   display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px 12px;
   margin-bottom: 16px;
@@ -794,6 +816,12 @@ table.stats-table td.num {
 [data-theme="dark"] .result-btn.celny:hover { background: #162a5e; }
 [data-theme="dark"] .result-btn.gol { color: #fff; border-color: #238636; background: #238636; }
 [data-theme="dark"] .result-btn.gol:hover { background: #2ea043; }
+[data-theme="dark"] .counter-action-row { color: #6e7681; }
+[data-theme="dark"] .counter-action-row::before, [data-theme="dark"] .counter-action-row::after { background: #30363d; }
+[data-theme="dark"] .counter-action-btn.team-A { color: #58a6ff; border-color: #1f6feb; background: #0d2149; }
+[data-theme="dark"] .counter-action-btn.team-A:hover { background: #162a5e; }
+[data-theme="dark"] .counter-action-btn.team-B { color: #f85149; border-color: #8b1a1a; background: #2d0f0f; }
+[data-theme="dark"] .counter-action-btn.team-B:hover { background: #3d1414; }
 [data-theme="dark"] .flag-row { background: #1c2128; }
 [data-theme="dark"] .modal-actions { border-top-color: #21262d; }
 
@@ -1511,19 +1539,6 @@ table.stats-table td.num {
   padding: 0 2px;
 }
 
-.counter-btn {
-  padding: 1px 8px;
-  font-size: 15px;
-  font-weight: 700;
-  border-radius: 4px;
-  border: 1px solid currentColor;
-  background: transparent;
-  cursor: pointer;
-  line-height: 1.3;
-  opacity: 0.8;
-}
-
-.counter-btn:hover { opacity: 1; }
 
 [data-theme="dark"] .counter-bar-v2 {
   background: #1c2128;
@@ -2127,11 +2142,8 @@ function validateEventPayload(ev) {
     if (!PERIOD_REGEX.test(String(ev.period))) return 'Nieprawidłowy okres: ' + ev.period;
     return null;
   }
-  if (ev.event_type === 'groundball' || ev.event_type === 'draw') {
-    if (!PERIOD_REGEX.test(String(ev.period))) return 'Nieprawidłowy okres: ' + ev.period;
-    return null;
-  }
-  if (!VALID_RESULTS.includes(ev.result))            return 'Nieprawidłowy wynik: ' + ev.result;
+  const isCounterEvent = ev.event_type === 'groundball' || ev.event_type === 'draw';
+  if (!isCounterEvent && !VALID_RESULTS.includes(ev.result)) return 'Nieprawidłowy wynik: ' + ev.result;
   if (typeof ev.shot_x !== 'number' || ev.shot_x < -1 || ev.shot_x > 1) return 'Nieprawidłowa pozycja shot_x';
   if (typeof ev.shot_y !== 'number' || ev.shot_y < 0  || ev.shot_y > 1) return 'Nieprawidłowa pozycja shot_y';
   if (!VALID_ZONES.includes(ev.zone_name))           return 'Nieprawidłowa strefa: ' + ev.zone_name;
@@ -2190,6 +2202,19 @@ function physicalToAttacker(px, py, team_slot, team_A_side) {
   const shot_x = shooter_attacks_right ? (px - 0.5) * 2 : (0.5 - px) * 2;
   const shot_y = shooter_attacks_right ? py : (1 - py);
   return { shot_x, shot_y };
+}
+
+// Zone name from attacker-relative coords, for an explicitly chosen team
+// (groundball/draw — team isn't inferred from the clicked half, so shot_x
+// can legitimately come out negative for that team even on a "normal" click).
+function zoneForAttackerCoords(shot_x, shot_y) {
+  if (shot_x < 0) return 'own-half';
+  const zone_long = shot_x > ATTACK_THRESHOLD ? 'attack' : 'midfield';
+  let zone_lat;
+  if (shot_y < 1/3) zone_lat = 'left';
+  else if (shot_y < 2/3) zone_lat = 'center';
+  else zone_lat = 'right';
+  return `${zone_long}-${zone_lat}`;
 }
 
 // Attacker-relative → physical for current sides (used to render markers).
@@ -2280,6 +2305,13 @@ function getPeriodOrder(p) {
 
 function isShotEvent(e) {
   return !e.event_type || e.event_type === '';
+}
+
+// Shots + groundball/draw (both now carry a real field position) — used for
+// map/chart rendering. Numeric shooting stats keep using isShotEvent alone,
+// since groundball/draw aren't shots.
+function isFieldMarkerEvent(e) {
+  return isShotEvent(e) || e.event_type === 'groundball' || e.event_type === 'draw';
 }
 
 function computeCounterStats(matchId, match, period) {
@@ -3319,6 +3351,7 @@ const STRINGS = {
     'status.live': 'LIVE', 'status.finished': 'Zakończony', 'status.planned': 'Planowany',
     'status.scheduled_short': 'Zaplanowany', 'status.in_progress': 'W trakcie',
     'modal.shot.title': 'Strzał', 'modal.shot.subtitle': 'Wybierz rezultat',
+    'modal.shot.or_counter': 'lub inne zdarzenie w tym miejscu',
     'modal.edit.title': 'Edytuj event',
     'modal.edit.subtitle': 'Pozycja na boisku jest zachowana — żeby ją zmienić, usuń event i dodaj nowy.',
     'modal.end.title': 'Zakończyć mecz?',
@@ -3412,6 +3445,7 @@ const STRINGS = {
     'legend.man_up': 'Man-up', 'legend.man_down': 'Man-down',
     'legend.assisted': 'Asysta', 'legend.fast_break': 'Fast break',
     'legend.free_position': 'Wolna pozycja', 'legend.penalty_shot': 'Karny',
+    'legend.groundball': 'Groundball (GB)', 'legend.draw': 'Wygrane wznowienie (Draw)',
     'field.canonical_note': 'widok kanoniczny — A zawsze po lewej',
     'field.attack_up': 'atak ↑ (bramka u góry)',
     'standings.title': 'Tabela ligowa', 'standings.empty': 'Brak danych dla tego turnieju.',
@@ -3567,6 +3601,7 @@ const STRINGS = {
     'status.live': 'LIVE', 'status.finished': 'Finished', 'status.planned': 'Planned',
     'status.scheduled_short': 'Scheduled', 'status.in_progress': 'In progress',
     'modal.shot.title': 'Shot', 'modal.shot.subtitle': 'Choose result',
+    'modal.shot.or_counter': 'or a different event at this spot',
     'modal.edit.title': 'Edit event',
     'modal.edit.subtitle': 'Field position is preserved — to change it, delete the event and add a new one.',
     'modal.end.title': 'End match?',
@@ -3660,6 +3695,7 @@ const STRINGS = {
     'legend.man_up': 'Man-up', 'legend.man_down': 'Man-down',
     'legend.assisted': 'Assisted', 'legend.fast_break': 'Fast break',
     'legend.free_position': 'Free position', 'legend.penalty_shot': 'Penalty shot',
+    'legend.groundball': 'Groundball (GB)', 'legend.draw': 'Draw won',
     'field.canonical_note': 'canonical view — A always on left',
     'field.attack_up': 'attack ↑ (goal at top)',
     'standings.title': 'League standings', 'standings.empty': 'No data for this tournament.',
@@ -3834,6 +3870,8 @@ function buildFieldSvg(match) {
     const isOwnHalf = e.zone_name === 'own-half';
     const isGoal = e.result === 'gol';
     const isMissed = e.result === 'niecelny';
+    const isGroundball = e.event_type === 'groundball';
+    const isDraw        = e.event_type === 'draw';
     const dotR = isLatest ? 11 : 7;
     const sw = isLatest ? (isOwnHalf ? 4 : 3) : (isOwnHalf ? 3 : 2);
 
@@ -3851,7 +3889,21 @@ function buildFieldSvg(match) {
     }
 
     let markerEl;
-    if (isMissed) {
+    if (isGroundball) {
+      const s = dotR - 2;
+      markerEl = svgEl('rect', {
+        x: sx - s, y: sy - s, width: s * 2, height: s * 2,
+        fill: fillColor, stroke: isOwnHalf ? '#ca8a04' : 'white', 'stroke-width': sw,
+        class: 'marker' + (isLatest ? ' latest' : '')
+      });
+    } else if (isDraw) {
+      const s = dotR;
+      const points = `${sx},${sy - s} ${sx - s * 0.87},${sy + s * 0.5} ${sx + s * 0.87},${sy + s * 0.5}`;
+      markerEl = svgEl('polygon', {
+        points, fill: fillColor, stroke: isOwnHalf ? '#ca8a04' : 'white', 'stroke-width': sw,
+        class: 'marker' + (isLatest ? ' latest' : '')
+      });
+    } else if (isMissed) {
       const s = dotR - 2;
       const xColor = isOwnHalf ? '#ca8a04' : fillColor;
       markerEl = svgEl('g', { class: 'marker' + (isLatest ? ' latest' : '') });
@@ -3950,7 +4002,8 @@ function handleFieldClick(ev) {
       pending: {
         shot_x, shot_y,
         team_event: teamName, team_slot: teamSlotChosen,
-        zone_name: 'own-half'
+        zone_name: 'own-half',
+        click_x: x, click_y: y,
       }
     };
     render();
@@ -3964,7 +4017,8 @@ function handleFieldClick(ev) {
     pending: {
       shot_x: det.shot_x, shot_y: det.shot_y,
       team_event: teamName, team_slot: det.team,
-      zone_name: det.zone
+      zone_name: det.zone,
+      click_x: x, click_y: y,
     }
   };
   render();
@@ -4052,7 +4106,7 @@ function drawHalfFieldChart(svg, match, filtered, viewer) {
     const cx = e.shot_y * 540;
     const cy = (1 - e.shot_x) * 600;
     if (viewer.display_mode === 'heatmap') drawHeatBlob(fieldG, cx, cy, teamColor);
-    else                                    drawShotMarker(fieldG, cx, cy, teamColor, e.result, false, e.man_up, e.man_down, e.assisted, e.fast_break, e.free_position, e.penalty_shot);
+    else                                    drawShotMarker(fieldG, cx, cy, teamColor, e.result, false, e.man_up, e.man_down, e.assisted, e.fast_break, e.free_position, e.penalty_shot, e.event_type);
   });
 
   svg.appendChild(fieldG);
@@ -4086,13 +4140,15 @@ function drawShotsFullField(g, events, match, displayMode) {
     const cx = physical_x * 1100;
     const cy = physical_y * 600;
     if (displayMode === 'heatmap') drawHeatBlob(g, cx, cy, color);
-    else                            drawShotMarker(g, cx, cy, color, e.result, e.zone_name === 'own-half', e.man_up, e.man_down, e.assisted, e.fast_break, e.free_position, e.penalty_shot);
+    else                            drawShotMarker(g, cx, cy, color, e.result, e.zone_name === 'own-half', e.man_up, e.man_down, e.assisted, e.fast_break, e.free_position, e.penalty_shot, e.event_type);
   });
 }
 
-function drawShotMarker(g, cx, cy, color, result, isOwnHalf, manUp, manDown, hasAssist, fastBreak, freePosition, penaltyShot) {
-  const isGoal   = result === 'gol';
-  const isMissed = result === 'niecelny';
+function drawShotMarker(g, cx, cy, color, result, isOwnHalf, manUp, manDown, hasAssist, fastBreak, freePosition, penaltyShot, eventType) {
+  const isGoal       = result === 'gol';
+  const isMissed      = result === 'niecelny';
+  const isGroundball  = eventType === 'groundball';
+  const isDraw        = eventType === 'draw';
   const strokeColor = isOwnHalf ? '#ca8a04' : color;
 
   // Man-up / man-down outer ring (rendered first, behind marker)
@@ -4107,7 +4163,14 @@ function drawShotMarker(g, cx, cy, color, result, isOwnHalf, manUp, manDown, has
     g.appendChild(svgEl('circle', ringAttrs));
   }
 
-  if (isMissed) {
+  if (isGroundball) {
+    const s = 6;
+    g.appendChild(svgEl('rect', { x: cx - s, y: cy - s, width: s * 2, height: s * 2, fill: color, stroke: isOwnHalf ? '#ca8a04' : 'white', 'stroke-width': 2 }));
+  } else if (isDraw) {
+    const s = 7.5;
+    const points = `${cx},${cy - s} ${cx - s * 0.87},${cy + s * 0.5} ${cx + s * 0.87},${cy + s * 0.5}`;
+    g.appendChild(svgEl('polygon', { points, fill: color, stroke: isOwnHalf ? '#ca8a04' : 'white', 'stroke-width': 2 }));
+  } else if (isMissed) {
     const s = 5;
     g.appendChild(svgEl('line', { x1: cx - s, y1: cy - s, x2: cx + s, y2: cy + s, stroke: strokeColor, 'stroke-width': 2 }));
     g.appendChild(svgEl('line', { x1: cx + s, y1: cy - s, x2: cx - s, y2: cy + s, stroke: strokeColor, 'stroke-width': 2 }));
@@ -4268,6 +4331,14 @@ function buildFieldLegend(match, opts) {
         <polyline points="16,4 19,7 16,10" fill="none" stroke="#10b981" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
       </svg>
       ${T('legend.fast_break')}
+    </span>
+    <span class="leg-item">
+      <svg width="14" height="14" viewBox="0 0 14 14"><rect x="2" y="2" width="10" height="10" fill="#6b7280" stroke="white" stroke-width="1.5"/></svg>
+      ${T('legend.groundball')}
+    </span>
+    <span class="leg-item">
+      <svg width="14" height="14" viewBox="0 0 14 14"><polygon points="7,1 13,12 1,12" fill="#6b7280" stroke="white" stroke-width="1.5"/></svg>
+      ${T('legend.draw')}
     </span>
     ${(opts.includeFieldShotTypes || (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.variant === 'field')) ? `
     <span class="leg-item">
@@ -4837,24 +4908,20 @@ function renderMatchInput(root) {
             </div>
             <button data-action="open-goalie-retroactive" class="btn-link goalie-retroactive-v2">${T('goalie.edit_retro')}</button>
           </div>
-          <div class="counter-bar counter-bar-v2">
+          <div class="counter-bar counter-bar-v2 counter-bar-summary">
             <span class="counter-team-v2 team-A-color" title="${escapeHtml(match.team_A)}">${escapeHtml(match.team_A)}</span>
             <div class="counter-cell-v2">
-              <button data-action="record-groundball" data-arg="A" class="counter-btn team-A-color">+</button>
               <span class="counter-label-v2">GB</span>
               <span class="counter-val-v2 team-A-color">${counters.gbA}</span>
               <span class="counter-sep-v2">:</span>
               <span class="counter-val-v2 team-B-color">${counters.gbB}</span>
-              <button data-action="record-groundball" data-arg="B" class="counter-btn team-B-color">+</button>
             </div>
             <span class="counter-divider-v2">|</span>
             <div class="counter-cell-v2">
-              <button data-action="record-draw" data-arg="A" class="counter-btn team-A-color">+</button>
               <span class="counter-label-v2">Draw</span>
               <span class="counter-val-v2 team-A-color">${counters.drawA}</span>
               <span class="counter-sep-v2">:</span>
               <span class="counter-val-v2 team-B-color">${counters.drawB}</span>
-              <button data-action="record-draw" data-arg="B" class="counter-btn team-B-color">+</button>
             </div>
             <span class="counter-team-v2 team-B-color" title="${escapeHtml(match.team_B)}">${escapeHtml(match.team_B)}</span>
           </div>
@@ -4892,21 +4959,10 @@ function renderHistoryRow(e, match) {
   }
 
   const rowClass = e._syncError ? 'history-row sync-error' : 'history-row';
-
-  if (e.event_type === 'groundball' || e.event_type === 'draw') {
-    const label = e.event_type === 'groundball' ? 'GB' : 'Draw';
-    return `
-      <div class="${rowClass}">
-        <div class="period">${periodLabel(e.period)}</div>
-        <div class="team-tag ${slot}">${slot}</div>
-        <div class="result">${label}</div>
-        <div class="flags">${syncBadge}</div>
-        <div class="actions">
-          ${retryBtn}
-          <button class="icon-btn delete" title="${APP.lang === 'pl' ? 'Usuń' : 'Delete'}" data-action="delete-event" data-arg="${e.id}">🗑</button>
-        </div>
-      </div>`;
-  }
+  const isCounterEvent = e.event_type === 'groundball' || e.event_type === 'draw';
+  const resultLabel = isCounterEvent
+    ? (e.event_type === 'groundball' ? 'GB' : 'Draw')
+    : e.result;
 
   const flags = [];
   if (e.man_up)        flags.push('<span class="flag man-up">man-up</span>');
@@ -4920,7 +4976,7 @@ function renderHistoryRow(e, match) {
     <div class="${rowClass}">
       <div class="period">${periodLabel(e.period)}</div>
       <div class="team-tag ${slot}">${slot}</div>
-      <div class="result ${e.result}">${e.result}</div>
+      <div class="result ${isCounterEvent ? '' : e.result}">${resultLabel}</div>
       <div class="flags">${flags.join('')}${syncBadge}</div>
       <div class="actions">
         ${retryBtn}
@@ -4976,7 +5032,8 @@ function renderMatchViewer(root) {
 
   const allEvents  = DATA.events.filter(e => String(e.match_id) === String(match.id));
   const shotEvents = allEvents.filter(e => isShotEvent(e));
-  const filtered   = applyViewerFilters(shotEvents, APP.viewer);
+  const markerEvents = allEvents.filter(e => isFieldMarkerEvent(e));
+  const filtered   = applyViewerFilters(markerEvents, APP.viewer);
   const score      = computeScore(match.id);
   const statsA     = computeTeamStats(match.id, match.team_A, shotEvents);
   const statsB     = computeTeamStats(match.id, match.team_B, shotEvents);
@@ -6118,7 +6175,7 @@ function _buildZoneEfficiencySvg(events) {
   const stats = {};
   Object.keys(ZONE_RECTS).forEach(z => { stats[z] = { total: 0, goals: 0 }; });
   events.forEach(e => {
-    if (!e.zone_name || !stats[e.zone_name]) return;
+    if (!isShotEvent(e) || !e.zone_name || !stats[e.zone_name]) return;
     stats[e.zone_name].total++;
     if (e.result === 'gol') stats[e.zone_name].goals++;
   });
@@ -7099,8 +7156,11 @@ function openMatchReport(matchId) {
   var allEvents  = DATA.events.filter(function(e) {
     return String(e.match_id) === String(matchId);
   });
-  var shotEvents = allEvents.filter(function(e) {
+  var shotEvents   = allEvents.filter(function(e) {
     return isShotEvent(e);
+  });
+  var markerEvents = allEvents.filter(function(e) {
+    return isFieldMarkerEvent(e);
   });
 
   var score     = computeScore(matchId);
@@ -7112,8 +7172,8 @@ function openMatchReport(matchId) {
   var counters  = computeCounterStats(matchId, match, null);
   var cumScore  = computeCumulativeScore(matchId, match, ['shots', 'onTarget', 'goals', 'groundballs']);
 
-  var evA = shotEvents.filter(function(e) { return e.team_event === match.team_A; });
-  var evB = shotEvents.filter(function(e) { return e.team_event === match.team_B; });
+  var evA = markerEvents.filter(function(e) { return e.team_event === match.team_A; });
+  var evB = markerEvents.filter(function(e) { return e.team_event === match.team_B; });
   var svgA = _reportHalfFieldSvg(evA, match.team_A, false);
   var svgB = _reportHalfFieldSvg(evB, match.team_B, false);
 
@@ -7775,6 +7835,7 @@ function renderModal() {
 function closeModal() { APP.modal = null; render(); }
 
 function renderResultModal(pending) {
+  const match = DATA.scheduledMatches.find(m => m.id === APP.matchId);
   return `
     <div class="modal" data-stop-propagation="true">
       <h2>${T('modal.shot.title')}</h2>
@@ -7806,6 +7867,14 @@ function renderResultModal(pending) {
         <button class="result-btn celny"    data-action="submit-result" data-arg="celny">${T('result.save')}</button>
         <button class="result-btn gol"      data-action="submit-result" data-arg="gol">${T('result.goal')}</button>
       </div>
+      ${pending.zone_name === 'own-half' ? '' : `
+      <div class="counter-action-row"><span>${T('modal.shot.or_counter')}</span></div>
+      <div class="counter-action-buttons">
+        <button class="counter-action-btn team-A" data-action="submit-groundball" data-arg="A">GB — ${escapeHtml(match.team_A)}</button>
+        <button class="counter-action-btn team-B" data-action="submit-groundball" data-arg="B">GB — ${escapeHtml(match.team_B)}</button>
+        <button class="counter-action-btn team-A" data-action="submit-draw" data-arg="A">Draw — ${escapeHtml(match.team_A)}</button>
+        <button class="counter-action-btn team-B" data-action="submit-draw" data-arg="B">Draw — ${escapeHtml(match.team_B)}</button>
+      </div>`}
       <div class="modal-actions">
         <button class="btn" data-action="cancel-modal">${T('btn.cancel')}</button>
       </div>
@@ -7814,6 +7883,7 @@ function renderResultModal(pending) {
 
 function renderEditEventModal(e) {
   const match = DATA.scheduledMatches.find(m => m.id === APP.matchId);
+  const isCounterEvent = e.event_type === 'groundball' || e.event_type === 'draw';
   return `
     <div class="modal" data-stop-propagation="true">
       <h2>${T('modal.edit.title')}</h2>
@@ -7836,6 +7906,7 @@ function renderEditEventModal(e) {
           ).join('')}
         </select>
       </label>
+      ${isCounterEvent ? '' : `
       <label class="field">
         <span class="field-label">${T('field.result')}</span>
         <select id="edit-result">
@@ -7843,7 +7914,7 @@ function renderEditEventModal(e) {
           <option value="celny"    ${e.result === 'celny'    ? 'selected' : ''}>${T('result.save')}</option>
           <option value="gol"      ${e.result === 'gol'      ? 'selected' : ''}>${APP.lang === 'pl' ? 'Gol' : 'Goal'}</option>
         </select>
-      </label>
+      </label>`}
       <div class="flag-row">
         <label><input type="checkbox" id="edit-man-up"   data-action="mutex-edit-flag" data-arg="man-up"   ${e.man_up   ? 'checked' : ''}> ${T('flag.man_up_short')}</label>
         <label><input type="checkbox" id="edit-man-down" data-action="mutex-edit-flag" data-arg="man-down" ${e.man_down ? 'checked' : ''}> ${T('flag.man_down_short')}</label>
@@ -8569,6 +8640,12 @@ const HANDLERS = {
     render();
   },
 
+  // Groundball / Draw — zapisywane z tego samego modala co strzał, na tej
+  // samej pozycji, ale drużyna pochodzi z klikniętego przycisku, nie z
+  // auto-detekcji połowy boiska (nie da się jej wywnioskować z miejsca zdarzenia).
+  'submit-groundball': (slot) => submitCounterEvent('groundball', slot),
+  'submit-draw':       (slot) => submitCounterEvent('draw', slot),
+
   'edit-event': (id) => {
     const e = DATA.events.find(x => String(x.id) === String(id));
     if (!e) return;
@@ -8578,7 +8655,7 @@ const HANDLERS = {
   'submit-edit': (id) => {
     const team     = document.getElementById('edit-team').value;
     const period   = document.getElementById('edit-period').value;
-    const result   = document.getElementById('edit-result').value;
+    const result   = document.getElementById('edit-result')?.value ?? null;
     const manUp     = document.getElementById('edit-man-up').checked;
     const manDown   = document.getElementById('edit-man-down').checked;
     const assisted     = document.getElementById('edit-assisted')?.checked ?? false;
@@ -8697,25 +8774,6 @@ const HANDLERS = {
   // Viewer: toggle split-barów (F-02)
   'toggle-split-bars': () => { APP.splitBars = !APP.splitBars; render(); },
 
-  // Groundball / Draw
-  'record-groundball': (slot) => {
-    const match = DATA.scheduledMatches.find(m => String(m.id) === String(APP.matchId));
-    recordEvent({
-      event_type: 'groundball', team_event: slot === 'A' ? match.team_A : match.team_B,
-      period: APP.match.period, result: null,
-      shot_x: null, shot_y: null, zone_name: null, man_up: false, man_down: false,
-    });
-  },
-
-  'record-draw': (slot) => {
-    const match = DATA.scheduledMatches.find(m => String(m.id) === String(APP.matchId));
-    recordEvent({
-      event_type: 'draw', team_event: slot === 'A' ? match.team_A : match.team_B,
-      period: APP.match.period, result: null,
-      shot_x: null, shot_y: null, zone_name: null, man_up: false, man_down: false,
-    });
-  },
-
   // Bramkarze (F-11)
   'open-goalie-modal': (slot) => {
     APP.modal = { type: 'goalie-form', team_slot: slot };
@@ -8814,6 +8872,32 @@ const HANDLERS = {
     render();
   },
 };
+
+function submitCounterEvent(eventType, slot) {
+  const pending = APP.modal.pending;
+  const match   = DATA.scheduledMatches.find(m => String(m.id) === String(APP.matchId));
+  const manUp     = document.getElementById('flag-man-up').checked;
+  const manDown   = document.getElementById('flag-man-down').checked;
+  const assisted      = document.getElementById('flag-assisted')?.checked ?? false;
+  const fastBreak     = document.getElementById('flag-fast-break')?.checked ?? false;
+  const freePosition  = document.getElementById('flag-free-position')?.checked ?? false;
+  const penaltyShot   = document.getElementById('flag-penalty-shot')?.checked ?? false;
+  // pending.shot_x/shot_y/zone_name are relative to the team auto-detected from
+  // the clicked half (correct for a shot). GB/Draw's team comes from the button
+  // instead, which may be the OTHER team — recompute the position in that
+  // team's own attacker-relative frame, or the click would mirror to the wrong half.
+  const { shot_x, shot_y } = physicalToAttacker(pending.click_x, pending.click_y, slot, APP.match.team_A_side);
+  const zone_name = zoneForAttackerCoords(shot_x, shot_y);
+  recordEvent({
+    event_type: eventType,
+    shot_x, shot_y, zone_name,
+    team_event: slot === 'A' ? match.team_A : match.team_B,
+    result: null, man_up: manUp, man_down: manDown, assisted, fast_break: fastBreak,
+    free_position: freePosition, penalty_shot: penaltyShot,
+  });
+  APP.modal = null;
+  render();
+}
 
 // ===== Event delegation =====
 

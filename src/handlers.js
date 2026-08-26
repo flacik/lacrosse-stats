@@ -569,6 +569,12 @@ const HANDLERS = {
     render();
   },
 
+  // Groundball / Draw — zapisywane z tego samego modala co strzał, na tej
+  // samej pozycji, ale drużyna pochodzi z klikniętego przycisku, nie z
+  // auto-detekcji połowy boiska (nie da się jej wywnioskować z miejsca zdarzenia).
+  'submit-groundball': (slot) => submitCounterEvent('groundball', slot),
+  'submit-draw':       (slot) => submitCounterEvent('draw', slot),
+
   'edit-event': (id) => {
     const e = DATA.events.find(x => String(x.id) === String(id));
     if (!e) return;
@@ -578,7 +584,7 @@ const HANDLERS = {
   'submit-edit': (id) => {
     const team     = document.getElementById('edit-team').value;
     const period   = document.getElementById('edit-period').value;
-    const result   = document.getElementById('edit-result').value;
+    const result   = document.getElementById('edit-result')?.value ?? null;
     const manUp     = document.getElementById('edit-man-up').checked;
     const manDown   = document.getElementById('edit-man-down').checked;
     const assisted     = document.getElementById('edit-assisted')?.checked ?? false;
@@ -697,25 +703,6 @@ const HANDLERS = {
   // Viewer: toggle split-barów (F-02)
   'toggle-split-bars': () => { APP.splitBars = !APP.splitBars; render(); },
 
-  // Groundball / Draw
-  'record-groundball': (slot) => {
-    const match = DATA.scheduledMatches.find(m => String(m.id) === String(APP.matchId));
-    recordEvent({
-      event_type: 'groundball', team_event: slot === 'A' ? match.team_A : match.team_B,
-      period: APP.match.period, result: null,
-      shot_x: null, shot_y: null, zone_name: null, man_up: false, man_down: false,
-    });
-  },
-
-  'record-draw': (slot) => {
-    const match = DATA.scheduledMatches.find(m => String(m.id) === String(APP.matchId));
-    recordEvent({
-      event_type: 'draw', team_event: slot === 'A' ? match.team_A : match.team_B,
-      period: APP.match.period, result: null,
-      shot_x: null, shot_y: null, zone_name: null, man_up: false, man_down: false,
-    });
-  },
-
   // Bramkarze (F-11)
   'open-goalie-modal': (slot) => {
     APP.modal = { type: 'goalie-form', team_slot: slot };
@@ -814,6 +801,32 @@ const HANDLERS = {
     render();
   },
 };
+
+function submitCounterEvent(eventType, slot) {
+  const pending = APP.modal.pending;
+  const match   = DATA.scheduledMatches.find(m => String(m.id) === String(APP.matchId));
+  const manUp     = document.getElementById('flag-man-up').checked;
+  const manDown   = document.getElementById('flag-man-down').checked;
+  const assisted      = document.getElementById('flag-assisted')?.checked ?? false;
+  const fastBreak     = document.getElementById('flag-fast-break')?.checked ?? false;
+  const freePosition  = document.getElementById('flag-free-position')?.checked ?? false;
+  const penaltyShot   = document.getElementById('flag-penalty-shot')?.checked ?? false;
+  // pending.shot_x/shot_y/zone_name are relative to the team auto-detected from
+  // the clicked half (correct for a shot). GB/Draw's team comes from the button
+  // instead, which may be the OTHER team — recompute the position in that
+  // team's own attacker-relative frame, or the click would mirror to the wrong half.
+  const { shot_x, shot_y } = physicalToAttacker(pending.click_x, pending.click_y, slot, APP.match.team_A_side);
+  const zone_name = zoneForAttackerCoords(shot_x, shot_y);
+  recordEvent({
+    event_type: eventType,
+    shot_x, shot_y, zone_name,
+    team_event: slot === 'A' ? match.team_A : match.team_B,
+    result: null, man_up: manUp, man_down: manDown, assisted, fast_break: fastBreak,
+    free_position: freePosition, penalty_shot: penaltyShot,
+  });
+  APP.modal = null;
+  render();
+}
 
 // ===== Event delegation =====
 

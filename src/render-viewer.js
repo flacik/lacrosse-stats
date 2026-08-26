@@ -41,7 +41,8 @@ function renderMatchViewer(root) {
 
   const allEvents  = DATA.events.filter(e => String(e.match_id) === String(match.id));
   const shotEvents = allEvents.filter(e => isShotEvent(e));
-  const filtered   = applyViewerFilters(shotEvents, APP.viewer);
+  const markerEvents = allEvents.filter(e => isFieldMarkerEvent(e));
+  const filtered   = applyViewerFilters(markerEvents, APP.viewer);
   const score      = computeScore(match.id);
   const statsA     = computeTeamStats(match.id, match.team_A, shotEvents);
   const statsB     = computeTeamStats(match.id, match.team_B, shotEvents);

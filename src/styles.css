@@ -317,6 +317,28 @@ svg.field.field-half {
 .result-btn.gol { color: white; border-color: #15803d; background: #16a34a; }
 .result-btn.gol:hover { background: #15803d; }
 
+.counter-action-row {
+  display: flex; align-items: center; gap: 10px;
+  margin: 2px 0 10px; color: #999; font-size: 11px;
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
+.counter-action-row::before, .counter-action-row::after {
+  content: ''; flex: 1; height: 1px; background: #e5e7eb;
+}
+.counter-action-buttons {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+  margin-bottom: 16px;
+}
+.counter-action-btn {
+  min-height: 44px; border-radius: 8px; border: 1.5px solid;
+  background: transparent; font-family: inherit;
+  font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.counter-action-btn.team-A { color: #1d4ed8; border-color: #93c5fd; background: #eff6ff; }
+.counter-action-btn.team-A:hover { background: #dbeafe; }
+.counter-action-btn.team-B { color: #b91c1c; border-color: #fca5a5; background: #fef2f2; }
+.counter-action-btn.team-B:hover { background: #fee2e2; }
+
 .flag-row {
   display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px 12px;
   margin-bottom: 16px;
@@ -780,6 +802,12 @@ table.stats-table td.num {
 [data-theme="dark"] .result-btn.celny:hover { background: #162a5e; }
 [data-theme="dark"] .result-btn.gol { color: #fff; border-color: #238636; background: #238636; }
 [data-theme="dark"] .result-btn.gol:hover { background: #2ea043; }
+[data-theme="dark"] .counter-action-row { color: #6e7681; }
+[data-theme="dark"] .counter-action-row::before, [data-theme="dark"] .counter-action-row::after { background: #30363d; }
+[data-theme="dark"] .counter-action-btn.team-A { color: #58a6ff; border-color: #1f6feb; background: #0d2149; }
+[data-theme="dark"] .counter-action-btn.team-A:hover { background: #162a5e; }
+[data-theme="dark"] .counter-action-btn.team-B { color: #f85149; border-color: #8b1a1a; background: #2d0f0f; }
+[data-theme="dark"] .counter-action-btn.team-B:hover { background: #3d1414; }
 [data-theme="dark"] .flag-row { background: #1c2128; }
 [data-theme="dark"] .modal-actions { border-top-color: #21262d; }
 
@@ -1497,19 +1525,6 @@ table.stats-table td.num {
   padding: 0 2px;
 }
 
-.counter-btn {
-  padding: 1px 8px;
-  font-size: 15px;
-  font-weight: 700;
-  border-radius: 4px;
-  border: 1px solid currentColor;
-  background: transparent;
-  cursor: pointer;
-  line-height: 1.3;
-  opacity: 0.8;
-}
-
-.counter-btn:hover { opacity: 1; }
 
 [data-theme="dark"] .counter-bar-v2 {
   background: #1c2128;

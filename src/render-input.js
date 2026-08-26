@@ -162,24 +162,20 @@ function renderMatchInput(root) {
             </div>
             <button data-action="open-goalie-retroactive" class="btn-link goalie-retroactive-v2">${T('goalie.edit_retro')}</button>
           </div>
-          <div class="counter-bar counter-bar-v2">
+          <div class="counter-bar counter-bar-v2 counter-bar-summary">
             <span class="counter-team-v2 team-A-color" title="${escapeHtml(match.team_A)}">${escapeHtml(match.team_A)}</span>
             <div class="counter-cell-v2">
-              <button data-action="record-groundball" data-arg="A" class="counter-btn team-A-color">+</button>
               <span class="counter-label-v2">GB</span>
               <span class="counter-val-v2 team-A-color">${counters.gbA}</span>
               <span class="counter-sep-v2">:</span>
               <span class="counter-val-v2 team-B-color">${counters.gbB}</span>
-              <button data-action="record-groundball" data-arg="B" class="counter-btn team-B-color">+</button>
             </div>
             <span class="counter-divider-v2">|</span>
             <div class="counter-cell-v2">
-              <button data-action="record-draw" data-arg="A" class="counter-btn team-A-color">+</button>
               <span class="counter-label-v2">Draw</span>
               <span class="counter-val-v2 team-A-color">${counters.drawA}</span>
               <span class="counter-sep-v2">:</span>
               <span class="counter-val-v2 team-B-color">${counters.drawB}</span>
-              <button data-action="record-draw" data-arg="B" class="counter-btn team-B-color">+</button>
             </div>
             <span class="counter-team-v2 team-B-color" title="${escapeHtml(match.team_B)}">${escapeHtml(match.team_B)}</span>
           </div>
@@ -217,21 +213,10 @@ function renderHistoryRow(e, match) {
   }
 
   const rowClass = e._syncError ? 'history-row sync-error' : 'history-row';
-
-  if (e.event_type === 'groundball' || e.event_type === 'draw') {
-    const label = e.event_type === 'groundball' ? 'GB' : 'Draw';
-    return `
-      <div class="${rowClass}">
-        <div class="period">${periodLabel(e.period)}</div>
-        <div class="team-tag ${slot}">${slot}</div>
-        <div class="result">${label}</div>
-        <div class="flags">${syncBadge}</div>
-        <div class="actions">
-          ${retryBtn}
-          <button class="icon-btn delete" title="${APP.lang === 'pl' ? 'Usuń' : 'Delete'}" data-action="delete-event" data-arg="${e.id}">🗑</button>
-        </div>
-      </div>`;
-  }
+  const isCounterEvent = e.event_type === 'groundball' || e.event_type === 'draw';
+  const resultLabel = isCounterEvent
+    ? (e.event_type === 'groundball' ? 'GB' : 'Draw')
+    : e.result;
 
   const flags = [];
   if (e.man_up)        flags.push('<span class="flag man-up">man-up</span>');
@@ -245,7 +230,7 @@ function renderHistoryRow(e, match) {
     <div class="${rowClass}">
       <div class="period">${periodLabel(e.period)}</div>
       <div class="team-tag ${slot}">${slot}</div>
-      <div class="result ${e.result}">${e.result}</div>
+      <div class="result ${isCounterEvent ? '' : e.result}">${resultLabel}</div>
       <div class="flags">${flags.join('')}${syncBadge}</div>
       <div class="actions">
         ${retryBtn}

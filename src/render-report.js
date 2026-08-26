@@ -14,8 +14,11 @@ function openMatchReport(matchId) {
   var allEvents  = DATA.events.filter(function(e) {
     return String(e.match_id) === String(matchId);
   });
-  var shotEvents = allEvents.filter(function(e) {
+  var shotEvents   = allEvents.filter(function(e) {
     return isShotEvent(e);
+  });
+  var markerEvents = allEvents.filter(function(e) {
+    return isFieldMarkerEvent(e);
   });
 
   var score     = computeScore(matchId);
@@ -27,8 +30,8 @@ function openMatchReport(matchId) {
   var counters  = computeCounterStats(matchId, match, null);
   var cumScore  = computeCumulativeScore(matchId, match, ['shots', 'onTarget', 'goals', 'groundballs']);
 
-  var evA = shotEvents.filter(function(e) { return e.team_event === match.team_A; });
-  var evB = shotEvents.filter(function(e) { return e.team_event === match.team_B; });
+  var evA = markerEvents.filter(function(e) { return e.team_event === match.team_A; });
+  var evB = markerEvents.filter(function(e) { return e.team_event === match.team_B; });
   var svgA = _reportHalfFieldSvg(evA, match.team_A, false);
   var svgB = _reportHalfFieldSvg(evB, match.team_B, false);
 

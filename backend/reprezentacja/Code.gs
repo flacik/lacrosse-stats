@@ -306,7 +306,8 @@ function findRowById(sheet, id) {
  * Zwraca null jeśli OK, lub string z opisem błędu.
  */
 function validateEvent(ev) {
-  var isGoalieSet = ev.event_type === 'goalie_set';
+  var isGoalieSet    = ev.event_type === 'goalie_set';
+  var isCounterEvent = ev.event_type === 'groundball' || ev.event_type === 'draw';
 
   // 1. Required fields (all event types)
   var required = [
@@ -315,7 +316,10 @@ function validateEvent(ev) {
     'period', 'team_event',
   ];
   if (!isGoalieSet) {
-    required = required.concat(['shot_x', 'shot_y', 'zone_name', 'result']);
+    required = required.concat(['shot_x', 'shot_y', 'zone_name']);
+  }
+  if (!isGoalieSet && !isCounterEvent) {
+    required.push('result');
   }
   for (var i = 0; i < required.length; i++) {
     var f = required[i];
@@ -331,8 +335,8 @@ function validateEvent(ev) {
     return null;
   }
 
-  // 2. result
-  if (VALID_RESULTS.indexOf(ev.result) === -1) {
+  // 2. result — groundball/draw nie mają wyniku, pomiń
+  if (!isCounterEvent && VALID_RESULTS.indexOf(ev.result) === -1) {
     return 'Niepoprawny wynik: ' + ev.result + '. Oczekiwane: ' + VALID_RESULTS.join(', ');
   }
 

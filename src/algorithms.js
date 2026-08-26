@@ -45,6 +45,19 @@ function physicalToAttacker(px, py, team_slot, team_A_side) {
   return { shot_x, shot_y };
 }
 
+// Zone name from attacker-relative coords, for an explicitly chosen team
+// (groundball/draw — team isn't inferred from the clicked half, so shot_x
+// can legitimately come out negative for that team even on a "normal" click).
+function zoneForAttackerCoords(shot_x, shot_y) {
+  if (shot_x < 0) return 'own-half';
+  const zone_long = shot_x > ATTACK_THRESHOLD ? 'attack' : 'midfield';
+  let zone_lat;
+  if (shot_y < 1/3) zone_lat = 'left';
+  else if (shot_y < 2/3) zone_lat = 'center';
+  else zone_lat = 'right';
+  return `${zone_long}-${zone_lat}`;
+}
+
 // Attacker-relative → physical for current sides (used to render markers).
 function attackerToPhysical(shot_x, shot_y, team_slot, team_A_side) {
   const A_attacks_right = team_A_side === 'left';

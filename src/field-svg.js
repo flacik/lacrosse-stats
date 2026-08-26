@@ -86,6 +86,8 @@ function buildFieldSvg(match) {
     const isOwnHalf = e.zone_name === 'own-half';
     const isGoal = e.result === 'gol';
     const isMissed = e.result === 'niecelny';
+    const isGroundball = e.event_type === 'groundball';
+    const isDraw        = e.event_type === 'draw';
     const dotR = isLatest ? 11 : 7;
     const sw = isLatest ? (isOwnHalf ? 4 : 3) : (isOwnHalf ? 3 : 2);
 
@@ -103,7 +105,21 @@ function buildFieldSvg(match) {
     }
 
     let markerEl;
-    if (isMissed) {
+    if (isGroundball) {
+      const s = dotR - 2;
+      markerEl = svgEl('rect', {
+        x: sx - s, y: sy - s, width: s * 2, height: s * 2,
+        fill: fillColor, stroke: isOwnHalf ? '#ca8a04' : 'white', 'stroke-width': sw,
+        class: 'marker' + (isLatest ? ' latest' : '')
+      });
+    } else if (isDraw) {
+      const s = dotR;
+      const points = `${sx},${sy - s} ${sx - s * 0.87},${sy + s * 0.5} ${sx + s * 0.87},${sy + s * 0.5}`;
+      markerEl = svgEl('polygon', {
+        points, fill: fillColor, stroke: isOwnHalf ? '#ca8a04' : 'white', 'stroke-width': sw,
+        class: 'marker' + (isLatest ? ' latest' : '')
+      });
+    } else if (isMissed) {
       const s = dotR - 2;
       const xColor = isOwnHalf ? '#ca8a04' : fillColor;
       markerEl = svgEl('g', { class: 'marker' + (isLatest ? ' latest' : '') });
@@ -202,7 +218,8 @@ function handleFieldClick(ev) {
       pending: {
         shot_x, shot_y,
         team_event: teamName, team_slot: teamSlotChosen,
-        zone_name: 'own-half'
+        zone_name: 'own-half',
+        click_x: x, click_y: y,
       }
     };
     render();
@@ -216,7 +233,8 @@ function handleFieldClick(ev) {
     pending: {
       shot_x: det.shot_x, shot_y: det.shot_y,
       team_event: teamName, team_slot: det.team,
-      zone_name: det.zone
+      zone_name: det.zone,
+      click_x: x, click_y: y,
     }
   };
   render();
@@ -304,7 +322,7 @@ function drawHalfFieldChart(svg, match, filtered, viewer) {
     const cx = e.shot_y * 540;
     const cy = (1 - e.shot_x) * 600;
     if (viewer.display_mode === 'heatmap') drawHeatBlob(fieldG, cx, cy, teamColor);
-    else                                    drawShotMarker(fieldG, cx, cy, teamColor, e.result, false, e.man_up, e.man_down, e.assisted, e.fast_break, e.free_position, e.penalty_shot);
+    else                                    drawShotMarker(fieldG, cx, cy, teamColor, e.result, false, e.man_up, e.man_down, e.assisted, e.fast_break, e.free_position, e.penalty_shot, e.event_type);
   });
 
   svg.appendChild(fieldG);
@@ -338,13 +356,15 @@ function drawShotsFullField(g, events, match, displayMode) {
     const cx = physical_x * 1100;
     const cy = physical_y * 600;
     if (displayMode === 'heatmap') drawHeatBlob(g, cx, cy, color);
-    else                            drawShotMarker(g, cx, cy, color, e.result, e.zone_name === 'own-half', e.man_up, e.man_down, e.assisted, e.fast_break, e.free_position, e.penalty_shot);
+    else                            drawShotMarker(g, cx, cy, color, e.result, e.zone_name === 'own-half', e.man_up, e.man_down, e.assisted, e.fast_break, e.free_position, e.penalty_shot, e.event_type);
   });
 }
 
-function drawShotMarker(g, cx, cy, color, result, isOwnHalf, manUp, manDown, hasAssist, fastBreak, freePosition, penaltyShot) {
-  const isGoal   = result === 'gol';
-  const isMissed = result === 'niecelny';
+function drawShotMarker(g, cx, cy, color, result, isOwnHalf, manUp, manDown, hasAssist, fastBreak, freePosition, penaltyShot, eventType) {
+  const isGoal       = result === 'gol';
+  const isMissed      = result === 'niecelny';
+  const isGroundball  = eventType === 'groundball';
+  const isDraw        = eventType === 'draw';
   const strokeColor = isOwnHalf ? '#ca8a04' : color;
 
   // Man-up / man-down outer ring (rendered first, behind marker)
@@ -359,7 +379,14 @@ function drawShotMarker(g, cx, cy, color, result, isOwnHalf, manUp, manDown, has
     g.appendChild(svgEl('circle', ringAttrs));
   }
 
-  if (isMissed) {
+  if (isGroundball) {
+    const s = 6;
+    g.appendChild(svgEl('rect', { x: cx - s, y: cy - s, width: s * 2, height: s * 2, fill: color, stroke: isOwnHalf ? '#ca8a04' : 'white', 'stroke-width': 2 }));
+  } else if (isDraw) {
+    const s = 7.5;
+    const points = `${cx},${cy - s} ${cx - s * 0.87},${cy + s * 0.5} ${cx + s * 0.87},${cy + s * 0.5}`;
+    g.appendChild(svgEl('polygon', { points, fill: color, stroke: isOwnHalf ? '#ca8a04' : 'white', 'stroke-width': 2 }));
+  } else if (isMissed) {
     const s = 5;
     g.appendChild(svgEl('line', { x1: cx - s, y1: cy - s, x2: cx + s, y2: cy + s, stroke: strokeColor, 'stroke-width': 2 }));
     g.appendChild(svgEl('line', { x1: cx + s, y1: cy - s, x2: cx - s, y2: cy + s, stroke: strokeColor, 'stroke-width': 2 }));
@@ -520,6 +547,14 @@ function buildFieldLegend(match, opts) {
         <polyline points="16,4 19,7 16,10" fill="none" stroke="#10b981" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
       </svg>
       ${T('legend.fast_break')}
+    </span>
+    <span class="leg-item">
+      <svg width="14" height="14" viewBox="0 0 14 14"><rect x="2" y="2" width="10" height="10" fill="#6b7280" stroke="white" stroke-width="1.5"/></svg>
+      ${T('legend.groundball')}
+    </span>
+    <span class="leg-item">
+      <svg width="14" height="14" viewBox="0 0 14 14"><polygon points="7,1 13,12 1,12" fill="#6b7280" stroke="white" stroke-width="1.5"/></svg>
+      ${T('legend.draw')}
     </span>
     ${(opts.includeFieldShotTypes || (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.variant === 'field')) ? `
     <span class="leg-item">

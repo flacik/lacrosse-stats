@@ -43,6 +43,13 @@ function isShotEvent(e) {
   return !e.event_type || e.event_type === '';
 }
 
+// Shots + groundball/draw (both now carry a real field position) — used for
+// map/chart rendering. Numeric shooting stats keep using isShotEvent alone,
+// since groundball/draw aren't shots.
+function isFieldMarkerEvent(e) {
+  return isShotEvent(e) || e.event_type === 'groundball' || e.event_type === 'draw';
+}
+
 function computeCounterStats(matchId, match, period) {
   const events = DATA.events.filter(e => String(e.match_id) === String(matchId));
   const ev = period ? events.filter(e => String(e.period) === String(period)) : events;

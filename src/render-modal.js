@@ -23,6 +23,7 @@ function renderModal() {
 function closeModal() { APP.modal = null; render(); }
 
 function renderResultModal(pending) {
+  const match = DATA.scheduledMatches.find(m => m.id === APP.matchId);
   return `
     <div class="modal" data-stop-propagation="true">
       <h2>${T('modal.shot.title')}</h2>
@@ -54,6 +55,14 @@ function renderResultModal(pending) {
         <button class="result-btn celny"    data-action="submit-result" data-arg="celny">${T('result.save')}</button>
         <button class="result-btn gol"      data-action="submit-result" data-arg="gol">${T('result.goal')}</button>
       </div>
+      ${pending.zone_name === 'own-half' ? '' : `
+      <div class="counter-action-row"><span>${T('modal.shot.or_counter')}</span></div>
+      <div class="counter-action-buttons">
+        <button class="counter-action-btn team-A" data-action="submit-groundball" data-arg="A">GB — ${escapeHtml(match.team_A)}</button>
+        <button class="counter-action-btn team-B" data-action="submit-groundball" data-arg="B">GB — ${escapeHtml(match.team_B)}</button>
+        <button class="counter-action-btn team-A" data-action="submit-draw" data-arg="A">Draw — ${escapeHtml(match.team_A)}</button>
+        <button class="counter-action-btn team-B" data-action="submit-draw" data-arg="B">Draw — ${escapeHtml(match.team_B)}</button>
+      </div>`}
       <div class="modal-actions">
         <button class="btn" data-action="cancel-modal">${T('btn.cancel')}</button>
       </div>
@@ -62,6 +71,7 @@ function renderResultModal(pending) {
 
 function renderEditEventModal(e) {
   const match = DATA.scheduledMatches.find(m => m.id === APP.matchId);
+  const isCounterEvent = e.event_type === 'groundball' || e.event_type === 'draw';
   return `
     <div class="modal" data-stop-propagation="true">
       <h2>${T('modal.edit.title')}</h2>
@@ -84,6 +94,7 @@ function renderEditEventModal(e) {
           ).join('')}
         </select>
       </label>
+      ${isCounterEvent ? '' : `
       <label class="field">
         <span class="field-label">${T('field.result')}</span>
         <select id="edit-result">
@@ -91,7 +102,7 @@ function renderEditEventModal(e) {
           <option value="celny"    ${e.result === 'celny'    ? 'selected' : ''}>${T('result.save')}</option>
           <option value="gol"      ${e.result === 'gol'      ? 'selected' : ''}>${APP.lang === 'pl' ? 'Gol' : 'Goal'}</option>
         </select>
-      </label>
+      </label>`}
       <div class="flag-row">
         <label><input type="checkbox" id="edit-man-up"   data-action="mutex-edit-flag" data-arg="man-up"   ${e.man_up   ? 'checked' : ''}> ${T('flag.man_up_short')}</label>
         <label><input type="checkbox" id="edit-man-down" data-action="mutex-edit-flag" data-arg="man-down" ${e.man_down ? 'checked' : ''}> ${T('flag.man_down_short')}</label>

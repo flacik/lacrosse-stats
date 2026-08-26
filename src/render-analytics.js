@@ -820,7 +820,7 @@ function _buildZoneEfficiencySvg(events) {
   const stats = {};
   Object.keys(ZONE_RECTS).forEach(z => { stats[z] = { total: 0, goals: 0 }; });
   events.forEach(e => {
-    if (!e.zone_name || !stats[e.zone_name]) return;
+    if (!isShotEvent(e) || !e.zone_name || !stats[e.zone_name]) return;
     stats[e.zone_name].total++;
     if (e.result === 'gol') stats[e.zone_name].goals++;
   });
