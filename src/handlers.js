@@ -49,6 +49,31 @@ const HANDLERS = {
     render();
   },
   'go-home-from-analytics': () => goHome(),
+
+  // Heatmap view (render-heatmap.js) — every action edits APP.heatmap and re-renders.
+  'hm-team-menu':    () => hmUpdate(S => { S.teamMenu = !S.teamMenu; }),
+  'hm-toggle-team':  (name) => hmUpdate(S => { S.teams = hmToggleIn(S.teams, name); S.opp = ''; }),
+  'hm-set-opp':      (val) => hmUpdate(S => { S.opp = val || ''; }),
+  'hm-toggle-tour':  (name) => hmUpdate(S => {
+    const all = S._tourNames || [];
+    const next = hmToggleIn(S.tours || all, name);
+    S.tours = next.length === all.length ? null : next;
+  }),
+  'hm-preset':       (id) => hmUpdate(S => { S.preset = id; S.from = _hmPresetFrom(id); S.to = ''; }),
+  'hm-date':         (val, el) => {
+    if (!el) return;  // the click listener also fires on date inputs — ignore it
+    hmUpdate(S => { S[el.dataset.field] = val || ''; S.preset = null; });
+  },
+  'hm-toggle-q':     (q) => hmUpdate(S => { S.qs = hmToggleIn(S.qs, q); }),
+  'hm-set-sit':      (id) => hmUpdate(S => { S.sit = id; }),
+  'hm-set-mode':     (id) => hmUpdate(S => { S.mode = id; }),
+  'hm-set-persp':    (id) => hmUpdate(S => { S.persp = id; }),
+  'hm-set-metric':   (id) => hmUpdate(S => { S.metric = id; }),
+  'hm-q-metric':     (id) => hmUpdate(S => { S.qMetric = id; }),
+  'hm-q-show':       (id) => hmUpdate(S => { if (S.qMetric !== 'eff') S.qShow = id; }),
+  'hm-toggle-match': (id) => hmUpdate(S => { S.excl = Object.assign({}, S.excl, { [id]: !S.excl[id] }); }),
+  'hm-include-all':  () => hmUpdate(S => { S.excl = {}; }),
+  'hm-reset':        () => hmUpdate(S => { const teams = S.teams; Object.assign(S, hmInitialState(), { teams }); }),
   'analytics-heatmap-toggle': (mode) => {
     APP.analyticsHeatmapMode = mode;
     render();
@@ -920,7 +945,8 @@ document.addEventListener('change', (e) => {
   const action = target.dataset.action;
   const handler = HANDLERS[action];
   if (!handler) return;
-  if (action === 'analytics-filter-change' || action === 'csv-import-file' || action === 'standings-set-tournament' || action === 'embed-select-match') {
+  if (action === 'analytics-filter-change' || action === 'csv-import-file' || action === 'standings-set-tournament' || action === 'embed-select-match' ||
+      action === 'hm-set-opp' || action === 'hm-date') {
     handler(target.value, target);
   } else {
     handler(target.dataset.arg);

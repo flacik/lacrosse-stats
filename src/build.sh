@@ -24,6 +24,7 @@ JS_FILES=(
   render-input.js
   render-viewer.js
   render-analytics.js
+  render-heatmap.js
   render-admin.js
   render-standings.js
   render-report.js

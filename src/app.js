@@ -2,7 +2,7 @@
 
 // Top-level render dispatcher + init.
 
-const APP_VERSION = 'v2.1.0';
+const APP_VERSION = 'v2.5.0';
 
 function _renderFooter(container) {
   const f = document.createElement('footer');

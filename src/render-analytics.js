@@ -38,16 +38,53 @@ function renderAnalytics(root) {
 
   const { events, matches, tournaments } = APP.analyticsData;
   const f    = APP.analyticsFilters;
-  const mode = APP.analyticsMode || 'single';
+  const mode = APP.analyticsMode || 'heatmap';
 
   const allTeams   = _analyticsAllTeams(matches, f.tournament);
   const allPeriods = _analyticsAllPeriods(events);
 
+  const tab = (id, label) =>
+    `<button class="btn ${mode === id ? 'btn-primary' : ''}" data-action="analytics-mode-toggle" data-arg="${id}">${label}</button>`;
   const modeTabs = `
     <div class="analytics-mode-tabs">
-      <button class="btn ${mode === 'single'  ? 'btn-primary' : ''}" data-action="analytics-mode-toggle" data-arg="single">${T('analytics.mode.single')}</button>
-      <button class="btn ${mode === 'compare' ? 'btn-primary' : ''}" data-action="analytics-mode-toggle" data-arg="compare">${T('analytics.mode.compare')}</button>
+      ${tab('heatmap', T('analytics.mode.heatmap'))}
+      ${tab('compare', T('analytics.mode.compare'))}
+      ${tab('goalies', T('analytics.mode.goalies'))}
+      ${tab('single', T('analytics.mode.classic'))}
     </div>`;
+
+  const header = (extra) => `
+    <div class="app-header">
+      <h1>${T('analytics.title')}</h1>
+      <button class="btn" data-action="go-home-from-analytics">${T('nav.home')}</button>
+      ${_langToggleBtn()}
+      <button class="btn" data-action="toggle-dark-mode" id="theme-toggle" title="${T('nav.theme')}">🌙</button>
+      ${extra || ''}
+    </div>`;
+
+  if (mode === 'heatmap') {
+    root.innerHTML = `
+      ${header()}
+      <div class="analytics-content analytics-content-wide">
+        ${modeTabs}
+        ${renderHeatmapView(events, matches, tournaments)}
+      </div>`;
+    return;
+  }
+
+  if (mode === 'goalies') {
+    const filteredG = _analyticsApplyFilters(events, f);
+    root.innerHTML = `
+      ${header()}
+      <div class="analytics-content">
+        ${modeTabs}
+        ${_renderAnalyticsFilters(f, tournaments, allTeams, allPeriods, 'single')}
+        ${filteredG.length === 0
+          ? `<div class="empty">${T('analytics.empty')}</div>`
+          : `<div class="analytics-body">${_renderAnalyticsGoalies(filteredG, events, matches, f)}</div>`}
+      </div>`;
+    return;
+  }
 
   if (mode === 'compare') {
     root.innerHTML = `
