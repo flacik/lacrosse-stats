@@ -75,7 +75,7 @@ function buildFieldSvg(match) {
 
   // Markers (history dots) — convert attacker-relative to physical
   const markersG = svgEl('g');
-  const events = eventsForMatch(match.id);
+  const events = eventsForMatch(match.id).filter(isFieldMarkerEvent);
   events.forEach((e, i) => {
     const teamSlotName = teamSlot(match.id, e.team_event);
     const { physical_x, physical_y } = attackerToPhysical(e.shot_x, e.shot_y, teamSlotName, APP.match.team_A_side);

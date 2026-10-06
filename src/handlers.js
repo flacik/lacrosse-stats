@@ -575,6 +575,7 @@ const HANDLERS = {
       zone_name: pending.zone_name, team_event: pending.team_event,
       result, man_up: manUp, man_down: manDown, assisted, fast_break: fastBreak,
       free_position: freePosition, penalty_shot: penaltyShot,
+      ..._readNewVideoTs(),
     });
     APP.modal = null;
     render();
@@ -586,43 +587,47 @@ const HANDLERS = {
   'submit-groundball': (slot) => submitCounterEvent('groundball', slot),
   'submit-draw':       (slot) => submitCounterEvent('draw', slot),
 
+  // Penalty (card picked in a modal) / shot clock violation (one click) —
+  // team events, recorded in the current period with no field position.
+  'open-penalty':      (slot) => { APP.modal = { type: 'penalty', slot }; render(); },
+  'submit-penalty':    (card) => {
+    const slot = APP.modal && APP.modal.slot;
+    const videoTs = _readNewVideoTs();
+    APP.modal = null;
+    recordTeamEvent('penalty', slot, { card, ...videoTs });
+    render();
+  },
+  'submit-shot-clock': (slot) => { recordTeamEvent('shot_clock', slot); render(); },
+
   'edit-event': (id) => {
     const e = DATA.events.find(x => String(x.id) === String(id));
     if (!e) return;
-    APP.modal = { type: 'edit-event', event: e, videoMode: isVideoPlayerAvailable() ? 'player' : 'manual' };
+    APP.modal = { type: 'edit-event', event: e };
     render();
   },
-  'toggle-video-mode': () => {
-    const cb = document.getElementById('edit-video-use-player');
-    if (!APP.modal) return;
-    APP.modal.videoMode = (cb && cb.checked) ? 'player' : 'manual';
-    render();
-  },
-  'open-video-review': (url) => { openVideoReviewWindow(url); },
   'submit-edit': (id) => {
     const team     = document.getElementById('edit-team').value;
     const period   = document.getElementById('edit-period').value;
     const result   = document.getElementById('edit-result')?.value ?? null;
-    const manUp     = document.getElementById('edit-man-up').checked;
-    const manDown   = document.getElementById('edit-man-down').checked;
+    // Penalty / shot clock edits have no result or shot flags in the form.
+    const manUp     = document.getElementById('edit-man-up')?.checked ?? false;
+    const manDown   = document.getElementById('edit-man-down')?.checked ?? false;
     const assisted     = document.getElementById('edit-assisted')?.checked ?? false;
     const fastBreak    = document.getElementById('edit-fast-break')?.checked ?? false;
     const freePosition = document.getElementById('edit-free-position')?.checked ?? false;
     const penaltyShot  = document.getElementById('edit-penalty-shot')?.checked ?? false;
 
     const updates = { team_event: team, period, result, man_up: manUp, man_down: manDown, assisted, fast_break: fastBreak, free_position: freePosition, penalty_shot: penaltyShot };
+    const card = document.getElementById('edit-card')?.value;
+    if (card) updates.card = card;
 
-    const videoMode = APP.modal && APP.modal.videoMode;
     let newVideoTs = null;
-    if (videoMode === 'player') {
-      newVideoTs = getCurrentPlayerTime();
-      if (newVideoTs !== null) updates.video_ts = newVideoTs;
-    } else {
-      const raw = document.getElementById('edit-video-manual')?.value ?? '';
-      if (raw.trim() === '') {
+    const rawVideoTs = document.getElementById('edit-video-manual')?.value;
+    if (rawVideoTs !== undefined) {
+      if (rawVideoTs.trim() === '') {
         updates.video_ts = '';
       } else {
-        const parsed = parseVideoTimestampInput(raw);
+        const parsed = parseVideoTimestampInput(rawVideoTs);
         if (parsed !== null) { newVideoTs = parsed; updates.video_ts = parsed; }
       }
     }
@@ -846,6 +851,16 @@ const HANDLERS = {
   },
 };
 
+function recordTeamEvent(eventType, slot, extra) {
+  const match = DATA.scheduledMatches.find(m => String(m.id) === String(APP.matchId));
+  if (!match || (slot !== 'A' && slot !== 'B')) return;
+  recordEvent(Object.assign({
+    event_type: eventType,
+    team_event: slot === 'A' ? match.team_A : match.team_B,
+    result: null, man_up: false, man_down: false,
+  }, extra));
+}
+
 function submitCounterEvent(eventType, slot) {
   const pending = APP.modal.pending;
   const match   = DATA.scheduledMatches.find(m => String(m.id) === String(APP.matchId));
@@ -867,9 +882,17 @@ function submitCounterEvent(eventType, slot) {
     team_event: slot === 'A' ? match.team_A : match.team_B,
     result: null, man_up: manUp, man_down: manDown, assisted, fast_break: fastBreak,
     free_position: freePosition, penalty_shot: penaltyShot,
+    ..._readNewVideoTs(),
   });
   APP.modal = null;
   render();
+}
+
+// { video_ts } from the optional field in the new-event modals, or {} when
+// the field is absent, empty or unparseable.
+function _readNewVideoTs() {
+  const parsed = parseVideoTimestampInput(document.getElementById('new-video-ts')?.value ?? '');
+  return parsed !== null ? { video_ts: parsed } : {};
 }
 
 // ===== Event delegation =====

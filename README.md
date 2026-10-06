@@ -162,7 +162,7 @@ cd src/
 
 ## Status
 
-**Current: v2.3.3 — deployed 2026-06-10**
+**Current: v2.4.0 — deployed 2026-10-06 (Reprezentacja)**
 
 ### Versioning rules
 
@@ -175,6 +175,16 @@ cd src/
 ### Changelog
 
 Each entry is tagged with the game variant(s) it affects, not the deployment names: `[all]` ships everywhere, `[field]` is field lacrosse (Mistrzostwa) only, `[sixes]` is lacrosse sixes (Liga, Reprezentacja) only. Untagged legacy entries below predate the multi-deployment split and applied to all instances.
+
+**v2.4.0 (2026-10-06)** `[sixes]` — penalties, shot clock violations, video moments (deployed to Reprezentacja only):
+
+- New **Penalty** and **Shot clock** buttons per team under the GB/Draw counters; a penalty asks for the card (green / yellow / red), both are recorded in the current period with no field position
+- Penalties (with a G/Y/R breakdown) and shot clock violations appear in the match counter bar, event history, live viewer, both PDF reports, and a new "Penalties & shot clock by quarter" table in team analytics
+- New `card` column in the `events` sheet — added automatically on the first write, no manual `setupSheets()` run needed
+- Optional **Video moment** field when adding a shot, GB, draw or penalty (matches with a recording link); accepts `m:ss`, `h:mm:ss`, seconds or a YouTube URL with `&t=`, and is shown back as `m:ss` when editing
+- The match header keeps only the plain **▶ Recording** link; the embedded "Review (2nd screen)" player popup is removed (it was unreliable inside the GAS sandbox), along with its "set from player" option
+- English is now the default UI language
+- Free position / penalty shot checkboxes are hidden in sixes (field-lacrosse only; the sixes backend never stored them)
 
 **v2.3.5 (2026-08-26)** `[sixes]` — shot chart marker clustering:
 

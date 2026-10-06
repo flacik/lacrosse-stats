@@ -1696,6 +1696,41 @@ table.stats-table td.num {
   color: #fff;
   border-color: #238636;
 }
+
+/* Penalty / shot clock — team event buttons under the counter bar */
+.team-event-bar {
+  display: flex; justify-content: space-between; align-items: center;
+  gap: 8px; padding: 6px 10px; flex-wrap: wrap;
+}
+.team-event-group { display: flex; align-items: center; gap: 6px; }
+.team-event-bar .counter-action-btn { min-height: 34px; padding: 0 12px; }
+.team-event-name {
+  font-size: 11px; font-weight: 700; max-width: 90px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.team-event-bar .team-A-color { color: #1d4ed8; }
+.team-event-bar .team-B-color { color: #b91c1c; }
+
+.card-buttons { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
+.card-btn {
+  min-height: 56px; border-radius: 8px; border: 2px solid rgba(0,0,0,0.15);
+  font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer;
+}
+.card-btn.card-green  { background: #16a34a; color: #fff; }
+.card-btn.card-yellow { background: #facc15; color: #422006; }
+.card-btn.card-red    { background: #dc2626; color: #fff; }
+.card-btn:hover { filter: brightness(1.08); }
+
+.card-chip {
+  display: inline-block; width: 8px; height: 11px; border-radius: 2px;
+  margin-right: 4px; vertical-align: -1px; background: #9ca3af;
+}
+.card-chip.card-green  { background: #16a34a; }
+.card-chip.card-yellow { background: #facc15; }
+.card-chip.card-red    { background: #dc2626; }
+
+[data-theme="dark"] .team-event-bar .team-A-color { color: #58a6ff; }
+[data-theme="dark"] .team-event-bar .team-B-color { color: #f85149; }
 </style>
 </head>
 <body>
@@ -2195,6 +2230,14 @@ function validateEventPayload(ev) {
     if (!PERIOD_REGEX.test(String(ev.period))) return 'Nieprawidłowy okres: ' + ev.period;
     return null;
   }
+  if (ev.event_type === 'penalty' || ev.event_type === 'shot_clock') {
+    if (!PERIOD_REGEX.test(String(ev.period))) return 'Nieprawidłowy okres: ' + ev.period;
+    if (ev.event_type === 'penalty' && !['green', 'yellow', 'red'].includes(ev.card))
+      return 'Nieprawidłowa kartka: ' + ev.card;
+    if (ev.team_A && ev.team_B && ev.team_event !== ev.team_A && ev.team_event !== ev.team_B)
+      return 'team_event musi być jedną z drużyn meczu';
+    return null;
+  }
   const isCounterEvent = ev.event_type === 'groundball' || ev.event_type === 'draw';
   if (!isCounterEvent && !VALID_RESULTS.includes(ev.result)) return 'Nieprawidłowy wynik: ' + ev.result;
   if (typeof ev.shot_x !== 'number' || ev.shot_x < -1 || ev.shot_x > 1) return 'Nieprawidłowa pozycja shot_x';
@@ -2455,6 +2498,36 @@ function isFieldMarkerEvent(e) {
   return isShotEvent(e) || e.event_type === 'groundball' || e.event_type === 'draw';
 }
 
+// Penalties and shot clock violations: team events with no field position
+// and no result — never drawn on the map, never counted as shots.
+const CARD_COLORS = ['green', 'yellow', 'red'];
+
+function isTeamEvent(e) {
+  return e.event_type === 'penalty' || e.event_type === 'shot_clock';
+}
+
+function computeDisciplineCounts(events) {
+  const pen = events.filter(e => e.event_type === 'penalty');
+  return {
+    penalties: pen.length,
+    green:     pen.filter(e => e.card === 'green').length,
+    yellow:    pen.filter(e => e.card === 'yellow').length,
+    red:       pen.filter(e => e.card === 'red').length,
+    shotClock: events.filter(e => e.event_type === 'shot_clock').length,
+  };
+}
+
+// "3 (G1 Y2)" — penalty total with a per-card breakdown; plain text so it
+// works the same in the app and in PDF reports.
+function formatPenalties(d) {
+  if (!d.penalties) return '0';
+  const parts = [];
+  if (d.green)  parts.push('G' + d.green);
+  if (d.yellow) parts.push('Y' + d.yellow);
+  if (d.red)    parts.push('R' + d.red);
+  return `${d.penalties} (${parts.join(' ')})`;
+}
+
 function computeCounterStats(matchId, match, period) {
   const events = DATA.events.filter(e => String(e.match_id) === String(matchId));
   const ev = period ? events.filter(e => String(e.period) === String(period)) : events;
@@ -2463,6 +2536,8 @@ function computeCounterStats(matchId, match, period) {
     gbB:   ev.filter(e => e.event_type === 'groundball' && e.team_event === match.team_B).length,
     drawA: ev.filter(e => e.event_type === 'draw'       && e.team_event === match.team_A).length,
     drawB: ev.filter(e => e.event_type === 'draw'       && e.team_event === match.team_B).length,
+    discA: computeDisciplineCounts(ev.filter(e => e.team_event === match.team_A)),
+    discB: computeDisciplineCounts(ev.filter(e => e.team_event === match.team_B)),
   };
 }
 
@@ -2776,7 +2851,7 @@ let APP = {
   presenceInterval: null, // setInterval ID dla heartbeatu w match-input
 
   // Language / i18n
-  lang: localStorage.getItem('lax_lang') || 'pl',
+  lang: localStorage.getItem('lax_lang') || 'en',
 };
 
 // ── Routing ────────────────────────────────────────────────────────────────────
@@ -3495,7 +3570,7 @@ const STRINGS = {
     'viewer.sit.man_up': 'przewaga', 'viewer.sit.equal': 'równa liczba',
     'viewer.sit.man_down': 'osłabienie', 'viewer.sit.fast_break': 'fast break',
     'viewer.sit.shots_goals': 'strzały/bramki', 'viewer.sit.rate': 'skuteczność',
-    'viewer.counters.title': 'Groundball i wznowienia',
+    'viewer.counters.title': 'Groundball, wznowienia i dyscyplina',
     'viewer.counters.gb': 'groundball (GB)', 'viewer.counters.draw': 'wygrane wznowienia (Draw)',
     'viewer.goalie.title': 'Statystyki bramkarzy',
     'viewer.goalie.saves': 'obrony', 'viewer.goalie.goals_ag': 'bramki stracone',
@@ -3551,14 +3626,14 @@ const STRINGS = {
     'flag.free_position': 'Wolna pozycja', 'flag.penalty_shot': 'Karny',
     'flag.man_up_short': 'Przewaga', 'flag.man_down_short': 'Osłabienie',
     'field.video_ts': 'Moment w nagraniu',
-    'field.video_use_player': 'Ustaw z odtwarzacza (drugi ekran)',
-    'field.video_player_ready': 'Przy zapisie zostanie ustawiony aktualny czas z otwartego okna wideo.',
-    'field.video_player_missing': 'Okno z odtwarzaczem nie jest otwarte — otwórz je przyciskiem „🎬" w nagłówku, albo wpisz czas ręcznie.',
-    'field.video_player_error': 'Ten film nie pozwala na osadzenie w zewnętrznym odtwarzaczu (blokada właściciela filmu) — wpisz czas ręcznie albo wklej link z YouTube (prawy klik na filmie → „Kopiuj URL filmu z bieżącym czasem").',
-    'field.video_manual_placeholder': 'sekundy albo link z &t=...',
-    'btn.video_review': 'Przejrzyj (2. ekran)',
-    'btn.video_review_hint': 'Otwiera nagranie w osobnym oknie odtwarzacza — można przenieść na drugi ekran',
+    'field.video_manual_placeholder': 'm:ss, sekundy albo link z &t=...',
     'btn.watch_moment': 'Zobacz ten moment w nagraniu',
+    'btn.penalty': 'Kara', 'btn.shot_clock': 'Zegar 30 s',
+    'modal.penalty.title': 'Kara — wybierz kartkę',
+    'field.card': 'Kartka',
+    'card.green': 'Zielona', 'card.yellow': 'Żółta', 'card.red': 'Czerwona',
+    'counter.penalties': 'kary (G/Y/R)', 'counter.shot_clock': 'naruszenia zegara',
+    'analytics.discipline.title': 'Kary i naruszenia zegara wg kwart',
     'banner.video_ts_duplicate': 'To samo miejsce w filmie co poprzednio wprowadzone zdarzenie tego meczu — sprawdź, czy przewinąłeś nagranie.',
     'result.miss': 'Niecelny', 'result.save': 'Celny', 'result.goal': '⚽ Gol',
     'select.all': '— wszystkie —', 'select.all_tournaments': 'Wszystkie turnieje',
@@ -3762,7 +3837,7 @@ const STRINGS = {
     'viewer.sit.man_up': 'man-up', 'viewer.sit.equal': 'even strength',
     'viewer.sit.man_down': 'man-down', 'viewer.sit.fast_break': 'fast break',
     'viewer.sit.shots_goals': 'shots/goals', 'viewer.sit.rate': 'efficiency',
-    'viewer.counters.title': 'Ground balls & draws',
+    'viewer.counters.title': 'Ground balls, draws & discipline',
     'viewer.counters.gb': 'ground balls (GB)', 'viewer.counters.draw': 'draws won',
     'viewer.goalie.title': 'Goalie statistics',
     'viewer.goalie.saves': 'saves', 'viewer.goalie.goals_ag': 'goals against',
@@ -3818,14 +3893,14 @@ const STRINGS = {
     'flag.free_position': 'Free position', 'flag.penalty_shot': 'Penalty shot',
     'flag.man_up_short': 'Man-up', 'flag.man_down_short': 'Man-down',
     'field.video_ts': 'Video moment',
-    'field.video_use_player': 'Set from player (second screen)',
-    'field.video_player_ready': 'On save, this will capture the current time from the open video window.',
-    'field.video_player_missing': 'The video player window isn\'t open — open it with the "🎬" button in the header, or type the time manually.',
-    'field.video_player_error': 'This video does not allow embedding in an external player (owner-level restriction) — type the time manually, or paste a link from YouTube (right-click the video → "Copy video URL at current time").',
-    'field.video_manual_placeholder': 'seconds, or a URL with &t=...',
-    'btn.video_review': 'Review (2nd screen)',
-    'btn.video_review_hint': 'Opens the recording in a separate player window — can be moved to a second screen',
+    'field.video_manual_placeholder': 'm:ss, seconds, or a URL with &t=...',
     'btn.watch_moment': 'Watch this moment in the recording',
+    'btn.penalty': 'Penalty', 'btn.shot_clock': 'Shot clock',
+    'modal.penalty.title': 'Penalty — pick the card',
+    'field.card': 'Card',
+    'card.green': 'Green', 'card.yellow': 'Yellow', 'card.red': 'Red',
+    'counter.penalties': 'penalties (G/Y/R)', 'counter.shot_clock': 'shot clock violations',
+    'analytics.discipline.title': 'Penalties & shot clock by quarter',
     'banner.video_ts_duplicate': 'Same moment in the video as the previously entered event for this match — check whether you scrubbed the recording forward.',
     'result.miss': 'Miss', 'result.save': 'On target', 'result.goal': '⚽ Goal',
     'select.all': '— all —', 'select.all_tournaments': 'All tournaments',
@@ -4062,7 +4137,7 @@ function buildFieldSvg(match) {
 
   // Markers (history dots) — convert attacker-relative to physical
   const markersG = svgEl('g');
-  const events = eventsForMatch(match.id);
+  const events = eventsForMatch(match.id).filter(isFieldMarkerEvent);
   events.forEach((e, i) => {
     const teamSlotName = teamSlot(match.id, e.team_event);
     const { physical_x, physical_y } = attackerToPhysical(e.shot_x, e.shot_y, teamSlotName, APP.match.team_A_side);
@@ -4965,113 +5040,21 @@ function buildLayeredProgressionChartSvg(labels, dataA, dataB, labelA, labelB, o
 // ==============================================================================
 
 
-// Przypisywanie zdarzeń do konkretnego momentu w nagraniu YouTube — retroaktywnie,
-// podczas przeglądania filmu po meczu. Nie modelujemy czasu meczowego (timeSec) —
-// jedno nagranie czasem obejmuje kilka meczów pod rząd, więc "czas meczu → czas
-// filmu" nie da się wiarygodnie policzyć. Zamiast tego każde zdarzenie dostaje
-// wprost bezwzględny znacznik czasu w filmie (video_ts, sekundy).
-//
-// Odtwarzacz żyje w osobnym oknie, wypełnianym przez YouTube IFrame API —
-// dzięki temu mamy bezpośredni dostęp do jego aktualnego czasu odtwarzania
-// (ten sam origin co strona główna, więc bez postMessage).
-//
-// WAŻNE: window.open() dostaje jawny literał 'about:blank', NIE pusty string.
-// Aplikacja działa wewnątrz sandboxowego iframe'a GAS (*.googleusercontent.com);
-// pusty string w window.open('', ...) rozwiązuje się tam do bieżącego, PEŁNEGO
-// URL-a aplikacji (nie do about:blank), więc document.write ścigał się z
-// nawigacją do kopii całej appki — to powodowało crash renderera w Safari.
-// Blob URL (wcześniejsza próba naprawy) usuwał ten wyścig, ale Safari w tym
-// samym sandboxowanym kontekście blokuje window.open na nietypowe schematy
-// (blob:/data:) niezależnie od ustawienia "Pozwól" dla wyskakujących okien —
-// stąd powrót do klasycznego, szeroko kompatybilnego about:blank + document.write.
+// Linking events to a moment in the match recording. The recording opens as a
+// plain link (new tab, move it to the second screen); the moment is typed in
+// the edit modal — seconds, or a pasted YouTube URL with &t=.
+// The earlier embedded-player popup (about:blank + YouTube IFrame API) was
+// removed: inside the GAS sandbox it was unreliable (Safari crashes, popup
+// blocking, YouTube embed rejections).
 
-function extractYouTubeId(url) {
-  if (!url) return null;
-  // 'live/' — transmisje na żywo (częste dla turniejów: jedna transmisja na cały dzień).
-  const m = String(url).match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/|live\/))([\w-]{6,})/);
-  return m ? m[1] : null;
-}
-
-// Jeśli video_url meczu już niesie swój własny &t=/?start= (typowe dla linku
-// wskazującego z grubsza początek meczu w wielogodzinnej transmisji dnia),
-// użyj go jako punktu startowego odtwarzacza — nie ma sensu zaczynać od 0:00.
-function extractStartHint(url) {
-  const seconds = parseVideoTimestampInput(url || '');
-  return seconds !== null ? seconds : 0;
-}
-
-function openVideoReviewWindow(videoUrl) {
-  const videoId = extractYouTubeId(videoUrl);
-  if (!videoId) {
-    alert(APP.lang === 'pl'
-      ? 'Nie rozpoznano ID filmu YouTube w linku meczu.'
-      : 'Could not parse a YouTube video ID from the match link.');
-    return;
-  }
-
-  if (APP.videoReviewWindow && !APP.videoReviewWindow.closed) {
-    APP.videoReviewWindow.focus();
-    return;
-  }
-
-  const popup = window.open('about:blank', 'lacrosse-video-review', 'width=960,height=640');
-  if (!popup) {
-    alert(APP.lang === 'pl'
-      ? 'Przeglądarka zablokowała otwarcie okna z odtwarzaczem (popup blocker) — pozwól na wyskakujące okna dla tej strony.'
-      : 'The browser blocked the video review popup — allow pop-ups for this site.');
-    return;
-  }
-
-  const startHint = extractStartHint(videoUrl);
-  popup.document.open();
-  popup.document.write(
-    '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Lacrosse Stats — wideo</title>' +
-    '<style>html,body{margin:0;height:100%;background:#000;}#player{width:100%;height:100%;}</style>' +
-    '</head><body>' +
-    '<div id="player"></div>' +
-    '<script src="https://www.youtube.com/iframe_api"><' + '/script>' +
-    '<script>' +
-    'window.onYouTubeIframeAPIReady = function() {' +
-    '  window.ytPlayer = new YT.Player("player", { videoId: ' + JSON.stringify(videoId) +
-    ', playerVars: { autoplay: 1, start: ' + startHint + ' },' +
-    ' events: { onError: function(e) { window.ytPlayerError = e.data; } } });' +
-    '};' +
-    '<' + '/script>' +
-    '</body></html>'
-  );
-  popup.document.close();
-  APP.videoReviewWindow = popup;
-}
-
-function isVideoPlayerAvailable() {
-  const w = APP.videoReviewWindow;
-  return !!(w && !w.closed && w.ytPlayer && typeof w.ytPlayer.getCurrentTime === 'function' && !w.ytPlayerError);
-}
-
-// Ten film odrzucił osadzenie (np. właściciel wyłączył embedding — częste dla
-// transmisji na żywo spoza naszego kanału) — odróżniamy to od "okno niegotowe",
-// żeby pokazać trafniejszą podpowiedź i nie proponować trybu "z odtwarzacza",
-// który i tak niczego by nie przechwycił.
-function videoPlayerErrorReason() {
-  const w = APP.videoReviewWindow;
-  return (w && !w.closed && w.ytPlayerError) ? w.ytPlayerError : null;
-}
-
-function getCurrentPlayerTime() {
-  if (!isVideoPlayerAvailable()) return null;
-  try {
-    const t = APP.videoReviewWindow.ytPlayer.getCurrentTime();
-    return Number.isFinite(t) ? Math.floor(t) : null;
-  } catch (err) {
-    return null;
-  }
-}
-
-// Ręczne wpisanie: albo gołe sekundy, albo wklejony pełny URL z &t=/?start=.
+// Ręczne wpisanie: gołe sekundy, czas jak w odtwarzaczu (m:ss / h:mm:ss)
+// albo wklejony pełny URL z &t=/?start=.
 function parseVideoTimestampInput(str) {
   if (!str) return null;
   str = String(str).trim();
   if (/^\d+$/.test(str)) return parseInt(str, 10);
+  const clock = str.match(/^(?:(\d+):)?(\d{1,2}):(\d{2})$/);
+  if (clock) return (parseInt(clock[1] || '0', 10) * 3600) + parseInt(clock[2], 10) * 60 + parseInt(clock[3], 10);
   const m = str.match(/[?&](?:t|start)=(\d+)/);
   return m ? parseInt(m[1], 10) : null;
 }
@@ -5087,6 +5070,14 @@ function appendYtTimestamp(url, seconds) {
     const sep = url.indexOf('?') === -1 ? '?' : '&';
     return url + sep + 't=' + Math.floor(seconds) + 's';
   }
+}
+
+// 754 → "12:34", 3723 → "1:02:03" — the same format the player shows.
+function formatVideoTs(seconds) {
+  const t = Math.floor(Number(seconds));
+  const h = Math.floor(t / 3600), m = Math.floor((t % 3600) / 60), sec = t % 60;
+  const pad = n => String(n).padStart(2, '0');
+  return h > 0 ? `${h}:${pad(m)}:${pad(sec)}` : `${m}:${pad(sec)}`;
 }
 
 // ==============================================================================
@@ -5346,7 +5337,6 @@ function renderMatchInput(root) {
         <span class="period-pill-v2">${periodLabel(APP.match.period)}</span>
         <span class="tournament-pill-v2">${escapeHtml(match.tournament)}</span>
         ${match.video_url ? `<a class="btn-video-pill-v2" href="${escapeHtml(match.video_url)}" target="_blank" rel="noopener">▶ ${APP.lang === 'pl' ? 'Nagranie' : 'Recording'}</a>` : ''}
-        ${match.video_url ? `<button class="btn" data-action="open-video-review" data-arg="${escapeHtml(match.video_url)}" title="${T('btn.video_review_hint')}">🎬 ${T('btn.video_review')}</button>` : ''}
       </div>
       <span class="sides-tag-v2">A: ${A_left ? T('sides.left') : T('sides.right')}</span>
       ${retryAllBtn}
@@ -5402,7 +5392,33 @@ function renderMatchInput(root) {
               <span class="counter-sep-v2">:</span>
               <span class="counter-val-v2 team-B-color">${counters.drawB}</span>
             </div>
+            <span class="counter-divider-v2">|</span>
+            <div class="counter-cell-v2" title="${T('counter.penalties')}">
+              <span class="counter-label-v2">PEN</span>
+              <span class="counter-val-v2 team-A-color">${counters.discA.penalties}</span>
+              <span class="counter-sep-v2">:</span>
+              <span class="counter-val-v2 team-B-color">${counters.discB.penalties}</span>
+            </div>
+            <span class="counter-divider-v2">|</span>
+            <div class="counter-cell-v2" title="${T('counter.shot_clock')}">
+              <span class="counter-label-v2">SC</span>
+              <span class="counter-val-v2 team-A-color">${counters.discA.shotClock}</span>
+              <span class="counter-sep-v2">:</span>
+              <span class="counter-val-v2 team-B-color">${counters.discB.shotClock}</span>
+            </div>
             <span class="counter-team-v2 team-B-color" title="${escapeHtml(match.team_B)}">${escapeHtml(match.team_B)}</span>
+          </div>
+          <div class="team-event-bar">
+            <div class="team-event-group">
+              <span class="team-event-name team-A-color">${escapeHtml(match.team_A)}</span>
+              <button class="counter-action-btn team-A" data-action="open-penalty" data-arg="A">${T('btn.penalty')}</button>
+              <button class="counter-action-btn team-A" data-action="submit-shot-clock" data-arg="A">${T('btn.shot_clock')}</button>
+            </div>
+            <div class="team-event-group">
+              <button class="counter-action-btn team-B" data-action="open-penalty" data-arg="B">${T('btn.penalty')}</button>
+              <button class="counter-action-btn team-B" data-action="submit-shot-clock" data-arg="B">${T('btn.shot_clock')}</button>
+              <span class="team-event-name team-B-color">${escapeHtml(match.team_B)}</span>
+            </div>
           </div>
         </div>
 
@@ -5439,9 +5455,14 @@ function renderHistoryRow(e, match) {
 
   const rowClass = e._syncError ? 'history-row sync-error' : 'history-row';
   const isCounterEvent = e.event_type === 'groundball' || e.event_type === 'draw';
-  const resultLabel = isCounterEvent
-    ? (e.event_type === 'groundball' ? 'GB' : 'Draw')
-    : e.result;
+  const isTeamEv = isTeamEvent(e);
+  const resultLabel = e.event_type === 'penalty'
+    ? `<span class="card-chip card-${escapeHtml(e.card || '')}"></span>PEN`
+    : e.event_type === 'shot_clock'
+      ? 'SC'
+      : isCounterEvent
+        ? (e.event_type === 'groundball' ? 'GB' : 'Draw')
+        : ({ gol: T('result.goal'), celny: T('result.save'), niecelny: T('result.miss') }[e.result] || e.result);
 
   const flags = [];
   if (e.man_up)        flags.push('<span class="flag man-up">man-up</span>');
@@ -5455,7 +5476,7 @@ function renderHistoryRow(e, match) {
     <div class="${rowClass}">
       <div class="period">${periodLabel(e.period)}</div>
       <div class="team-tag ${slot}">${slot}</div>
-      <div class="result ${isCounterEvent ? '' : e.result}">${resultLabel}</div>
+      <div class="result ${isCounterEvent || isTeamEv ? '' : e.result}">${resultLabel}</div>
       <div class="flags">${flags.join('')}${syncBadge}</div>
       <div class="actions">
         ${retryBtn}
@@ -5714,6 +5735,10 @@ function renderViewerCounterCard(counters, match) {
           ${_splitBar(counters.drawA, counters.drawB)}
           <tr><td class="num team-A">${counters.gbA}</td><td class="label" style="text-align:center;">${T('viewer.counters.gb')}</td><td class="num team-B">${counters.gbB}</td></tr>
           ${_splitBar(counters.gbA, counters.gbB)}
+          <tr><td class="num team-A">${formatPenalties(counters.discA)}</td><td class="label" style="text-align:center;">${T('counter.penalties')}</td><td class="num team-B">${formatPenalties(counters.discB)}</td></tr>
+          ${_splitBar(counters.discA.penalties, counters.discB.penalties)}
+          <tr><td class="num team-A">${counters.discA.shotClock}</td><td class="label" style="text-align:center;">${T('counter.shot_clock')}</td><td class="num team-B">${counters.discB.shotClock}</td></tr>
+          ${_splitBar(counters.discA.shotClock, counters.discB.shotClock)}
         </tbody>
       </table>
     </div>`;
@@ -6560,6 +6585,29 @@ function _renderPeriodBarChart(periods) {
     </div>`;
 }
 
+// Penalties (by card) and shot clock violations per quarter — hidden until
+// at least one was recorded in the current filter.
+function _renderDisciplineByPeriod(filtered) {
+  const teamEvents = filtered.filter(isTeamEvent);
+  if (teamEvents.length === 0) return '';
+  const periods = [...new Set(teamEvents.map(e => String(e.period)))]
+    .sort((a, b) => getPeriodOrder(a) - getPeriodOrder(b));
+  const rows = periods.map(p => {
+    const d = computeDisciplineCounts(teamEvents.filter(e => String(e.period) === p));
+    return `<tr><td>${periodLabel(p)}</td><td>${d.penalties}</td><td>${d.green}</td><td>${d.yellow}</td><td>${d.red}</td><td>${d.shotClock}</td></tr>`;
+  }).join('');
+  return `
+    <h3>${T('analytics.discipline.title')}</h3>
+    <table class="stats-table">
+      <thead><tr>
+        <th>${T('analytics.periods.quarter')}</th><th>${T('counter.penalties')}</th>
+        <th>${T('card.green')}</th><th>${T('card.yellow')}</th><th>${T('card.red')}</th>
+        <th>${T('counter.shot_clock')}</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
 function _renderAnalyticsStats(filtered, f) {
   if (filtered.length === 0) return '';
   const s = computeAnalyticsStats(filtered);
@@ -6567,6 +6615,7 @@ function _renderAnalyticsStats(filtered, f) {
   const matchCount = new Set(filtered.map(e => String(e.match_id))).size;
   const drawsWon    = filtered.filter(e => e.event_type === 'draw').length;
   const groundballs = filtered.filter(e => e.event_type === 'groundball').length;
+  const disc        = computeDisciplineCounts(filtered);
 
   const zoneOrder = ['attack-center','attack-left','attack-right',
                      'midfield-center','midfield-left','midfield-right','own-half'];
@@ -6613,6 +6662,8 @@ function _renderAnalyticsStats(filtered, f) {
         ${s.fastBreak ? `<div class="stat-box"><div class="stat-val">${s.fastBreak}</div><div class="stat-lbl">Fast break</div></div>` : ''}
         ${drawsWon    ? `<div class="stat-box"><div class="stat-val">${drawsWon}</div><div class="stat-lbl">${T('analytics.stats.draws')}</div></div>` : ''}
         ${groundballs ? `<div class="stat-box"><div class="stat-val">${groundballs}</div><div class="stat-lbl">${T('analytics.stats.groundballs')}</div></div>` : ''}
+        ${disc.penalties ? `<div class="stat-box"><div class="stat-val">${formatPenalties(disc)}</div><div class="stat-lbl">${T('counter.penalties')}</div></div>` : ''}
+        ${disc.shotClock ? `<div class="stat-box"><div class="stat-val">${disc.shotClock}</div><div class="stat-lbl">${T('counter.shot_clock')}</div></div>` : ''}
       </div>
       ${zoneRows ? `
         <h3>${T('analytics.zones.title')}</h3>
@@ -6626,6 +6677,7 @@ function _renderAnalyticsStats(filtered, f) {
           <thead><tr><th>${T('analytics.periods.quarter')}</th><th>${T('analytics.stats.shots')}</th><th>${T('analytics.stats.goals')}</th><th>%</th></tr></thead>
           <tbody>${periodRows}</tbody>
         </table>` : ''}
+      ${_renderDisciplineByPeriod(filtered)}
       ${_renderShotResultDonut(s)}
       ${_renderSituationStats(s)}
       ${Object.keys(s.periods).length > 0 ? `
@@ -7931,10 +7983,14 @@ function _sectionSituations(situation, match) {
 }
 
 function _sectionCounters(counters, match) {
-  if (!counters.drawA && !counters.drawB && !counters.gbA && !counters.gbB) return '';
+  var dA = counters.discA, dB = counters.discB;
+  if (!counters.drawA && !counters.drawB && !counters.gbA && !counters.gbB &&
+      !dA.penalties && !dB.penalties && !dA.shotClock && !dB.shotClock) return '';
   var rows =
     '<tr><td class="num-a">' + counters.drawA + '</td><td class="lbl">' + T('viewer.counters.draw') + '</td><td class="num-b">' + counters.drawB + '</td></tr>' +
-    '<tr><td class="num-a">' + counters.gbA + '</td><td class="lbl">' + T('viewer.counters.gb') + '</td><td class="num-b">' + counters.gbB + '</td></tr>';
+    '<tr><td class="num-a">' + counters.gbA + '</td><td class="lbl">' + T('viewer.counters.gb') + '</td><td class="num-b">' + counters.gbB + '</td></tr>' +
+    '<tr><td class="num-a">' + formatPenalties(dA) + '</td><td class="lbl">' + T('counter.penalties') + '</td><td class="num-b">' + formatPenalties(dB) + '</td></tr>' +
+    '<tr><td class="num-a">' + dA.shotClock + '</td><td class="lbl">' + T('counter.shot_clock') + '</td><td class="num-b">' + dB.shotClock + '</td></tr>';
   return _section(T('report.counters'),
     '<table class="cmp-table">' +
     '<thead><tr><th class="num-a">' + escapeHtml(match.team_A) + '</th><th class="lbl"></th><th class="num-b">' + escapeHtml(match.team_B) + '</th></tr></thead>' +
@@ -8078,6 +8134,10 @@ function _sectionAnalyticsSummary(s, filtered, f) {
   var groundballs = filtered.filter(function(e) { return e.event_type === 'groundball'; }).length;
   if (drawsWon)    rows.push([T('report.rows.draws'), drawsWon]);
   if (groundballs) rows.push([T('report.rows.groundballs'), groundballs]);
+
+  var disc = computeDisciplineCounts(filtered);
+  if (disc.penalties) rows.push([T('counter.penalties'), formatPenalties(disc)]);
+  if (disc.shotClock) rows.push([T('counter.shot_clock'), disc.shotClock]);
 
   var cells = rows.map(function(r) {
     return '<div class="sum-cell"><div class="sum-val">' + r[1] + '</div><div class="sum-lbl">' + r[0] + '</div></div>';
@@ -8392,6 +8452,7 @@ function renderModal() {
 
   if      (APP.modal.type === 'result')              bg.innerHTML = renderResultModal(APP.modal.pending);
   else if (APP.modal.type === 'edit-event')          bg.innerHTML = renderEditEventModal(APP.modal.event);
+  else if (APP.modal.type === 'penalty')             bg.innerHTML = renderPenaltyModal(APP.modal.slot);
   else if (APP.modal.type === 'confirm-end')         bg.innerHTML = renderConfirmEnd();
   else if (APP.modal.type === 'ad-hoc')              bg.innerHTML = renderAdHocModal();
   else if (APP.modal.type === 'tournament-form')     bg.innerHTML = renderTournamentModal(APP.modal.tournament);
@@ -8404,6 +8465,23 @@ function renderModal() {
 }
 
 function closeModal() { APP.modal = null; render(); }
+
+// Free position / penalty shot exist only in field lacrosse; the sixes backend
+// has no columns for them, so the checkboxes stay hidden there.
+function _isFieldVariant() {
+  return typeof APP_CONFIG !== 'undefined' && APP_CONFIG.variant === 'field';
+}
+
+// Optional "video moment" for a new event — only when the match has a
+// recording link; left empty, the event is saved without a time.
+function _newVideoTsField(match) {
+  if (!match || !match.video_url) return '';
+  return `
+      <label class="field video-ts-field">
+        <span class="field-label">🎬 ${T('field.video_ts')}</span>
+        <input type="text" id="new-video-ts" class="video-ts-manual" placeholder="${T('field.video_manual_placeholder')}">
+      </label>`;
+}
 
 function renderResultModal(pending) {
   const match = DATA.scheduledMatches.find(m => m.id === APP.matchId);
@@ -8430,9 +8508,11 @@ function renderResultModal(pending) {
         <label><input type="checkbox" id="flag-man-down" data-action="mutex-flag" data-arg="man-down"> ${T('flag.man_down')}</label>
         <label><input type="checkbox" id="flag-assisted"> ${T('flag.assisted')}</label>
         <label><input type="checkbox" id="flag-fast-break"> ${T('flag.fast_break')}</label>
+        ${_isFieldVariant() ? `
         <label><input type="checkbox" id="flag-free-position"> ${T('flag.free_position')}</label>
-        <label><input type="checkbox" id="flag-penalty-shot"> ${T('flag.penalty_shot')}</label>
+        <label><input type="checkbox" id="flag-penalty-shot"> ${T('flag.penalty_shot')}</label>` : ''}
       </div>
+      ${_newVideoTsField(match)}
       <div class="result-buttons">
         <button class="result-btn niecelny" data-action="submit-result" data-arg="niecelny">${T('result.miss')}</button>
         <button class="result-btn celny"    data-action="submit-result" data-arg="celny">${T('result.save')}</button>
@@ -8452,20 +8532,47 @@ function renderResultModal(pending) {
     </div>`;
 }
 
+function renderPenaltyModal(slot) {
+  const match = DATA.scheduledMatches.find(m => m.id === APP.matchId);
+  const team = slot === 'A' ? match.team_A : match.team_B;
+  return `
+    <div class="modal" data-stop-propagation="true" style="max-width:380px">
+      <h2>${T('modal.penalty.title')}</h2>
+      <div class="modal-context">
+        <div class="row">
+          <span class="label">${T('field.team')}</span>
+          <span class="value team-${slot}">${escapeHtml(team)} (${slot})</span>
+        </div>
+        <div class="row">
+          <span class="label">${T('field.period')}</span>
+          <span class="value">${periodLabel(APP.match.period)}</span>
+        </div>
+      </div>
+      ${_newVideoTsField(match)}
+      <div class="card-buttons">
+        ${CARD_COLORS.map(c =>
+          `<button class="card-btn card-${c}" data-action="submit-penalty" data-arg="${c}">${T('card.' + c)}</button>`
+        ).join('')}
+      </div>
+      <div class="modal-actions">
+        <button class="btn" data-action="cancel-modal">${T('btn.cancel')}</button>
+      </div>
+    </div>`;
+}
+
 function renderEditEventModal(e) {
   const match = DATA.scheduledMatches.find(m => m.id === APP.matchId);
   const isCounterEvent = e.event_type === 'groundball' || e.event_type === 'draw';
-  const playerReady = isVideoPlayerAvailable();
-  const playerErrored = !!videoPlayerErrorReason();
-  const videoMode = (APP.modal && APP.modal.videoMode) || (playerReady ? 'player' : 'manual');
+  const isTeamEv = isTeamEvent(e);
   const hasVideoUrl = !!match.video_url;
   return `
     <div class="modal" data-stop-propagation="true">
       <h2>${T('modal.edit.title')}</h2>
       <div class="modal-subtitle">${T('modal.edit.subtitle')}</div>
+      ${isTeamEv ? '' : `
       <div class="modal-context">
-        <div class="row"><span class="label">${T('field.position')}</span><span class="value zone">${e.shot_x.toFixed(2)}, ${e.shot_y.toFixed(2)} → ${e.zone_name}</span></div>
-      </div>
+        <div class="row"><span class="label">${T('field.position')}</span><span class="value zone">${Number(e.shot_x).toFixed(2)}, ${Number(e.shot_y).toFixed(2)} → ${e.zone_name}</span></div>
+      </div>`}
       <label class="field">
         <span class="field-label">${T('field.team')}</span>
         <select id="edit-team">
@@ -8481,7 +8588,14 @@ function renderEditEventModal(e) {
           ).join('')}
         </select>
       </label>
-      ${isCounterEvent ? '' : `
+      ${e.event_type === 'penalty' ? `
+      <label class="field">
+        <span class="field-label">${T('field.card')}</span>
+        <select id="edit-card">
+          ${CARD_COLORS.map(c => `<option value="${c}" ${e.card === c ? 'selected' : ''}>${T('card.' + c)}</option>`).join('')}
+        </select>
+      </label>` : ''}
+      ${isCounterEvent || isTeamEv ? '' : `
       <label class="field">
         <span class="field-label">${T('field.result')}</span>
         <select id="edit-result">
@@ -8490,28 +8604,20 @@ function renderEditEventModal(e) {
           <option value="gol"      ${e.result === 'gol'      ? 'selected' : ''}>${APP.lang === 'pl' ? 'Gol' : 'Goal'}</option>
         </select>
       </label>`}
-      <div class="flag-row">
+      ${isTeamEv ? '' : `<div class="flag-row">
         <label><input type="checkbox" id="edit-man-up"   data-action="mutex-edit-flag" data-arg="man-up"   ${e.man_up   ? 'checked' : ''}> ${T('flag.man_up_short')}</label>
         <label><input type="checkbox" id="edit-man-down" data-action="mutex-edit-flag" data-arg="man-down" ${e.man_down ? 'checked' : ''}> ${T('flag.man_down_short')}</label>
         <label><input type="checkbox" id="edit-assisted" ${e.assisted ? 'checked' : ''}> ${T('flag.assisted')}</label>
         <label><input type="checkbox" id="edit-fast-break" ${e.fast_break ? 'checked' : ''}> ${T('flag.fast_break')}</label>
+        ${_isFieldVariant() ? `
         <label><input type="checkbox" id="edit-free-position" ${e.free_position ? 'checked' : ''}> ${T('flag.free_position')}</label>
-        <label><input type="checkbox" id="edit-penalty-shot" ${e.penalty_shot ? 'checked' : ''}> ${T('flag.penalty_shot')}</label>
-      </div>
+        <label><input type="checkbox" id="edit-penalty-shot" ${e.penalty_shot ? 'checked' : ''}> ${T('flag.penalty_shot')}</label>` : ''}
+      </div>`}
       ${hasVideoUrl ? `
-      <div class="field video-ts-field">
+      <label class="field video-ts-field">
         <span class="field-label">🎬 ${T('field.video_ts')}</span>
-        <label class="video-ts-toggle">
-          <input type="checkbox" id="edit-video-use-player" data-action="toggle-video-mode"
-            ${videoMode === 'player' ? 'checked' : ''} ${playerReady ? '' : 'disabled'}>
-          ${T('field.video_use_player')}
-        </label>
-        ${videoMode === 'player'
-          ? `<div class="video-ts-hint">${playerReady ? T('field.video_player_ready') : T('field.video_player_missing')}</div>`
-          : `${playerErrored ? `<div class="video-ts-hint">${T('field.video_player_error')}</div>` : ''}
-             <input type="text" id="edit-video-manual" class="video-ts-manual" placeholder="${T('field.video_manual_placeholder')}" value="${e.video_ts !== undefined && e.video_ts !== '' && e.video_ts !== null ? e.video_ts : ''}">`
-        }
-      </div>` : ''}
+        <input type="text" id="edit-video-manual" class="video-ts-manual" placeholder="${T('field.video_manual_placeholder')}" value="${e.video_ts !== undefined && e.video_ts !== '' && e.video_ts !== null ? formatVideoTs(e.video_ts) : ''}">
+      </label>` : ''}
       <div class="modal-actions">
         <button class="btn" data-action="cancel-modal">${T('btn.cancel')}</button>
         <button class="btn btn-primary" data-action="submit-edit" data-arg="${e.id}">${T('btn.save_changes')}</button>
@@ -9235,6 +9341,7 @@ const HANDLERS = {
       zone_name: pending.zone_name, team_event: pending.team_event,
       result, man_up: manUp, man_down: manDown, assisted, fast_break: fastBreak,
       free_position: freePosition, penalty_shot: penaltyShot,
+      ..._readNewVideoTs(),
     });
     APP.modal = null;
     render();
@@ -9246,43 +9353,47 @@ const HANDLERS = {
   'submit-groundball': (slot) => submitCounterEvent('groundball', slot),
   'submit-draw':       (slot) => submitCounterEvent('draw', slot),
 
+  // Penalty (card picked in a modal) / shot clock violation (one click) —
+  // team events, recorded in the current period with no field position.
+  'open-penalty':      (slot) => { APP.modal = { type: 'penalty', slot }; render(); },
+  'submit-penalty':    (card) => {
+    const slot = APP.modal && APP.modal.slot;
+    const videoTs = _readNewVideoTs();
+    APP.modal = null;
+    recordTeamEvent('penalty', slot, { card, ...videoTs });
+    render();
+  },
+  'submit-shot-clock': (slot) => { recordTeamEvent('shot_clock', slot); render(); },
+
   'edit-event': (id) => {
     const e = DATA.events.find(x => String(x.id) === String(id));
     if (!e) return;
-    APP.modal = { type: 'edit-event', event: e, videoMode: isVideoPlayerAvailable() ? 'player' : 'manual' };
+    APP.modal = { type: 'edit-event', event: e };
     render();
   },
-  'toggle-video-mode': () => {
-    const cb = document.getElementById('edit-video-use-player');
-    if (!APP.modal) return;
-    APP.modal.videoMode = (cb && cb.checked) ? 'player' : 'manual';
-    render();
-  },
-  'open-video-review': (url) => { openVideoReviewWindow(url); },
   'submit-edit': (id) => {
     const team     = document.getElementById('edit-team').value;
     const period   = document.getElementById('edit-period').value;
     const result   = document.getElementById('edit-result')?.value ?? null;
-    const manUp     = document.getElementById('edit-man-up').checked;
-    const manDown   = document.getElementById('edit-man-down').checked;
+    // Penalty / shot clock edits have no result or shot flags in the form.
+    const manUp     = document.getElementById('edit-man-up')?.checked ?? false;
+    const manDown   = document.getElementById('edit-man-down')?.checked ?? false;
     const assisted     = document.getElementById('edit-assisted')?.checked ?? false;
     const fastBreak    = document.getElementById('edit-fast-break')?.checked ?? false;
     const freePosition = document.getElementById('edit-free-position')?.checked ?? false;
     const penaltyShot  = document.getElementById('edit-penalty-shot')?.checked ?? false;
 
     const updates = { team_event: team, period, result, man_up: manUp, man_down: manDown, assisted, fast_break: fastBreak, free_position: freePosition, penalty_shot: penaltyShot };
+    const card = document.getElementById('edit-card')?.value;
+    if (card) updates.card = card;
 
-    const videoMode = APP.modal && APP.modal.videoMode;
     let newVideoTs = null;
-    if (videoMode === 'player') {
-      newVideoTs = getCurrentPlayerTime();
-      if (newVideoTs !== null) updates.video_ts = newVideoTs;
-    } else {
-      const raw = document.getElementById('edit-video-manual')?.value ?? '';
-      if (raw.trim() === '') {
+    const rawVideoTs = document.getElementById('edit-video-manual')?.value;
+    if (rawVideoTs !== undefined) {
+      if (rawVideoTs.trim() === '') {
         updates.video_ts = '';
       } else {
-        const parsed = parseVideoTimestampInput(raw);
+        const parsed = parseVideoTimestampInput(rawVideoTs);
         if (parsed !== null) { newVideoTs = parsed; updates.video_ts = parsed; }
       }
     }
@@ -9506,6 +9617,16 @@ const HANDLERS = {
   },
 };
 
+function recordTeamEvent(eventType, slot, extra) {
+  const match = DATA.scheduledMatches.find(m => String(m.id) === String(APP.matchId));
+  if (!match || (slot !== 'A' && slot !== 'B')) return;
+  recordEvent(Object.assign({
+    event_type: eventType,
+    team_event: slot === 'A' ? match.team_A : match.team_B,
+    result: null, man_up: false, man_down: false,
+  }, extra));
+}
+
 function submitCounterEvent(eventType, slot) {
   const pending = APP.modal.pending;
   const match   = DATA.scheduledMatches.find(m => String(m.id) === String(APP.matchId));
@@ -9527,9 +9648,17 @@ function submitCounterEvent(eventType, slot) {
     team_event: slot === 'A' ? match.team_A : match.team_B,
     result: null, man_up: manUp, man_down: manDown, assisted, fast_break: fastBreak,
     free_position: freePosition, penalty_shot: penaltyShot,
+    ..._readNewVideoTs(),
   });
   APP.modal = null;
   render();
+}
+
+// { video_ts } from the optional field in the new-event modals, or {} when
+// the field is absent, empty or unparseable.
+function _readNewVideoTs() {
+  const parsed = parseVideoTimestampInput(document.getElementById('new-video-ts')?.value ?? '');
+  return parsed !== null ? { video_ts: parsed } : {};
 }
 
 // ===== Event delegation =====

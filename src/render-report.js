@@ -218,10 +218,14 @@ function _sectionSituations(situation, match) {
 }
 
 function _sectionCounters(counters, match) {
-  if (!counters.drawA && !counters.drawB && !counters.gbA && !counters.gbB) return '';
+  var dA = counters.discA, dB = counters.discB;
+  if (!counters.drawA && !counters.drawB && !counters.gbA && !counters.gbB &&
+      !dA.penalties && !dB.penalties && !dA.shotClock && !dB.shotClock) return '';
   var rows =
     '<tr><td class="num-a">' + counters.drawA + '</td><td class="lbl">' + T('viewer.counters.draw') + '</td><td class="num-b">' + counters.drawB + '</td></tr>' +
-    '<tr><td class="num-a">' + counters.gbA + '</td><td class="lbl">' + T('viewer.counters.gb') + '</td><td class="num-b">' + counters.gbB + '</td></tr>';
+    '<tr><td class="num-a">' + counters.gbA + '</td><td class="lbl">' + T('viewer.counters.gb') + '</td><td class="num-b">' + counters.gbB + '</td></tr>' +
+    '<tr><td class="num-a">' + formatPenalties(dA) + '</td><td class="lbl">' + T('counter.penalties') + '</td><td class="num-b">' + formatPenalties(dB) + '</td></tr>' +
+    '<tr><td class="num-a">' + dA.shotClock + '</td><td class="lbl">' + T('counter.shot_clock') + '</td><td class="num-b">' + dB.shotClock + '</td></tr>';
   return _section(T('report.counters'),
     '<table class="cmp-table">' +
     '<thead><tr><th class="num-a">' + escapeHtml(match.team_A) + '</th><th class="lbl"></th><th class="num-b">' + escapeHtml(match.team_B) + '</th></tr></thead>' +
@@ -365,6 +369,10 @@ function _sectionAnalyticsSummary(s, filtered, f) {
   var groundballs = filtered.filter(function(e) { return e.event_type === 'groundball'; }).length;
   if (drawsWon)    rows.push([T('report.rows.draws'), drawsWon]);
   if (groundballs) rows.push([T('report.rows.groundballs'), groundballs]);
+
+  var disc = computeDisciplineCounts(filtered);
+  if (disc.penalties) rows.push([T('counter.penalties'), formatPenalties(disc)]);
+  if (disc.shotClock) rows.push([T('counter.shot_clock'), disc.shotClock]);
 
   var cells = rows.map(function(r) {
     return '<div class="sum-cell"><div class="sum-val">' + r[1] + '</div><div class="sum-lbl">' + r[0] + '</div></div>';

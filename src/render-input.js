@@ -128,7 +128,6 @@ function renderMatchInput(root) {
         <span class="period-pill-v2">${periodLabel(APP.match.period)}</span>
         <span class="tournament-pill-v2">${escapeHtml(match.tournament)}</span>
         ${match.video_url ? `<a class="btn-video-pill-v2" href="${escapeHtml(match.video_url)}" target="_blank" rel="noopener">▶ ${APP.lang === 'pl' ? 'Nagranie' : 'Recording'}</a>` : ''}
-        ${match.video_url ? `<button class="btn" data-action="open-video-review" data-arg="${escapeHtml(match.video_url)}" title="${T('btn.video_review_hint')}">🎬 ${T('btn.video_review')}</button>` : ''}
       </div>
       <span class="sides-tag-v2">A: ${A_left ? T('sides.left') : T('sides.right')}</span>
       ${retryAllBtn}
@@ -184,7 +183,33 @@ function renderMatchInput(root) {
               <span class="counter-sep-v2">:</span>
               <span class="counter-val-v2 team-B-color">${counters.drawB}</span>
             </div>
+            <span class="counter-divider-v2">|</span>
+            <div class="counter-cell-v2" title="${T('counter.penalties')}">
+              <span class="counter-label-v2">PEN</span>
+              <span class="counter-val-v2 team-A-color">${counters.discA.penalties}</span>
+              <span class="counter-sep-v2">:</span>
+              <span class="counter-val-v2 team-B-color">${counters.discB.penalties}</span>
+            </div>
+            <span class="counter-divider-v2">|</span>
+            <div class="counter-cell-v2" title="${T('counter.shot_clock')}">
+              <span class="counter-label-v2">SC</span>
+              <span class="counter-val-v2 team-A-color">${counters.discA.shotClock}</span>
+              <span class="counter-sep-v2">:</span>
+              <span class="counter-val-v2 team-B-color">${counters.discB.shotClock}</span>
+            </div>
             <span class="counter-team-v2 team-B-color" title="${escapeHtml(match.team_B)}">${escapeHtml(match.team_B)}</span>
+          </div>
+          <div class="team-event-bar">
+            <div class="team-event-group">
+              <span class="team-event-name team-A-color">${escapeHtml(match.team_A)}</span>
+              <button class="counter-action-btn team-A" data-action="open-penalty" data-arg="A">${T('btn.penalty')}</button>
+              <button class="counter-action-btn team-A" data-action="submit-shot-clock" data-arg="A">${T('btn.shot_clock')}</button>
+            </div>
+            <div class="team-event-group">
+              <button class="counter-action-btn team-B" data-action="open-penalty" data-arg="B">${T('btn.penalty')}</button>
+              <button class="counter-action-btn team-B" data-action="submit-shot-clock" data-arg="B">${T('btn.shot_clock')}</button>
+              <span class="team-event-name team-B-color">${escapeHtml(match.team_B)}</span>
+            </div>
           </div>
         </div>
 
@@ -221,9 +246,14 @@ function renderHistoryRow(e, match) {
 
   const rowClass = e._syncError ? 'history-row sync-error' : 'history-row';
   const isCounterEvent = e.event_type === 'groundball' || e.event_type === 'draw';
-  const resultLabel = isCounterEvent
-    ? (e.event_type === 'groundball' ? 'GB' : 'Draw')
-    : e.result;
+  const isTeamEv = isTeamEvent(e);
+  const resultLabel = e.event_type === 'penalty'
+    ? `<span class="card-chip card-${escapeHtml(e.card || '')}"></span>PEN`
+    : e.event_type === 'shot_clock'
+      ? 'SC'
+      : isCounterEvent
+        ? (e.event_type === 'groundball' ? 'GB' : 'Draw')
+        : ({ gol: T('result.goal'), celny: T('result.save'), niecelny: T('result.miss') }[e.result] || e.result);
 
   const flags = [];
   if (e.man_up)        flags.push('<span class="flag man-up">man-up</span>');
@@ -237,7 +267,7 @@ function renderHistoryRow(e, match) {
     <div class="${rowClass}">
       <div class="period">${periodLabel(e.period)}</div>
       <div class="team-tag ${slot}">${slot}</div>
-      <div class="result ${isCounterEvent ? '' : e.result}">${resultLabel}</div>
+      <div class="result ${isCounterEvent || isTeamEv ? '' : e.result}">${resultLabel}</div>
       <div class="flags">${flags.join('')}${syncBadge}</div>
       <div class="actions">
         ${retryBtn}

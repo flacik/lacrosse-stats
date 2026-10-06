@@ -257,6 +257,14 @@ function validateEventPayload(ev) {
     if (!PERIOD_REGEX.test(String(ev.period))) return 'Nieprawidłowy okres: ' + ev.period;
     return null;
   }
+  if (ev.event_type === 'penalty' || ev.event_type === 'shot_clock') {
+    if (!PERIOD_REGEX.test(String(ev.period))) return 'Nieprawidłowy okres: ' + ev.period;
+    if (ev.event_type === 'penalty' && !['green', 'yellow', 'red'].includes(ev.card))
+      return 'Nieprawidłowa kartka: ' + ev.card;
+    if (ev.team_A && ev.team_B && ev.team_event !== ev.team_A && ev.team_event !== ev.team_B)
+      return 'team_event musi być jedną z drużyn meczu';
+    return null;
+  }
   const isCounterEvent = ev.event_type === 'groundball' || ev.event_type === 'draw';
   if (!isCounterEvent && !VALID_RESULTS.includes(ev.result)) return 'Nieprawidłowy wynik: ' + ev.result;
   if (typeof ev.shot_x !== 'number' || ev.shot_x < -1 || ev.shot_x > 1) return 'Nieprawidłowa pozycja shot_x';

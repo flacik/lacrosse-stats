@@ -9,6 +9,7 @@ function renderModal() {
 
   if      (APP.modal.type === 'result')              bg.innerHTML = renderResultModal(APP.modal.pending);
   else if (APP.modal.type === 'edit-event')          bg.innerHTML = renderEditEventModal(APP.modal.event);
+  else if (APP.modal.type === 'penalty')             bg.innerHTML = renderPenaltyModal(APP.modal.slot);
   else if (APP.modal.type === 'confirm-end')         bg.innerHTML = renderConfirmEnd();
   else if (APP.modal.type === 'ad-hoc')              bg.innerHTML = renderAdHocModal();
   else if (APP.modal.type === 'tournament-form')     bg.innerHTML = renderTournamentModal(APP.modal.tournament);
@@ -21,6 +22,23 @@ function renderModal() {
 }
 
 function closeModal() { APP.modal = null; render(); }
+
+// Free position / penalty shot exist only in field lacrosse; the sixes backend
+// has no columns for them, so the checkboxes stay hidden there.
+function _isFieldVariant() {
+  return typeof APP_CONFIG !== 'undefined' && APP_CONFIG.variant === 'field';
+}
+
+// Optional "video moment" for a new event — only when the match has a
+// recording link; left empty, the event is saved without a time.
+function _newVideoTsField(match) {
+  if (!match || !match.video_url) return '';
+  return `
+      <label class="field video-ts-field">
+        <span class="field-label">🎬 ${T('field.video_ts')}</span>
+        <input type="text" id="new-video-ts" class="video-ts-manual" placeholder="${T('field.video_manual_placeholder')}">
+      </label>`;
+}
 
 function renderResultModal(pending) {
   const match = DATA.scheduledMatches.find(m => m.id === APP.matchId);
@@ -47,9 +65,11 @@ function renderResultModal(pending) {
         <label><input type="checkbox" id="flag-man-down" data-action="mutex-flag" data-arg="man-down"> ${T('flag.man_down')}</label>
         <label><input type="checkbox" id="flag-assisted"> ${T('flag.assisted')}</label>
         <label><input type="checkbox" id="flag-fast-break"> ${T('flag.fast_break')}</label>
+        ${_isFieldVariant() ? `
         <label><input type="checkbox" id="flag-free-position"> ${T('flag.free_position')}</label>
-        <label><input type="checkbox" id="flag-penalty-shot"> ${T('flag.penalty_shot')}</label>
+        <label><input type="checkbox" id="flag-penalty-shot"> ${T('flag.penalty_shot')}</label>` : ''}
       </div>
+      ${_newVideoTsField(match)}
       <div class="result-buttons">
         <button class="result-btn niecelny" data-action="submit-result" data-arg="niecelny">${T('result.miss')}</button>
         <button class="result-btn celny"    data-action="submit-result" data-arg="celny">${T('result.save')}</button>
@@ -69,20 +89,47 @@ function renderResultModal(pending) {
     </div>`;
 }
 
+function renderPenaltyModal(slot) {
+  const match = DATA.scheduledMatches.find(m => m.id === APP.matchId);
+  const team = slot === 'A' ? match.team_A : match.team_B;
+  return `
+    <div class="modal" data-stop-propagation="true" style="max-width:380px">
+      <h2>${T('modal.penalty.title')}</h2>
+      <div class="modal-context">
+        <div class="row">
+          <span class="label">${T('field.team')}</span>
+          <span class="value team-${slot}">${escapeHtml(team)} (${slot})</span>
+        </div>
+        <div class="row">
+          <span class="label">${T('field.period')}</span>
+          <span class="value">${periodLabel(APP.match.period)}</span>
+        </div>
+      </div>
+      ${_newVideoTsField(match)}
+      <div class="card-buttons">
+        ${CARD_COLORS.map(c =>
+          `<button class="card-btn card-${c}" data-action="submit-penalty" data-arg="${c}">${T('card.' + c)}</button>`
+        ).join('')}
+      </div>
+      <div class="modal-actions">
+        <button class="btn" data-action="cancel-modal">${T('btn.cancel')}</button>
+      </div>
+    </div>`;
+}
+
 function renderEditEventModal(e) {
   const match = DATA.scheduledMatches.find(m => m.id === APP.matchId);
   const isCounterEvent = e.event_type === 'groundball' || e.event_type === 'draw';
-  const playerReady = isVideoPlayerAvailable();
-  const playerErrored = !!videoPlayerErrorReason();
-  const videoMode = (APP.modal && APP.modal.videoMode) || (playerReady ? 'player' : 'manual');
+  const isTeamEv = isTeamEvent(e);
   const hasVideoUrl = !!match.video_url;
   return `
     <div class="modal" data-stop-propagation="true">
       <h2>${T('modal.edit.title')}</h2>
       <div class="modal-subtitle">${T('modal.edit.subtitle')}</div>
+      ${isTeamEv ? '' : `
       <div class="modal-context">
-        <div class="row"><span class="label">${T('field.position')}</span><span class="value zone">${e.shot_x.toFixed(2)}, ${e.shot_y.toFixed(2)} → ${e.zone_name}</span></div>
-      </div>
+        <div class="row"><span class="label">${T('field.position')}</span><span class="value zone">${Number(e.shot_x).toFixed(2)}, ${Number(e.shot_y).toFixed(2)} → ${e.zone_name}</span></div>
+      </div>`}
       <label class="field">
         <span class="field-label">${T('field.team')}</span>
         <select id="edit-team">
@@ -98,7 +145,14 @@ function renderEditEventModal(e) {
           ).join('')}
         </select>
       </label>
-      ${isCounterEvent ? '' : `
+      ${e.event_type === 'penalty' ? `
+      <label class="field">
+        <span class="field-label">${T('field.card')}</span>
+        <select id="edit-card">
+          ${CARD_COLORS.map(c => `<option value="${c}" ${e.card === c ? 'selected' : ''}>${T('card.' + c)}</option>`).join('')}
+        </select>
+      </label>` : ''}
+      ${isCounterEvent || isTeamEv ? '' : `
       <label class="field">
         <span class="field-label">${T('field.result')}</span>
         <select id="edit-result">
@@ -107,28 +161,20 @@ function renderEditEventModal(e) {
           <option value="gol"      ${e.result === 'gol'      ? 'selected' : ''}>${APP.lang === 'pl' ? 'Gol' : 'Goal'}</option>
         </select>
       </label>`}
-      <div class="flag-row">
+      ${isTeamEv ? '' : `<div class="flag-row">
         <label><input type="checkbox" id="edit-man-up"   data-action="mutex-edit-flag" data-arg="man-up"   ${e.man_up   ? 'checked' : ''}> ${T('flag.man_up_short')}</label>
         <label><input type="checkbox" id="edit-man-down" data-action="mutex-edit-flag" data-arg="man-down" ${e.man_down ? 'checked' : ''}> ${T('flag.man_down_short')}</label>
         <label><input type="checkbox" id="edit-assisted" ${e.assisted ? 'checked' : ''}> ${T('flag.assisted')}</label>
         <label><input type="checkbox" id="edit-fast-break" ${e.fast_break ? 'checked' : ''}> ${T('flag.fast_break')}</label>
+        ${_isFieldVariant() ? `
         <label><input type="checkbox" id="edit-free-position" ${e.free_position ? 'checked' : ''}> ${T('flag.free_position')}</label>
-        <label><input type="checkbox" id="edit-penalty-shot" ${e.penalty_shot ? 'checked' : ''}> ${T('flag.penalty_shot')}</label>
-      </div>
+        <label><input type="checkbox" id="edit-penalty-shot" ${e.penalty_shot ? 'checked' : ''}> ${T('flag.penalty_shot')}</label>` : ''}
+      </div>`}
       ${hasVideoUrl ? `
-      <div class="field video-ts-field">
+      <label class="field video-ts-field">
         <span class="field-label">🎬 ${T('field.video_ts')}</span>
-        <label class="video-ts-toggle">
-          <input type="checkbox" id="edit-video-use-player" data-action="toggle-video-mode"
-            ${videoMode === 'player' ? 'checked' : ''} ${playerReady ? '' : 'disabled'}>
-          ${T('field.video_use_player')}
-        </label>
-        ${videoMode === 'player'
-          ? `<div class="video-ts-hint">${playerReady ? T('field.video_player_ready') : T('field.video_player_missing')}</div>`
-          : `${playerErrored ? `<div class="video-ts-hint">${T('field.video_player_error')}</div>` : ''}
-             <input type="text" id="edit-video-manual" class="video-ts-manual" placeholder="${T('field.video_manual_placeholder')}" value="${e.video_ts !== undefined && e.video_ts !== '' && e.video_ts !== null ? e.video_ts : ''}">`
-        }
-      </div>` : ''}
+        <input type="text" id="edit-video-manual" class="video-ts-manual" placeholder="${T('field.video_manual_placeholder')}" value="${e.video_ts !== undefined && e.video_ts !== '' && e.video_ts !== null ? formatVideoTs(e.video_ts) : ''}">
+      </label>` : ''}
       <div class="modal-actions">
         <button class="btn" data-action="cancel-modal">${T('btn.cancel')}</button>
         <button class="btn btn-primary" data-action="submit-edit" data-arg="${e.id}">${T('btn.save_changes')}</button>

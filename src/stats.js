@@ -50,6 +50,36 @@ function isFieldMarkerEvent(e) {
   return isShotEvent(e) || e.event_type === 'groundball' || e.event_type === 'draw';
 }
 
+// Penalties and shot clock violations: team events with no field position
+// and no result — never drawn on the map, never counted as shots.
+const CARD_COLORS = ['green', 'yellow', 'red'];
+
+function isTeamEvent(e) {
+  return e.event_type === 'penalty' || e.event_type === 'shot_clock';
+}
+
+function computeDisciplineCounts(events) {
+  const pen = events.filter(e => e.event_type === 'penalty');
+  return {
+    penalties: pen.length,
+    green:     pen.filter(e => e.card === 'green').length,
+    yellow:    pen.filter(e => e.card === 'yellow').length,
+    red:       pen.filter(e => e.card === 'red').length,
+    shotClock: events.filter(e => e.event_type === 'shot_clock').length,
+  };
+}
+
+// "3 (G1 Y2)" — penalty total with a per-card breakdown; plain text so it
+// works the same in the app and in PDF reports.
+function formatPenalties(d) {
+  if (!d.penalties) return '0';
+  const parts = [];
+  if (d.green)  parts.push('G' + d.green);
+  if (d.yellow) parts.push('Y' + d.yellow);
+  if (d.red)    parts.push('R' + d.red);
+  return `${d.penalties} (${parts.join(' ')})`;
+}
+
 function computeCounterStats(matchId, match, period) {
   const events = DATA.events.filter(e => String(e.match_id) === String(matchId));
   const ev = period ? events.filter(e => String(e.period) === String(period)) : events;
@@ -58,6 +88,8 @@ function computeCounterStats(matchId, match, period) {
     gbB:   ev.filter(e => e.event_type === 'groundball' && e.team_event === match.team_B).length,
     drawA: ev.filter(e => e.event_type === 'draw'       && e.team_event === match.team_A).length,
     drawB: ev.filter(e => e.event_type === 'draw'       && e.team_event === match.team_B).length,
+    discA: computeDisciplineCounts(ev.filter(e => e.team_event === match.team_A)),
+    discB: computeDisciplineCounts(ev.filter(e => e.team_event === match.team_B)),
   };
 }
 

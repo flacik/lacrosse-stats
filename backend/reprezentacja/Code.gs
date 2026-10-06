@@ -46,6 +46,10 @@ var VALID_ZONES = [
 
 var PERIOD_REGEX = /^([1-4]|OT\d+)$/;
 
+// Zdarzenia drużynowe bez pozycji na boisku i bez wyniku.
+var TEAM_EVENT_TYPES = ['penalty', 'shot_clock'];
+var VALID_CARDS = ['green', 'yellow', 'red'];
+
 // Kolumny zakładek (kolejność = kolejność kolumn w arkuszu)
 var EVENT_COLS = [
   'id', 'client_event_id', 'match_id',
@@ -55,6 +59,7 @@ var EVENT_COLS = [
   'result', 'man_up', 'man_down',
   'created_at', 'assisted', 'fast_break',
   'event_type', 'goalie_number', 'video_ts',
+  'card',
 ];
 
 var MATCH_COLS = [
@@ -170,7 +175,21 @@ function getSpreadsheet() {
 function getSheet(name) {
   var sheet = getSpreadsheet().getSheetByName(name);
   if (!sheet) throw new Error('Brak zakładki: ' + name + '. Uruchom setupSheets().');
+  if (name === CONFIG.SHEET_EVENTS) ensureColumns(sheet, EVENT_COLS);
   return sheet;
+}
+
+// Nowe kolumny dopisujemy zawsze na końcu (np. card) — dodaj je w locie, żeby
+// deploy nie wymagał ręcznego setupSheets(); stare wiersze mają pustą komórkę.
+function ensureColumns(sheet, cols) {
+  var maxCols = sheet.getMaxColumns();
+  if (maxCols < cols.length) sheet.insertColumnsAfter(maxCols, cols.length - maxCols);
+  var lastCol = sheet.getLastColumn();
+  if (sheet.getLastRow() > 0 && lastCol < cols.length) {
+    sheet.getRange(1, lastCol + 1, 1, cols.length - lastCol)
+      .setValues([cols.slice(lastCol)])
+      .setFontWeight('bold');
+  }
 }
 
 // ── HELPERS — WYNIKI ──────────────────────────────────────────────────────────
@@ -308,6 +327,7 @@ function findRowById(sheet, id) {
 function validateEvent(ev) {
   var isGoalieSet    = ev.event_type === 'goalie_set';
   var isCounterEvent = ev.event_type === 'groundball' || ev.event_type === 'draw';
+  var isTeamEvent    = TEAM_EVENT_TYPES.indexOf(ev.event_type) !== -1;
 
   // 1. Required fields (all event types)
   var required = [
@@ -315,10 +335,10 @@ function validateEvent(ev) {
     'tournament', 'team_A', 'team_B', 'match_date',
     'period', 'team_event',
   ];
-  if (!isGoalieSet) {
+  if (!isGoalieSet && !isTeamEvent) {
     required = required.concat(['shot_x', 'shot_y', 'zone_name']);
   }
-  if (!isGoalieSet && !isCounterEvent) {
+  if (!isGoalieSet && !isCounterEvent && !isTeamEvent) {
     required.push('result');
   }
   for (var i = 0; i < required.length; i++) {
@@ -332,6 +352,23 @@ function validateEvent(ev) {
   if (isGoalieSet) {
     var gn = String(ev.goalie_number !== undefined && ev.goalie_number !== null ? ev.goalie_number : '');
     if (!/^\d{1,2}$/.test(gn)) return 'goalie_number musi być liczbą 0–99: ' + gn;
+    return null;
+  }
+
+  // penalty / shot_clock: tylko kwarta, drużyna, data i (dla kary) kartka
+  if (isTeamEvent) {
+    if (!PERIOD_REGEX.test(String(ev.period))) {
+      return 'Niepoprawna kwarta: ' + ev.period + '. Format: 1–4 lub OT1, OT2, ...';
+    }
+    if (ev.team_event !== ev.team_A && ev.team_event !== ev.team_B) {
+      return 'team_event ("' + ev.team_event + '") musi być równy team_A lub team_B';
+    }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(ev.match_date))) {
+      return 'match_date musi być w formacie YYYY-MM-DD: ' + ev.match_date;
+    }
+    if (ev.event_type === 'penalty' && VALID_CARDS.indexOf(ev.card) === -1) {
+      return 'Niepoprawna kartka: ' + ev.card + '. Oczekiwane: ' + VALID_CARDS.join(', ');
+    }
     return null;
   }
 
@@ -623,8 +660,9 @@ function saveEvent(eventObj) {
       if (col === 'man_down')   return eventObj.man_down   ? true : false;
       if (col === 'assisted')   return eventObj.assisted   ? true : false;
       if (col === 'fast_break') return eventObj.fast_break ? true : false;
-      if (col === 'shot_x')     return eventObj.event_type === 'goalie_set' ? '' : parseFloat(eventObj.shot_x);
-      if (col === 'shot_y')     return eventObj.event_type === 'goalie_set' ? '' : parseFloat(eventObj.shot_y);
+      var _nonShot = ['goalie_set'].concat(TEAM_EVENT_TYPES);
+      if (col === 'shot_x') return _nonShot.indexOf(eventObj.event_type) >= 0 ? '' : parseFloat(eventObj.shot_x);
+      if (col === 'shot_y') return _nonShot.indexOf(eventObj.event_type) >= 0 ? '' : parseFloat(eventObj.shot_y);
       var val = eventObj[col];
       if (typeof val === 'string') return sanitizeText(val);
       return val !== undefined ? val : '';
@@ -665,8 +703,9 @@ function updateEvent(id, eventObj) {
       if (col === 'man_down')   return eventObj.man_down   ? true : false;
       if (col === 'assisted')   return eventObj.assisted   ? true : false;
       if (col === 'fast_break') return eventObj.fast_break ? true : false;
-      if (col === 'shot_x')     return eventObj.event_type === 'goalie_set' ? '' : parseFloat(eventObj.shot_x);
-      if (col === 'shot_y')     return eventObj.event_type === 'goalie_set' ? '' : parseFloat(eventObj.shot_y);
+      var _nonShot = ['goalie_set'].concat(TEAM_EVENT_TYPES);
+      if (col === 'shot_x') return _nonShot.indexOf(eventObj.event_type) >= 0 ? '' : parseFloat(eventObj.shot_x);
+      if (col === 'shot_y') return _nonShot.indexOf(eventObj.event_type) >= 0 ? '' : parseFloat(eventObj.shot_y);
       var val = eventObj[col];
       if (typeof val === 'string') return sanitizeText(val);
       return val !== undefined ? val : '';

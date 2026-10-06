@@ -623,8 +623,9 @@ function saveEvent(eventObj) {
       if (col === 'man_down')   return eventObj.man_down   ? true : false;
       if (col === 'assisted')   return eventObj.assisted   ? true : false;
       if (col === 'fast_break') return eventObj.fast_break ? true : false;
-      if (col === 'shot_x')     return eventObj.event_type === 'goalie_set' ? '' : parseFloat(eventObj.shot_x);
-      if (col === 'shot_y')     return eventObj.event_type === 'goalie_set' ? '' : parseFloat(eventObj.shot_y);
+      var _nonShot = ['goalie_set'];
+      if (col === 'shot_x') return _nonShot.indexOf(eventObj.event_type) >= 0 ? '' : parseFloat(eventObj.shot_x);
+      if (col === 'shot_y') return _nonShot.indexOf(eventObj.event_type) >= 0 ? '' : parseFloat(eventObj.shot_y);
       var val = eventObj[col];
       if (typeof val === 'string') return sanitizeText(val);
       return val !== undefined ? val : '';
@@ -665,8 +666,9 @@ function updateEvent(id, eventObj) {
       if (col === 'man_down')   return eventObj.man_down   ? true : false;
       if (col === 'assisted')   return eventObj.assisted   ? true : false;
       if (col === 'fast_break') return eventObj.fast_break ? true : false;
-      if (col === 'shot_x')     return eventObj.event_type === 'goalie_set' ? '' : parseFloat(eventObj.shot_x);
-      if (col === 'shot_y')     return eventObj.event_type === 'goalie_set' ? '' : parseFloat(eventObj.shot_y);
+      var _nonShot = ['goalie_set'];
+      if (col === 'shot_x') return _nonShot.indexOf(eventObj.event_type) >= 0 ? '' : parseFloat(eventObj.shot_x);
+      if (col === 'shot_y') return _nonShot.indexOf(eventObj.event_type) >= 0 ? '' : parseFloat(eventObj.shot_y);
       var val = eventObj[col];
       if (typeof val === 'string') return sanitizeText(val);
       return val !== undefined ? val : '';

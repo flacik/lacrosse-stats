@@ -644,6 +644,29 @@ function _renderPeriodBarChart(periods) {
     </div>`;
 }
 
+// Penalties (by card) and shot clock violations per quarter — hidden until
+// at least one was recorded in the current filter.
+function _renderDisciplineByPeriod(filtered) {
+  const teamEvents = filtered.filter(isTeamEvent);
+  if (teamEvents.length === 0) return '';
+  const periods = [...new Set(teamEvents.map(e => String(e.period)))]
+    .sort((a, b) => getPeriodOrder(a) - getPeriodOrder(b));
+  const rows = periods.map(p => {
+    const d = computeDisciplineCounts(teamEvents.filter(e => String(e.period) === p));
+    return `<tr><td>${periodLabel(p)}</td><td>${d.penalties}</td><td>${d.green}</td><td>${d.yellow}</td><td>${d.red}</td><td>${d.shotClock}</td></tr>`;
+  }).join('');
+  return `
+    <h3>${T('analytics.discipline.title')}</h3>
+    <table class="stats-table">
+      <thead><tr>
+        <th>${T('analytics.periods.quarter')}</th><th>${T('counter.penalties')}</th>
+        <th>${T('card.green')}</th><th>${T('card.yellow')}</th><th>${T('card.red')}</th>
+        <th>${T('counter.shot_clock')}</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
 function _renderAnalyticsStats(filtered, f) {
   if (filtered.length === 0) return '';
   const s = computeAnalyticsStats(filtered);
@@ -651,6 +674,7 @@ function _renderAnalyticsStats(filtered, f) {
   const matchCount = new Set(filtered.map(e => String(e.match_id))).size;
   const drawsWon    = filtered.filter(e => e.event_type === 'draw').length;
   const groundballs = filtered.filter(e => e.event_type === 'groundball').length;
+  const disc        = computeDisciplineCounts(filtered);
 
   const zoneOrder = ['attack-center','attack-left','attack-right',
                      'midfield-center','midfield-left','midfield-right','own-half'];
@@ -697,6 +721,8 @@ function _renderAnalyticsStats(filtered, f) {
         ${s.fastBreak ? `<div class="stat-box"><div class="stat-val">${s.fastBreak}</div><div class="stat-lbl">Fast break</div></div>` : ''}
         ${drawsWon    ? `<div class="stat-box"><div class="stat-val">${drawsWon}</div><div class="stat-lbl">${T('analytics.stats.draws')}</div></div>` : ''}
         ${groundballs ? `<div class="stat-box"><div class="stat-val">${groundballs}</div><div class="stat-lbl">${T('analytics.stats.groundballs')}</div></div>` : ''}
+        ${disc.penalties ? `<div class="stat-box"><div class="stat-val">${formatPenalties(disc)}</div><div class="stat-lbl">${T('counter.penalties')}</div></div>` : ''}
+        ${disc.shotClock ? `<div class="stat-box"><div class="stat-val">${disc.shotClock}</div><div class="stat-lbl">${T('counter.shot_clock')}</div></div>` : ''}
       </div>
       ${zoneRows ? `
         <h3>${T('analytics.zones.title')}</h3>
@@ -710,6 +736,7 @@ function _renderAnalyticsStats(filtered, f) {
           <thead><tr><th>${T('analytics.periods.quarter')}</th><th>${T('analytics.stats.shots')}</th><th>${T('analytics.stats.goals')}</th><th>%</th></tr></thead>
           <tbody>${periodRows}</tbody>
         </table>` : ''}
+      ${_renderDisciplineByPeriod(filtered)}
       ${_renderShotResultDonut(s)}
       ${_renderSituationStats(s)}
       ${Object.keys(s.periods).length > 0 ? `

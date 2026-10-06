@@ -241,6 +241,10 @@ function renderViewerCounterCard(counters, match) {
           ${_splitBar(counters.drawA, counters.drawB)}
           <tr><td class="num team-A">${counters.gbA}</td><td class="label" style="text-align:center;">${T('viewer.counters.gb')}</td><td class="num team-B">${counters.gbB}</td></tr>
           ${_splitBar(counters.gbA, counters.gbB)}
+          <tr><td class="num team-A">${formatPenalties(counters.discA)}</td><td class="label" style="text-align:center;">${T('counter.penalties')}</td><td class="num team-B">${formatPenalties(counters.discB)}</td></tr>
+          ${_splitBar(counters.discA.penalties, counters.discB.penalties)}
+          <tr><td class="num team-A">${counters.discA.shotClock}</td><td class="label" style="text-align:center;">${T('counter.shot_clock')}</td><td class="num team-B">${counters.discB.shotClock}</td></tr>
+          ${_splitBar(counters.discA.shotClock, counters.discB.shotClock)}
         </tbody>
       </table>
     </div>`;
