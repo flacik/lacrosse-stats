@@ -854,22 +854,43 @@ function updateScheduledMatch(id, matchObj) {
 }
 
 /**
- * Usuwa zaplanowany mecz (panel admin).
- * Uwaga: nie usuwa kaskadowo eventów powiązanych z tym meczem.
+ * Usuwa zaplanowany mecz (panel admin) razem ze wszystkimi jego eventami —
+ * frontend już wcześniej usuwał je lokalnie, a w arkuszu zostawały sieroty.
  *
  * @param {string} id - ID meczu
- * @returns {{ ok, data: null }}
+ * @returns {{ ok, data: { deletedEvents } }}
  */
 function deleteScheduledMatch(id) {
   try {
     var sheet = getSheet(CONFIG.SHEET_MATCHES);
     var rowNum = findRowById(sheet, id);
     if (rowNum < 0) return err('NOT_FOUND', 'Mecz nie istnieje: ' + id);
+    var deletedEvents = deleteEventsForMatch(id);
     sheet.deleteRow(rowNum);
-    return ok(null);
+    return ok({ deletedEvents: deletedEvents });
   } catch (e) {
     return err('INTERNAL_ERROR', e.message);
   }
+}
+
+// Usuwa wszystkie eventy meczu. Idzie od dołu i kasuje ciągłe bloki wierszy
+// jednym deleteRows, żeby numery wierszy powyżej się nie przesuwały.
+function deleteEventsForMatch(matchId) {
+  var sheet = getSheet(CONFIG.SHEET_EVENTS);
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return 0;
+  var col = EVENT_COLS.indexOf('match_id') + 1;
+  var ids = sheet.getRange(2, col, lastRow - 1, 1).getValues();
+  var deleted = 0;
+  var i = ids.length - 1;
+  while (i >= 0) {
+    if (String(ids[i][0]) !== String(matchId)) { i--; continue; }
+    var end = i;
+    while (i >= 0 && String(ids[i][0]) === String(matchId)) i--;
+    sheet.deleteRows(i + 3, end - i);
+    deleted += end - i;
+  }
+  return deleted;
 }
 
 // ── TURNIEJE ──────────────────────────────────────────────────────────────────

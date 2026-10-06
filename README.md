@@ -162,7 +162,7 @@ cd src/
 
 ## Status
 
-**Current: v2.6.1 — deployed 2026-10-06 (Reprezentacja)**
+**Current: v2.6.2 — deployed 2026-10-06 (Reprezentacja)**
 
 ### Versioning rules
 
@@ -175,6 +175,10 @@ cd src/
 ### Changelog
 
 Each entry is tagged with the game variant(s) it affects, not the deployment names: `[all]` ships everywhere, `[field]` is field lacrosse (Mistrzostwa) only, `[sixes]` is lacrosse sixes (Liga, Reprezentacja) only. Untagged legacy entries below predate the multi-deployment split and applied to all instances.
+
+**v2.6.2 (2026-10-06)** `[sixes]` — deleting a match deletes its events:
+
+- Deleting a match in the admin panel now also removes all of its events from the `events` sheet; before, they disappeared only from the screen and came back as orphans after a reload
 
 **v2.6.1 (2026-10-06)** `[all]` — compact shot modal:
 
