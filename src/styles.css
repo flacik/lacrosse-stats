@@ -1823,7 +1823,6 @@ table.stats-table td.num {
 .hm-swatch { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
 .hm-swatch.own { background: var(--hm-own); }
 .hm-swatch.opp { background: var(--hm-opp); }
-.hm-note { font-size: 12px; color: var(--hm-muted); }
 
 .hm-card-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
 .hm-dist { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; align-items: end; }

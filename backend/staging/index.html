@@ -1837,7 +1837,6 @@ table.stats-table td.num {
 .hm-swatch { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
 .hm-swatch.own { background: var(--hm-own); }
 .hm-swatch.opp { background: var(--hm-opp); }
-.hm-note { font-size: 12px; color: var(--hm-muted); }
 
 .hm-card-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
 .hm-dist { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; align-items: end; }
@@ -3809,8 +3808,7 @@ const STRINGS = {
     'hm.reset': 'Resetuj filtry',
     'hm.mode.eff': 'Skuteczność',
     'hm.mode.dens': 'Gęstość',
-    'hm.mode.zones': 'Strefy',
-    'hm.mode.pts': 'Punkty',
+        'hm.mode.pts': 'Punkty',
     'hm.persp.both': 'Atak + obrona',
     'hm.persp.att': 'Atak',
     'hm.persp.def': 'Obrona',
@@ -3830,12 +3828,10 @@ const STRINGS = {
     'hm.size_note': 'Wielkość = liczba strzałów',
     'hm.faded_note': 'blade = mniej niż 3 strzały',
     'hm.shots_lc': 'strzałów',
-    'hm.matches_lc': 'meczów',
+    'hm.matches_lc': 'meczów', 'hm.match_lc': 'mecz',
     'hm.events_lc': 'zdarzeń',
     'hm.sh': 'strz.',
-    'hm.own_half_att': 'Strzały z własnej połowy',
-    'hm.own_half_def': 'Strzały rywali z ich połowy',
-    'hm.leg.goal': 'Bramka',
+            'hm.leg.goal': 'Bramka',
     'hm.leg.on': 'Celny',
     'hm.leg.miss': 'Niecelny',
     'hm.dist.title': 'Skuteczność wg odległości',
@@ -4165,8 +4161,7 @@ const STRINGS = {
     'hm.reset': 'Reset filters',
     'hm.mode.eff': 'Efficiency',
     'hm.mode.dens': 'Density',
-    'hm.mode.zones': 'Zones',
-    'hm.mode.pts': 'Points',
+        'hm.mode.pts': 'Points',
     'hm.persp.both': 'Attack + defense',
     'hm.persp.att': 'Attack',
     'hm.persp.def': 'Defense',
@@ -4186,12 +4181,10 @@ const STRINGS = {
     'hm.size_note': 'Size = number of shots',
     'hm.faded_note': 'faded = fewer than 3 shots',
     'hm.shots_lc': 'shots',
-    'hm.matches_lc': 'matches',
+    'hm.matches_lc': 'matches', 'hm.match_lc': 'match',
     'hm.events_lc': 'events',
     'hm.sh': 'sh.',
-    'hm.own_half_att': 'Shots from own half',
-    'hm.own_half_def': 'Opponents\' shots from their half',
-    'hm.leg.goal': 'Goal',
+            'hm.leg.goal': 'Goal',
     'hm.leg.on': 'On target',
     'hm.leg.miss': 'Missed',
     'hm.dist.title': 'Efficiency by distance',
@@ -7616,7 +7609,7 @@ function _buildCmpProgressionSvg(e1, e2, f) {
 // opponent / tournaments / dates / quarters / situation, aggregated over every
 // coded match (matches can be excluded one by one). The analysed team attacks
 // right (blue), its opponents attack left (red); field is 1100×600 like the
-// input screen, so zones and distances line up with where shots were clicked.
+// input screen, so positions and distances line up with where shots were clicked.
 
 const HM_W = 1100, HM_H = 600;
 const HM_HEX_R = 17.6;              // = 1.6 % of field width (sketch default)
@@ -7643,7 +7636,7 @@ function hmInitialState() {
     preset: 'all', from: '', to: '',
     qs: HM_Q_CHIPS.slice(),
     sit: 'all',           // all | even | up | down | fb
-    mode: 'eff',          // eff | dens | zones | pts
+    mode: 'eff',          // eff | dens | pts
     persp: 'both',        // both | att | def
     metric: 'shots',      // dens/pts: shots | G | on | N | ast | gb
     qMetric: 'goals',     // goals | shots | eff
@@ -7668,11 +7661,7 @@ function _hmRamp(stops, t) {
   return 'rgb(' + _hmRampRgb(stops, t).map(Math.round).join(',') + ')';
 }
 
-function _hmInk(stops, t) {
-  const c = _hmRampRgb(stops, t);
-  return (0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2]) / 255 > 0.55 ? '#1b1d1f' : '#fff';
-}
-
+const _hmMatchCount = n => `${n} ${T(n === 1 ? 'hm.match_lc' : 'hm.matches_lc')}`;
 const _hmPct = (a, b) => (b ? Math.round(a / b * 100) + '%' : '–');
 
 // ── Hex binning (pointy-top hexagons) ─────────────────────────────────────────
@@ -7964,7 +7953,7 @@ function _hmMapCardHtml(S, C) {
   }[S.metric];
   const teamLabel = _hmTeamLabel(S.teams);
 
-  let layer = '', labels = '', shownCount = '', extraNote = '';
+  let layer = '', shownCount = '';
   if (S.mode === 'eff' || S.mode === 'dens') {
     const src = S.mode === 'dens' && isGB ? gbShown : shotsShown;
     const bins = {};
@@ -7992,44 +7981,7 @@ function _hmMapCardHtml(S, C) {
       return `<polygon class="hm-hex" data-hm-bin="${b.key}" points="0,-1 0.866,-0.5 0.866,0.5 0,1 -0.866,0.5 -0.866,-0.5"
         transform="translate(${b.cx.toFixed(1)} ${b.cy.toFixed(1)}) scale(${s.toFixed(2)})" fill="${fill}" opacity="${op}"/>`;
     }).join('');
-    shownCount = `${src.length} ${S.mode === 'dens' && isGB ? 'GB' : T('hm.shots_lc')} · ${C.used.length} ${T('hm.matches_lc')}`;
-  } else if (S.mode === 'zones') {
-    const zoneDefs = [];
-    const rowsOwn = [[0, 200, 'left'], [200, 400, 'center'], [400, 600, 'right']];
-    if (S.persp !== 'def') {
-      rowsOwn.forEach(([y0, y1, lat], i) => {
-        zoneDefs.push({ x0: 790, x1: 1100, y0, y1, zone: 'attack-' + lat, name: 'A' + (i + 1), src: C.F.shots });
-        zoneDefs.push({ x0: 550, x1: 790, y0, y1, zone: 'midfield-' + lat, name: 'A' + (i + 4), src: C.F.shots });
-      });
-    }
-    if (S.persp !== 'att') {
-      // Opponents attack left: their left (attacker's POV) is the bottom row.
-      rowsOwn.slice().reverse().forEach(([y0, y1], i) => {
-        const lat = ['left', 'center', 'right'][i];
-        zoneDefs.push({ x0: 0, x1: 310, y0, y1, zone: 'attack-' + lat, name: 'B' + (i + 1), src: C.A.shots });
-        zoneDefs.push({ x0: 310, x1: 550, y0, y1, zone: 'midfield-' + lat, name: 'B' + (i + 4), src: C.A.shots });
-      });
-    }
-    zoneDefs.forEach(z => {
-      const ins = z.src.filter(e => e.zone === z.zone);
-      const g = ins.filter(e => e.res === 'gol').length;
-      const t = ins.length ? g / ins.length / HM_EFF_MAX : 0;
-      const fill = ins.length ? _hmRamp(HM_PAL_EFF, t) : HM_FIELD;
-      const ink = ins.length ? _hmInk(HM_PAL_EFF, t) : HM_LINE;
-      const cx = (z.x0 + z.x1) / 2, cy = (z.y0 + z.y1) / 2;
-      layer += `<rect x="${z.x0}" y="${z.y0}" width="${z.x1 - z.x0}" height="${z.y1 - z.y0}" fill="${fill}" opacity="0.82" stroke="${HM_FIELD}" stroke-width="4"/>`;
-      labels += `
-        <text x="${cx}" y="${cy - 30}" text-anchor="middle" font-size="22" fill="${ink}" opacity="0.75" class="hm-mono">${z.name}</text>
-        <text x="${cx}" y="${cy + 12}" text-anchor="middle" font-size="44" font-weight="700" fill="${ink}">${ins.length ? _hmPct(g, ins.length) : '–'}</text>
-        <text x="${cx}" y="${cy + 48}" text-anchor="middle" font-size="20" fill="${ink}" class="hm-mono">${ins.length} ${T('hm.sh')} · ${g} G</text>`;
-    });
-    const ownHalf = side => side.filter(e => e.zone === 'own-half');
-    const parts = [];
-    if (S.persp !== 'def') { const o = ownHalf(C.F.shots); if (o.length) parts.push(`${T('hm.own_half_att')}: ${o.length} (${o.filter(e => e.res === 'gol').length} G)`); }
-    if (S.persp !== 'att') { const o = ownHalf(C.A.shots); if (o.length) parts.push(`${T('hm.own_half_def')}: ${o.length} (${o.filter(e => e.res === 'gol').length} G)`); }
-    extraNote = parts.join(' · ');
-    const n = (S.persp === 'def' ? 0 : C.F.shots.length) + (S.persp === 'att' ? 0 : C.A.shots.length);
-    shownCount = `${n} ${T('hm.shots_lc')} · ${C.used.length} ${T('hm.matches_lc')}`;
+    shownCount = `${src.length} ${S.mode === 'dens' && isGB ? 'GB' : T('hm.shots_lc')} · ${_hmMatchCount(C.used.length)}`;
   } else {
     const add = (arr, c) => arr.filter(metricFilter).forEach(e => {
       const tf = `translate(${e.x.toFixed(1)} ${e.y.toFixed(1)})`;
@@ -8042,10 +7994,10 @@ function _hmMapCardHtml(S, C) {
     if (S.persp !== 'def') add(own, HM_OWN);
     if (S.persp !== 'att') add(opp, HM_OPP);
     const n = (S.persp !== 'def' ? own.filter(metricFilter).length : 0) + (S.persp !== 'att' ? opp.filter(metricFilter).length : 0);
-    shownCount = `${n} ${T('hm.events_lc')} · ${C.used.length} ${T('hm.matches_lc')}`;
+    shownCount = `${n} ${T('hm.events_lc')} · ${_hmMatchCount(C.used.length)}`;
   }
 
-  const modes = [['eff', T('hm.mode.eff')], ['dens', T('hm.mode.dens')], ['zones', T('hm.mode.zones')], ['pts', T('hm.mode.pts')]]
+  const modes = [['eff', T('hm.mode.eff')], ['dens', T('hm.mode.dens')], ['pts', T('hm.mode.pts')]]
     .map(([id, l]) => _hmChip(l, S.mode === id, 'hm-set-mode', id, 'seg')).join('');
   const persps = [['both', T('hm.persp.both')], ['att', T('hm.persp.att')], ['def', T('hm.persp.def')]]
     .map(([id, l]) => _hmChip(l, S.persp === id, 'hm-set-persp', id, 'seg')).join('');
@@ -8053,7 +8005,7 @@ function _hmMapCardHtml(S, C) {
     .map(([id, l]) => _hmChip(l, S.metric === id, 'hm-set-metric', id)).join('');
 
   const showDraw = !half && (S.mode === 'eff' || S.mode === 'dens') && C.dT > 0;
-  const isEffScale = S.mode === 'eff' || S.mode === 'zones';
+  const isEffScale = S.mode === 'eff';
   const grad = p => 'linear-gradient(90deg,' + p.join(',') + ')';
   const legendPts = `
     <span class="hm-leg"><svg width="12" height="12"><circle cx="6" cy="6" r="5" fill="${HM_OWN}"/></svg>${T('hm.leg.goal')}</span>
@@ -8081,8 +8033,7 @@ function _hmMapCardHtml(S, C) {
             <rect x="0" y="0" width="${HM_W}" height="${HM_H}" fill="${HM_FIELD}"/>
             ${_hmFieldMarkings()}
             <g clip-path="url(#hm-clip)">${layer}</g>
-            ${S.mode === 'zones' ? '' : _hmFieldOverlay()}
-            ${labels}
+            ${_hmFieldOverlay()}
           </svg>
           ${showDraw ? `<div class="hm-draw-pill">${T('hm.draws')} ${_hmPct(C.dW, C.dT)} · ${C.dW}/${C.dT}</div>` : ''}
           <div class="hm-tip" id="hm-tip" hidden></div>
@@ -8099,7 +8050,6 @@ function _hmMapCardHtml(S, C) {
         ${S.mode === 'eff' ? `<div class="hm-scale"><span>${T('hm.size_note')}</span><span class="hm-muted">· ${T('hm.faded_note')}</span></div>` : ''}
         <span class="hm-mono hm-muted">${shownCount}</span>
       </div>
-      ${extraNote ? `<div class="hm-note">${escapeHtml(extraNote)}</div>` : ''}
     </div>`;
 }
 
@@ -8193,7 +8143,7 @@ function _hmSummaryCardHtml(S, C) {
       <div class="hm-card-head"><b>${T('hm.summary')}</b>
         <span class="hm-mono hm-muted">W ${C.W} · L ${C.L}${C.D ? ' · D ' + C.D : ''}</span></div>
       <div class="hm-sample${small ? ' warn' : ''}">
-        ${C.used.length} ${T('hm.matches_lc')} · ${sf.n + sa.n} ${T('hm.shots_lc')}${small ? ' — ' + T('hm.small_sample') : ''}
+        ${_hmMatchCount(C.used.length)} · ${sf.n + sa.n} ${T('hm.shots_lc')}${small ? ' — ' + T('hm.small_sample') : ''}
       </div>
       <div class="hm-kpis">
         <div></div><div class="hm-kpi-a hm-own-color">${T('hm.for')}</div><div class="hm-kpi-b hm-opp-color">${T('hm.against')}</div>
@@ -10829,7 +10779,7 @@ function parseCsvMatches(text) {
 
 // Top-level render dispatcher + init.
 
-const APP_VERSION = 'v2.5.0';
+const APP_VERSION = 'v2.5.1';
 
 function _renderFooter(container) {
   const f = document.createElement('footer');

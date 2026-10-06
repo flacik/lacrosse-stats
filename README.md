@@ -162,7 +162,7 @@ cd src/
 
 ## Status
 
-**Current: v2.5.0 — deployed 2026-10-06 (Reprezentacja)**
+**Current: v2.5.1 — deployed 2026-10-06 (Reprezentacja)**
 
 ### Versioning rules
 
@@ -176,11 +176,16 @@ cd src/
 
 Each entry is tagged with the game variant(s) it affects, not the deployment names: `[all]` ships everywhere, `[field]` is field lacrosse (Mistrzostwa) only, `[sixes]` is lacrosse sixes (Liga, Reprezentacja) only. Untagged legacy entries below predate the multi-deployment split and applied to all instances.
 
+**v2.5.1 (2026-10-06)** `[sixes]` — heatmap tweaks:
+
+- Removed the **Zones** map mode (it added nothing over Efficiency and Points)
+- "1 match" instead of "1 matches" in the heatmap counters
+
 **v2.5.0 (2026-10-06)** `[sixes]` — multi-match heatmap as the main analytics view (deployed to Reprezentacja only):
 
 - Analytics opens on a new **Heatmap** tab; the other tabs are **Team comparison**, **Goalies** (goalie ranking on its own) and **Classic** (the previous single-team view, kept for one release to cross-check numbers)
 - Filters: one or more teams (searchable list), opponent, several tournaments at once, period presets (30 / 90 days, year, all) or custom dates, quarters incl. OT, situation (even strength / man-up / man-down / fast break)
-- Map modes **Efficiency** (hexes: colour = goals/shots, size = number of shots, faded under 3 shots), **Density** (shots / goals / on target / missed / assists / GB), **Zones** (A1–A6 / B1–B6 with own-half shots listed separately) and **Points**, each for attack + defense, attack or defense; the analysed team attacks right, its opponents left, on a dark field drawn with the same sixes geometry as the input screen
+- Map modes **Efficiency** (hexes: colour = goals/shots, size = number of shots, faded under 3 shots), **Density** (shots / goals / on target / missed / assists / GB), **Zones** (removed in v2.5.1) and **Points**, each for attack + defense, attack or defense; the analysed team attacks right, its opponents left, on a dark field drawn with the same sixes geometry as the input screen
 - Hover (or tap) a hex for goals, saves, misses, efficiency, assists, man-up / fast break and average distance
 - Summary for / against with per-match averages, W/L record, sample size line with a warning under 3 matches, plus penalties (G/Y/R) and shot clock violations
 - **Per quarter** chart (goals / shots / efficiency, total or average per match), efficiency by distance, and a match list where any match can be left out of every number on the screen
