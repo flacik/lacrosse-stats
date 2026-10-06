@@ -162,7 +162,7 @@ cd src/
 
 ## Status
 
-**Current: v2.6.0 — deployed 2026-10-06 (Reprezentacja)**
+**Current: v2.6.1 — deployed 2026-10-06 (Reprezentacja)**
 
 ### Versioning rules
 
@@ -175,6 +175,10 @@ cd src/
 ### Changelog
 
 Each entry is tagged with the game variant(s) it affects, not the deployment names: `[all]` ships everywhere, `[field]` is field lacrosse (Mistrzostwa) only, `[sixes]` is lacrosse sixes (Liga, Reprezentacja) only. Untagged legacy entries below predate the multi-deployment split and applied to all instances.
+
+**v2.6.1 (2026-10-06)** `[all]` — compact shot modal:
+
+- The shot modal is about half as tall: team / zone / period on one line, flags in a wrapping row, video moment inline, Miss / On target / Goal side by side — the **GB** and **Draw** buttons now fit on a laptop screen without scrolling
 
 **v2.6.0 (2026-10-06)** `[sixes]` — Classic analytics tab removed:
 

@@ -43,9 +43,8 @@ function _newVideoTsField(match) {
 function renderResultModal(pending) {
   const match = DATA.scheduledMatches.find(m => m.id === APP.matchId);
   return `
-    <div class="modal" data-stop-propagation="true">
+    <div class="modal modal-shot" data-stop-propagation="true">
       <h2>${T('modal.shot.title')}</h2>
-      <div class="modal-subtitle">${T('modal.shot.subtitle')}</div>
       <div class="modal-context">
         <div class="row">
           <span class="label">${T('field.team')}</span>

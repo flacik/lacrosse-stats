@@ -375,6 +375,34 @@ svg.field.field-half {
   border-top: 1px solid #f0f0eb; padding-top: 14px;
 }
 
+/* Shot modal — compact, so GB/Draw fit on a laptop screen without scrolling */
+.modal.modal-shot { padding: 16px 18px; max-width: 520px; }
+.modal-shot h2 { margin-bottom: 10px; }
+.modal-shot .modal-context {
+  display: flex; flex-wrap: wrap; gap: 4px 18px;
+  padding: 8px 12px; margin-bottom: 10px;
+}
+.modal-shot .modal-context .row { margin-bottom: 0; gap: 6px; align-items: baseline; }
+.modal-shot .modal-context .label { min-width: 0; }
+.modal-shot .flag-row {
+  display: flex; flex-wrap: wrap; gap: 4px 16px;
+  padding: 8px 12px; margin-bottom: 10px;
+}
+.modal-shot .flag-row label { padding: 0; }
+.modal-shot .flag-row input[type="checkbox"] { width: 18px; height: 18px; }
+.modal-shot .video-ts-field {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 12px; margin-bottom: 10px;
+}
+.modal-shot .video-ts-field .field-label { margin-bottom: 0; white-space: nowrap; }
+.modal-shot .video-ts-manual { margin-top: 0; flex: 1; min-width: 0; padding: 6px 10px; }
+.modal-shot .result-buttons { flex-direction: row; gap: 8px; margin-bottom: 10px; }
+.modal-shot .result-btn { flex: 1; padding: 10px 8px; min-height: 46px; font-size: 15px; }
+.modal-shot .counter-action-row { margin: 0 0 8px; }
+.modal-shot .counter-action-buttons { gap: 6px; margin-bottom: 10px; }
+.modal-shot .counter-action-btn { min-height: 38px; }
+.modal-shot .modal-actions { padding-top: 10px; }
+
 label.field { display: block; margin-bottom: 12px; }
 label.field .field-label {
   display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;
