@@ -162,7 +162,7 @@ cd src/
 
 ## Status
 
-**Current: v2.5.1 — deployed 2026-10-06 (Reprezentacja)**
+**Current: v2.6.0 — deployed 2026-10-06 (Reprezentacja)**
 
 ### Versioning rules
 
@@ -175,6 +175,12 @@ cd src/
 ### Changelog
 
 Each entry is tagged with the game variant(s) it affects, not the deployment names: `[all]` ships everywhere, `[field]` is field lacrosse (Mistrzostwa) only, `[sixes]` is lacrosse sixes (Liga, Reprezentacja) only. Untagged legacy entries below predate the multi-deployment split and applied to all instances.
+
+**v2.6.0 (2026-10-06)** `[sixes]` — Classic analytics tab removed:
+
+- Removed the **Classic** tab (the old single-team analytics view); Analytics now has **Heatmap**, **Team comparison** and **Goalies**
+- The team analytics **PDF** button moved to the Heatmap header; it uses the heatmap's team (exactly one), tournament (if one is selected), dates and quarter (if one is selected) — opponent, situation and unticked matches are not applied
+- **Per quarter** chart gets two more metrics: **Penalties** and **Shot clock** (replaces the Classic "penalties & shot clock by quarter" table)
 
 **v2.5.1 (2026-10-06)** `[sixes]` — heatmap tweaks:
 

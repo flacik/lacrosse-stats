@@ -2966,7 +2966,7 @@ let APP = {
   analyticsLoading:     false,
   analyticsError:       null,
   analyticsData:        null,   // { events: [], matches: [], tournaments: [] }
-  analyticsMode:        'heatmap', // 'heatmap' | 'compare' | 'goalies' | 'single' (Classic)
+  analyticsMode:        'heatmap', // 'heatmap' | 'compare' | 'goalies'
   analyticsFilters:     {
     tournament: '',
     team:       '',
@@ -3787,8 +3787,7 @@ const STRINGS = {
     'btn.watch_moment': 'Zobacz ten moment w nagraniu',
     'analytics.mode.heatmap': 'Heatmapa',
     'analytics.mode.goalies': 'Bramkarze',
-    'analytics.mode.classic': 'Classic',
-    'hm.teams': 'Drużyny',
+        'hm.teams': 'Drużyny',
     'hm.teams_n': 'drużyny',
     'hm.no_team': 'Wybierz drużynę',
     'hm.search': 'Szukaj drużyny…',
@@ -3838,7 +3837,7 @@ const STRINGS = {
     'hm.dist.own': 'strzały własne',
     'hm.dist.opp': 'strzały rywali',
     'hm.q.title': 'Na kwartę',
-    'hm.q.eff': 'Skuteczność',
+    'hm.q.eff': 'Skuteczność', 'hm.q.pen': 'Kary', 'hm.q.sc': 'Zegar',
     'hm.q.total': 'Suma',
     'hm.q.per_match': 'Średnia',
     'hm.q.for': 'zdobyte',
@@ -3861,6 +3860,8 @@ const STRINGS = {
     'hm.k.up_hint': 'gole / strzały w przewadze',
     'hm.k.fb_hint': 'gole / strzały z kontry',
     'hm.k.draws': 'Wznowienia',
+    'hm.pdf_hint': 'PDF dla wybranej drużyny, turnieju, dat i kwarty. Przeciwnik, sytuacja i odznaczone mecze nie są uwzględniane.',
+    'hm.pdf_one_team': 'Zaznacz dokładnie jedną drużynę, żeby wygenerować PDF',
     'hm.k.pen': 'Kary (G/Y/R)', 'hm.k.sc': 'Naruszenia zegara',
     'hm.k.draws_hint': 'wygrane / przegrane',
     'hm.matches': 'Mecze',
@@ -3882,7 +3883,7 @@ const STRINGS = {
     'select.all': '— wszystkie —', 'select.all_tournaments': 'Wszystkie turnieje',
     'select.all_teams': 'Wszystkie drużyny', 'select.all_periods': 'Wszystkie okresy',
     'analytics.title': 'Analityka historyczna', 'analytics.stats.title': 'Statystyki',
-    'analytics.mode.single': 'Analiza drużyny', 'analytics.mode.compare': 'Porównanie drużyn',
+    'analytics.mode.compare': 'Porównanie drużyn',
     'analytics.empty': 'Brak danych dla wybranych filtrów.',
     'analytics.no_heatmap': 'Wybierz drużynę żeby zobaczyć shot chart.',
     'analytics.team1': 'Drużyna 1', 'analytics.team2': 'Drużyna 2',
@@ -4140,8 +4141,7 @@ const STRINGS = {
     'btn.watch_moment': 'Watch this moment in the recording',
     'analytics.mode.heatmap': 'Heatmap',
     'analytics.mode.goalies': 'Goalies',
-    'analytics.mode.classic': 'Classic',
-    'hm.teams': 'Teams',
+        'hm.teams': 'Teams',
     'hm.teams_n': 'teams',
     'hm.no_team': 'Pick a team',
     'hm.search': 'Search teams…',
@@ -4191,7 +4191,7 @@ const STRINGS = {
     'hm.dist.own': 'own shots',
     'hm.dist.opp': 'opponents\' shots',
     'hm.q.title': 'Per quarter',
-    'hm.q.eff': 'Efficiency',
+    'hm.q.eff': 'Efficiency', 'hm.q.pen': 'Penalties', 'hm.q.sc': 'Shot clock',
     'hm.q.total': 'Total',
     'hm.q.per_match': 'Average',
     'hm.q.for': 'scored',
@@ -4214,6 +4214,8 @@ const STRINGS = {
     'hm.k.up_hint': 'goals / shots on man-up',
     'hm.k.fb_hint': 'goals / shots on fast break',
     'hm.k.draws': 'Draws',
+    'hm.pdf_hint': 'PDF for the selected team, tournament, dates and quarter. Opponent, situation and unticked matches aren\'t applied.',
+    'hm.pdf_one_team': 'Select exactly one team to create the PDF',
     'hm.k.pen': 'Penalties (G/Y/R)', 'hm.k.sc': 'Shot clock violations',
     'hm.k.draws_hint': 'won / lost',
     'hm.matches': 'Matches',
@@ -4235,7 +4237,7 @@ const STRINGS = {
     'select.all': '— all —', 'select.all_tournaments': 'All tournaments',
     'select.all_teams': 'All teams', 'select.all_periods': 'All periods',
     'analytics.title': 'Historical analytics', 'analytics.stats.title': 'Statistics',
-    'analytics.mode.single': 'Team analysis', 'analytics.mode.compare': 'Team comparison',
+    'analytics.mode.compare': 'Team comparison',
     'analytics.empty': 'No data for the selected filters.',
     'analytics.no_heatmap': 'Select a team to view the shot chart.',
     'analytics.team1': 'Team 1', 'analytics.team2': 'Team 2',
@@ -6308,19 +6310,18 @@ function renderAnalytics(root) {
 
   const { events, matches, tournaments } = APP.analyticsData;
   const f    = APP.analyticsFilters;
-  const mode = APP.analyticsMode || 'heatmap';
+  const mode = APP.analyticsMode;
 
   const allTeams   = _analyticsAllTeams(matches, f.tournament);
   const allPeriods = _analyticsAllPeriods(events);
 
   const tab = (id, label) =>
-    `<button class="btn ${mode === id ? 'btn-primary' : ''}" data-action="analytics-mode-toggle" data-arg="${id}">${label}</button>`;
+    `<button class="btn ${(mode === id || (id === 'heatmap' && mode !== 'compare' && mode !== 'goalies')) ? 'btn-primary' : ''}" data-action="analytics-mode-toggle" data-arg="${id}">${label}</button>`;
   const modeTabs = `
     <div class="analytics-mode-tabs">
       ${tab('heatmap', T('analytics.mode.heatmap'))}
       ${tab('compare', T('analytics.mode.compare'))}
       ${tab('goalies', T('analytics.mode.goalies'))}
-      ${tab('single', T('analytics.mode.classic'))}
     </div>`;
 
   const header = (extra) => `
@@ -6331,16 +6332,6 @@ function renderAnalytics(root) {
       <button class="btn" data-action="toggle-dark-mode" id="theme-toggle" title="${T('nav.theme')}">🌙</button>
       ${extra || ''}
     </div>`;
-
-  if (mode === 'heatmap') {
-    root.innerHTML = `
-      ${header()}
-      <div class="analytics-content analytics-content-wide">
-        ${modeTabs}
-        ${renderHeatmapView(events, matches, tournaments)}
-      </div>`;
-    return;
-  }
 
   if (mode === 'goalies') {
     const filteredG = _analyticsApplyFilters(events, f);
@@ -6373,22 +6364,14 @@ function renderAnalytics(root) {
     return;
   }
 
-  const filtered = _analyticsApplyFilters(events, f);
+  // Heatmap is the default (and what a stale 'single' mode from the removed
+  // Classic tab falls back to).
+  const view = renderHeatmapView(events, matches, tournaments);  // picks the default team first
   root.innerHTML = `
-    <div class="app-header">
-      <h1>${T('analytics.title')}</h1>
-      <button class="btn" data-action="go-home-from-analytics">${T('nav.home')}</button>
-      ${_langToggleBtn()}
-      <button class="btn" data-action="toggle-dark-mode" id="theme-toggle" title="${T('nav.theme')}">🌙</button>
-      <button class="btn" data-action="open-analytics-report" title="${T('nav.pdf')}">${T('nav.pdf')}</button>
-    </div>
-    <div class="analytics-content">
+    ${header(hmReportButtonHtml())}
+    <div class="analytics-content analytics-content-wide">
       ${modeTabs}
-      ${_renderAnalyticsFilters(f, tournaments, allTeams, allPeriods, 'single')}
-      ${filtered.length === 0
-        ? `<div class="empty">${T('analytics.empty')}</div>`
-        : _renderAnalyticsBody(filtered, matches, f)
-      }
+      ${view}
     </div>`;
 }
 
@@ -6479,18 +6462,6 @@ function _analyticsAllPeriods(events) {
     if (!bOT) return 1;
     return Number(a.slice(2)) - Number(b.slice(2));
   });
-}
-
-// ── Result sections ───────────────────────────────────────────────────────────
-
-function _renderAnalyticsBody(filtered, matches, f) {
-  return `
-    <div class="analytics-body">
-      ${_renderAnalyticsStats(filtered, f)}
-      ${_renderAnalyticsGoalies(filtered, APP.analyticsData.events, APP.analyticsData.matches, f)}
-      ${_renderAnalyticsHeatmap(filtered, APP.analyticsData.events, f)}
-      ${_renderAnalyticsMatchHistory(filtered, APP.analyticsData.events, APP.analyticsData.matches, f)}
-    </div>`;
 }
 
 // ── Goalkeepers ───────────────────────────────────────────────────────────────
@@ -6833,86 +6804,6 @@ function computeAnalyticsStats(allEvents) {
   return { total, goals, onTarget, offTarget, manUp, manDown, fastBreak, pct, onPct, zones, periods, situations };
 }
 
-// ── Shot result donut ─────────────────────────────────────────────────────────
-
-function _renderShotResultDonut(s) {
-  if (s.total === 0) return '';
-
-  const segments = [
-    { count: s.goals,                 color: '#16a34a', label: T('analytics.donut.goals') },
-    { count: s.onTarget - s.goals,    color: '#3b82f6', label: T('analytics.donut.on_target') },
-    { count: s.offTarget,             color: '#9ca3af', label: T('analytics.donut.off_target') },
-  ].filter(seg => seg.count > 0);
-
-  const cx = 80, cy = 80, r = 60, innerR = 38;
-  let arcs = '';
-  let angle = -Math.PI / 2;
-
-  segments.forEach(seg => {
-    const sweep = (seg.count / s.total) * 2 * Math.PI;
-    const x1 = cx + r * Math.cos(angle);
-    const y1 = cy + r * Math.sin(angle);
-    const x2 = cx + r * Math.cos(angle + sweep);
-    const y2 = cy + r * Math.sin(angle + sweep);
-    const xi1 = cx + innerR * Math.cos(angle);
-    const yi1 = cy + innerR * Math.sin(angle);
-    const xi2 = cx + innerR * Math.cos(angle + sweep);
-    const yi2 = cy + innerR * Math.sin(angle + sweep);
-    const large = sweep > Math.PI ? 1 : 0;
-
-    arcs += `<path d="
-      M ${x1} ${y1}
-      A ${r} ${r} 0 ${large} 1 ${x2} ${y2}
-      L ${xi2} ${yi2}
-      A ${innerR} ${innerR} 0 ${large} 0 ${xi1} ${yi1}
-      Z" fill="${seg.color}" opacity="0.9"/>`;
-    angle += sweep;
-  });
-
-  const legendItems = segments.map(seg => {
-    const pct = Math.round((seg.count / s.total) * 100);
-    return `<div class="donut-legend-item">
-      <span class="donut-dot" style="background:${seg.color}"></span>
-      <span>${seg.label}: ${seg.count} (${pct}%)</span>
-    </div>`;
-  }).join('');
-
-  return `
-    <div class="donut-wrapper">
-      <svg width="160" height="160" viewBox="0 0 160 160">
-        ${arcs}
-        <text x="${cx}" y="${cy - 6}" text-anchor="middle" font-size="18" font-weight="700" fill="#111">${s.total}</text>
-        <text x="${cx}" y="${cy + 12}" text-anchor="middle" font-size="10" fill="#6b7280">${T('analytics.donut.shots')}</text>
-      </svg>
-      <div class="donut-legend">${legendItems}</div>
-    </div>`;
-}
-
-// ── Situation stats ───────────────────────────────────────────────────────────
-
-function _renderSituationStats(s) {
-  const { situations } = s;
-  const hasSpecial = situations.manUp.total > 0 || situations.manDown.total > 0 || situations.fastBreak.total > 0;
-  if (!hasSpecial) return '';
-
-  const cards = [situations.manUp, situations.even, situations.manDown, situations.fastBreak].filter(s => s.total > 0 || s === situations.even).map(sit => `
-    <div class="stat-box sit-card">
-      <div class="sit-icon">${sit.icon}</div>
-      <div class="stat-lbl">${sit.label}</div>
-      <div class="sit-numbers">
-        <span class="sit-goals">${sit.goals} ${T('analytics.sit.goals')}</span>
-        <span class="sit-total">/ ${sit.total} ${T('analytics.donut.shots')}</span>
-      </div>
-      <div class="stat-val sit-pct">${sit.pct}%</div>
-    </div>`).join('');
-
-  return `
-    <div style="margin-bottom: 16px;">
-      <h3 style="font-size:14px;color:#6b7280;margin:0 0 8px">${T('analytics.sit.title')}</h3>
-      <div class="stats-grid">${cards}</div>
-    </div>`;
-}
-
 // ── Period bar chart ──────────────────────────────────────────────────────────
 
 function _renderPeriodBarChart(periods) {
@@ -6951,169 +6842,7 @@ function _renderPeriodBarChart(periods) {
     </div>`;
 }
 
-// Penalties (by card) and shot clock violations per quarter — hidden until
-// at least one was recorded in the current filter.
-function _renderDisciplineByPeriod(filtered) {
-  const teamEvents = filtered.filter(isTeamEvent);
-  if (teamEvents.length === 0) return '';
-  const periods = [...new Set(teamEvents.map(e => String(e.period)))]
-    .sort((a, b) => getPeriodOrder(a) - getPeriodOrder(b));
-  const rows = periods.map(p => {
-    const d = computeDisciplineCounts(teamEvents.filter(e => String(e.period) === p));
-    return `<tr><td>${periodLabel(p)}</td><td>${d.penalties}</td><td>${d.green}</td><td>${d.yellow}</td><td>${d.red}</td><td>${d.shotClock}</td></tr>`;
-  }).join('');
-  return `
-    <h3>${T('analytics.discipline.title')}</h3>
-    <table class="stats-table">
-      <thead><tr>
-        <th>${T('analytics.periods.quarter')}</th><th>${T('counter.penalties')}</th>
-        <th>${T('card.green')}</th><th>${T('card.yellow')}</th><th>${T('card.red')}</th>
-        <th>${T('counter.shot_clock')}</th>
-      </tr></thead>
-      <tbody>${rows}</tbody>
-    </table>`;
-}
-
-function _renderAnalyticsStats(filtered, f) {
-  if (filtered.length === 0) return '';
-  const s = computeAnalyticsStats(filtered);
-  const teamLabel = f.team || T('select.all_teams');
-  const matchCount = new Set(filtered.map(e => String(e.match_id))).size;
-  const drawsWon    = filtered.filter(e => e.event_type === 'draw').length;
-  const groundballs = filtered.filter(e => e.event_type === 'groundball').length;
-  const disc        = computeDisciplineCounts(filtered);
-
-  const zoneOrder = ['attack-center','attack-left','attack-right',
-                     'midfield-center','midfield-left','midfield-right','own-half'];
-  const zoneLabels = {
-    'attack-center':   T('zone.attack_center'),
-    'attack-left':     T('zone.attack_left'),
-    'attack-right':    T('zone.attack_right'),
-    'midfield-center': T('zone.midfield_center'),
-    'midfield-left':   T('zone.midfield_left'),
-    'midfield-right':  T('zone.midfield_right'),
-    'own-half':        T('zone.own_half'),
-  };
-
-  const zoneRows = zoneOrder
-    .filter(z => s.zones[z])
-    .map(z => {
-      const cnt = s.zones[z];
-      const pct = Math.round((cnt / s.total) * 100);
-      return `<tr><td>${zoneLabels[z]}</td><td>${cnt}</td><td>${pct}%</td></tr>`;
-    }).join('');
-
-  const periodRows = Object.entries(s.periods)
-    .sort(([a],[b]) => {
-      const aOT = a.startsWith('OT'), bOT = b.startsWith('OT');
-      if (!aOT && !bOT) return Number(a) - Number(b);
-      if (!aOT) return -1; if (!bOT) return 1;
-      return Number(a.slice(2)) - Number(b.slice(2));
-    })
-    .map(([p, v]) => `<tr><td>${periodLabel(p)}</td><td>${v.total}</td><td>${v.goals}</td><td>${v.total > 0 ? Math.round(v.goals/v.total*100) : 0}%</td></tr>`)
-    .join('');
-
-  return `
-    <section class="analytics-section">
-      <h2>${T('analytics.stats.title')}: ${escapeHtml(teamLabel)}</h2>
-      <div class="stats-grid">
-        <div class="stat-box"><div class="stat-val">${matchCount}</div><div class="stat-lbl">${T('analytics.stats.matches')}</div></div>
-        <div class="stat-box"><div class="stat-val">${s.total}</div><div class="stat-lbl">${T('analytics.stats.shots')}</div></div>
-        <div class="stat-box"><div class="stat-val">${s.goals}</div><div class="stat-lbl">${T('analytics.stats.goals')}</div></div>
-        <div class="stat-box"><div class="stat-val">${s.onTarget}</div><div class="stat-lbl">${T('analytics.stats.on_target')}</div></div>
-        <div class="stat-box"><div class="stat-val">${s.pct}%</div><div class="stat-lbl">${T('analytics.stats.rate')}</div></div>
-        <div class="stat-box"><div class="stat-val">${s.onPct}%</div><div class="stat-lbl">${T('analytics.stats.on_pct')}</div></div>
-        ${s.manUp     ? `<div class="stat-box"><div class="stat-val">${s.manUp}</div><div class="stat-lbl">Man-up</div></div>` : ''}
-        ${s.manDown   ? `<div class="stat-box"><div class="stat-val">${s.manDown}</div><div class="stat-lbl">Man-down</div></div>` : ''}
-        ${s.fastBreak ? `<div class="stat-box"><div class="stat-val">${s.fastBreak}</div><div class="stat-lbl">Fast break</div></div>` : ''}
-        ${drawsWon    ? `<div class="stat-box"><div class="stat-val">${drawsWon}</div><div class="stat-lbl">${T('analytics.stats.draws')}</div></div>` : ''}
-        ${groundballs ? `<div class="stat-box"><div class="stat-val">${groundballs}</div><div class="stat-lbl">${T('analytics.stats.groundballs')}</div></div>` : ''}
-        ${disc.penalties ? `<div class="stat-box"><div class="stat-val">${formatPenalties(disc)}</div><div class="stat-lbl">${T('counter.penalties')}</div></div>` : ''}
-        ${disc.shotClock ? `<div class="stat-box"><div class="stat-val">${disc.shotClock}</div><div class="stat-lbl">${T('counter.shot_clock')}</div></div>` : ''}
-      </div>
-      ${zoneRows ? `
-        <h3>${T('analytics.zones.title')}</h3>
-        <table class="stats-table">
-          <thead><tr><th>${T('analytics.zones.zone')}</th><th>${T('analytics.stats.shots')}</th><th>%</th></tr></thead>
-          <tbody>${zoneRows}</tbody>
-        </table>` : ''}
-      ${periodRows ? `
-        <h3>${T('analytics.periods.title')}</h3>
-        <table class="stats-table">
-          <thead><tr><th>${T('analytics.periods.quarter')}</th><th>${T('analytics.stats.shots')}</th><th>${T('analytics.stats.goals')}</th><th>%</th></tr></thead>
-          <tbody>${periodRows}</tbody>
-        </table>` : ''}
-      ${_renderDisciplineByPeriod(filtered)}
-      ${_renderShotResultDonut(s)}
-      ${_renderSituationStats(s)}
-      ${Object.keys(s.periods).length > 0 ? `
-        <h3>${T('analytics.eff_period')}</h3>
-        ${_renderPeriodBarChart(s.periods)}` : ''}
-      ${_renderAnalyticsProgressionChart(filtered, f)}
-    </section>`;
-}
-
-function _renderAnalyticsProgressionChart(filtered, f) {
-  if (!f.team) {
-    return `<h3>${T('analytics.progression.title')}</h3><p class="empty">${T('analytics.progression.select_team')}</p>`;
-  }
-  const conceded         = _buildConcededEvents(filtered, APP.analyticsData.events, f);
-  const periodsScored    = computePeriodMetricStats(filtered);
-  const periodsConceded  = computePeriodMetricStats(conceded);
-  const cum = buildCumulativeMetricSeries(periodsScored, periodsConceded, ['shots', 'onTarget', 'goals', 'groundballs']);
-  if (cum.labels.length <= 1) return `<h3>${T('analytics.progression.title')}</h3>`;
-  const bySide = {};
-  cum.series.forEach(s => { bySide[s.metric] = s; });
-  const scoredVals   = { shots: bySide.shots.valuesA, onTarget: bySide.onTarget.valuesA, goals: bySide.goals.valuesA, groundballs: bySide.groundballs.valuesA };
-  const concededVals = { shots: bySide.shots.valuesB, onTarget: bySide.onTarget.valuesB, goals: bySide.goals.valuesB, groundballs: bySide.groundballs.valuesB };
-  const svg = buildLayeredProgressionChartSvg(cum.labels, scoredVals, concededVals,
-    T('analytics.progression.scored'), T('analytics.progression.conceded'));
-  return `<h3>${T('analytics.progression.title')}</h3><div class="progression-chart-wrapper">${svg}</div>`;
-}
-
 // ── Heatmap ───────────────────────────────────────────────────────────────────
-
-function _renderAnalyticsHeatmap(filteredTeamEvents, allMatchEvents, f) {
-  if (!f.team) {
-    return `<section class="analytics-section">
-      <h2>Shot chart</h2>
-      <p class="empty">${T('analytics.no_heatmap')}</p>
-    </section>`;
-  }
-
-  const mode = APP.analyticsHeatmapMode || 'fired';
-  const matchIds = new Set(filteredTeamEvents.map(e => String(e.match_id)));
-
-  let chartEvents;
-  if (mode === 'fired') {
-    chartEvents = filteredTeamEvents;
-  } else {
-    chartEvents = allMatchEvents.filter(e =>
-      matchIds.has(String(e.match_id)) && e.team_event !== f.team
-    );
-    if (f.period)   chartEvents = chartEvents.filter(e => String(e.period) === f.period);
-    if (f.dateFrom) chartEvents = chartEvents.filter(e => e.match_date >= f.dateFrom);
-    if (f.dateTo)   chartEvents = chartEvents.filter(e => e.match_date <= f.dateTo);
-  }
-
-  let svgContent;
-  if (mode === 'efficiency') {
-    svgContent = _buildZoneEfficiencySvg(filteredTeamEvents);
-  } else {
-    svgContent = _buildAnalyticsHalfFieldSvg(chartEvents, f.team);
-  }
-
-  return `
-    <section class="analytics-section">
-      <h2>Shot chart — ${escapeHtml(f.team)}</h2>
-      <div class="heatmap-toggle">
-        <button class="btn ${mode === 'fired'      ? 'btn-primary' : ''}" data-action="analytics-heatmap-toggle" data-arg="fired">${T('heatmap.fired')}</button>
-        <button class="btn ${mode === 'conceded'   ? 'btn-primary' : ''}" data-action="analytics-heatmap-toggle" data-arg="conceded">${T('heatmap.conceded')}</button>
-        <button class="btn ${mode === 'efficiency' ? 'btn-primary' : ''}" data-action="analytics-heatmap-toggle" data-arg="efficiency">${T('heatmap.efficiency')}</button>
-      </div>
-      <div class="field-half">${svgContent}</div>
-    </section>`;
-}
 
 function _buildAnalyticsHalfFieldSvg(events, teamName) {
   const ns = 'http://www.w3.org/2000/svg';
@@ -7218,54 +6947,6 @@ function _buildZoneEfficiencySvg(events) {
       <text x="108" y="9" font-size="9" fill="#6b7280">25%+</text>
     </g>`;
   return svg.outerHTML;
-}
-
-// ── Match history ─────────────────────────────────────────────────────────────
-
-function _renderAnalyticsMatchHistory(filtered, allEvents, allMatches, f) {
-  if (!f.team) return '';
-
-  let relevantMatches = allMatches.filter(m =>
-    m.team_A === f.team || m.team_B === f.team
-  );
-  if (f.tournament) relevantMatches = relevantMatches.filter(m => m.tournament === f.tournament);
-  if (f.dateFrom)   relevantMatches = relevantMatches.filter(m => m.match_date >= f.dateFrom);
-  if (f.dateTo)     relevantMatches = relevantMatches.filter(m => m.match_date <= f.dateTo);
-
-  relevantMatches = [...relevantMatches].sort((a, b) => String(b.match_date).localeCompare(String(a.match_date)));
-
-  if (relevantMatches.length === 0) return '';
-
-  const rows = relevantMatches.map(m => {
-    const mEvents = allEvents.filter(e => String(e.match_id) === String(m.id));
-    const goalsA  = mEvents.filter(e => e.team_event === m.team_A && e.result === 'gol').length;
-    const goalsB  = mEvents.filter(e => e.team_event === m.team_B && e.result === 'gol').length;
-    const hasEvents = mEvents.length > 0;
-    const opponent = m.team_A === f.team ? m.team_B : m.team_A;
-    const myGoals  = m.team_A === f.team ? goalsA : goalsB;
-    const oppGoals = m.team_A === f.team ? goalsB : goalsA;
-    const result   = !hasEvents ? '— : —' : `${myGoals} : ${oppGoals}`;
-    const won  = hasEvents && myGoals > oppGoals;
-    const drew = hasEvents && myGoals === oppGoals;
-
-    return `
-      <tr class="match-history-row ${won ? 'won' : drew ? 'drew' : hasEvents ? 'lost' : ''}">
-        <td>${escapeHtml(String(m.match_date))}</td>
-        <td>${escapeHtml(m.tournament || '—')}</td>
-        <td>${escapeHtml(opponent)}</td>
-        <td class="match-result">${result}</td>
-        <td><button class="btn btn-sm" data-action="open-viewer-from-analytics" data-arg="${escapeHtml(String(m.id))}">${T('btn.view')}</button></td>
-      </tr>`;
-  }).join('');
-
-  return `
-    <section class="analytics-section">
-      <h2>${T('analytics.history.title')} — ${escapeHtml(f.team)}</h2>
-      <table class="stats-table match-history-table">
-        <thead><tr><th>${T('analytics.history.date')}</th><th>${T('analytics.history.tournament')}</th><th>${T('analytics.history.opponent')}</th><th>${T('analytics.history.result')}</th><th></th></tr></thead>
-        <tbody>${rows}</tbody>
-      </table>
-    </section>`;
 }
 
 // ── Team comparison ───────────────────────────────────────────────────────────
@@ -7639,7 +7320,7 @@ function hmInitialState() {
     mode: 'eff',          // eff | dens | pts
     persp: 'both',        // both | att | def
     metric: 'shots',      // dens/pts: shots | G | on | N | ast | gb
-    qMetric: 'goals',     // goals | shots | eff
+    qMetric: 'goals',     // goals | shots | eff | pen | sc
     qShow: 'total',       // total | per_match
     excl: {},
     teamMenu: false, teamQuery: '',
@@ -7759,7 +7440,7 @@ function _hmCompute(S, coded) {
   const used = base.filter(({ m }) => !S.excl[String(m.id)]);
 
   const F = { shots: [], gb: [], team: [] }, A = { shots: [], gb: [], team: [] };
-  const q = () => ({ '1': { g: 0, s: 0 }, '2': { g: 0, s: 0 }, '3': { g: 0, s: 0 }, '4': { g: 0, s: 0 }, OT: { g: 0, s: 0 } });
+  const q = () => Object.fromEntries(HM_Q_CHIPS.map(k => [k, { g: 0, s: 0, pen: 0, sc: 0 }]));
   const qf = q(), qa = q();
   let dW = 0, dT = 0, W = 0, L = 0, D = 0;
   const scores = {};
@@ -7792,6 +7473,7 @@ function _hmCompute(S, coded) {
           bucket.gb.push({ x: p.x, y: p.y });
         } else if (isTeamEvent(e)) {
           bucket.team.push(e);
+          if (qb) { if (e.event_type === 'penalty') qb.pen++; else qb.sc++; }
         }
       });
       ev.forEach(e => {
@@ -8077,12 +7759,13 @@ function _hmDistanceCardHtml(S, C) {
 }
 
 function _hmQuarterCardHtml(S, C) {
-  const keys = HM_QUARTERS.concat(C.qf.OT.s || C.qa.OT.s ? ['OT'] : []);
+  const field = { goals: 'g', shots: 's', pen: 'pen', sc: 'sc' }[S.qMetric];
+  const keys = HM_QUARTERS.concat(['g', 's', 'pen', 'sc'].some(k => C.qf.OT[k] || C.qa.OT[k]) ? ['OT'] : []);
   const nm = Math.max(1, C.used.length);
   const isEff = S.qMetric === 'eff';
   const val = b => {
     if (isEff) return b.s ? b.g / b.s : null;
-    const raw = S.qMetric === 'goals' ? b.g : b.s;
+    const raw = b[field];
     return S.qShow === 'per_match' ? raw / nm : raw;
   };
   const fmt = v => (v === null ? '–' : isEff ? Math.round(v * 100) + '%' : S.qShow === 'per_match' ? v.toFixed(1) : String(v));
@@ -8094,12 +7777,12 @@ function _hmQuarterCardHtml(S, C) {
       <div class="hm-q-left"><span class="hm-mono">${fmt(v.f)}</span><div class="hm-q-bar own" style="width:${(v.f || 0) / max * 100}%"></div></div>
       <div class="hm-q-right"><div class="hm-q-bar opp" style="width:${(v.a || 0) / max * 100}%"></div><span class="hm-mono">${fmt(v.a)}</span></div>
     </div>`).join('');
-  const metricChips = [['goals', T('hm.metric.goals')], ['shots', T('hm.metric.shots')], ['eff', T('hm.q.eff')]]
+  const metricChips = [['goals', T('hm.metric.goals')], ['shots', T('hm.metric.shots')], ['eff', T('hm.q.eff')], ['pen', T('hm.q.pen')], ['sc', T('hm.q.sc')]]
     .map(([id, l]) => _hmChip(l, S.qMetric === id, 'hm-q-metric', id, 'seg sm')).join('');
   const showChips = [['total', T('hm.q.total')], ['per_match', T('hm.q.per_match')]]
     .map(([id, l]) => _hmChip(l, S.qShow === id, 'hm-q-show', id, 'seg sm' + (isEff ? ' disabled' : ''))).join('');
-  const ownLbl = S.qMetric === 'shots' ? T('hm.q.shots_for') : T('hm.q.for');
-  const oppLbl = S.qMetric === 'shots' ? T('hm.q.shots_against') : T('hm.q.against');
+  const ownLbl = S.qMetric === 'shots' ? T('hm.q.shots_for') : S.qMetric === 'pen' || S.qMetric === 'sc' ? escapeHtml(_hmTeamLabel(S.teams)) : T('hm.q.for');
+  const oppLbl = S.qMetric === 'shots' ? T('hm.q.shots_against') : S.qMetric === 'pen' || S.qMetric === 'sc' ? T('hm.opponents') : T('hm.q.against');
   return `
     <div class="hm-card">
       <div class="hm-card-head"><b>${T('hm.q.title')}</b>
@@ -8239,6 +7922,33 @@ document.addEventListener('input', (e) => {
     row.style.display = !q || row.dataset.hmTeam.includes(q) ? '' : 'none';
   });
 });
+
+// ── Team analytics PDF ─────────────────────────────────────────────────────────
+// Reuses the existing team report (render-report.js) by mapping the heatmap
+// filters onto APP.analyticsFilters for the duration of the call. The report
+// knows one team, one tournament, one quarter and a date range; opponent,
+// situation and unticked matches don't carry over (the button says so).
+
+function hmReportButtonHtml() {
+  const S = hmState();
+  const ok = Array.isArray(S.teams) && S.teams.length === 1;
+  return `<button class="btn" data-action="hm-open-report" ${ok ? '' : 'disabled'}
+    title="${escapeHtml(ok ? T('hm.pdf_hint') : T('hm.pdf_one_team'))}">${T('nav.pdf')}</button>`;
+}
+
+function hmOpenReport() {
+  const S = hmState();
+  if (!S.teams || S.teams.length !== 1) return;
+  const saved = APP.analyticsFilters;
+  const quarters = S.qs.filter(q => q !== 'OT');
+  APP.analyticsFilters = Object.assign({}, saved, {
+    team: S.teams[0], team2: '',
+    tournament: S.tours && S.tours.length === 1 ? S.tours[0] : '',
+    period: S.qs.length === 1 && quarters.length === 1 ? quarters[0] : '',
+    dateFrom: S.from || '', dateTo: S.to || '',
+  });
+  try { openAnalyticsReport(); } finally { APP.analyticsFilters = saved; }
+}
 
 // ── State changes (called from HANDLERS) ───────────────────────────────────────
 
@@ -9829,13 +9539,14 @@ const HANDLERS = {
   },
   'analytics-mode-toggle': (mode) => {
     APP.analyticsMode = mode;
-    if (mode === 'single') APP.analyticsFilters.team2 = '';
+    if (mode !== 'compare') APP.analyticsFilters.team2 = '';
     render();
   },
   'go-home-from-analytics': () => goHome(),
 
   // Heatmap view (render-heatmap.js) — every action edits APP.heatmap and re-renders.
   'hm-team-menu':    () => hmUpdate(S => { S.teamMenu = !S.teamMenu; }),
+  'hm-open-report':  () => hmOpenReport(),
   'hm-toggle-team':  (name) => hmUpdate(S => { S.teams = hmToggleIn(S.teams, name); S.opp = ''; }),
   'hm-set-opp':      (val) => hmUpdate(S => { S.opp = val || ''; }),
   'hm-toggle-tour':  (name) => hmUpdate(S => {
@@ -10779,7 +10490,7 @@ function parseCsvMatches(text) {
 
 // Top-level render dispatcher + init.
 
-const APP_VERSION = 'v2.5.1';
+const APP_VERSION = 'v2.6.0';
 
 function _renderFooter(container) {
   const f = document.createElement('footer');

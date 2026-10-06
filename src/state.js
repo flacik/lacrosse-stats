@@ -35,7 +35,7 @@ let APP = {
   analyticsLoading:     false,
   analyticsError:       null,
   analyticsData:        null,   // { events: [], matches: [], tournaments: [] }
-  analyticsMode:        'heatmap', // 'heatmap' | 'compare' | 'goalies' | 'single' (Classic)
+  analyticsMode:        'heatmap', // 'heatmap' | 'compare' | 'goalies'
   analyticsFilters:     {
     tournament: '',
     team:       '',

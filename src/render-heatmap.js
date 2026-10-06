@@ -34,7 +34,7 @@ function hmInitialState() {
     mode: 'eff',          // eff | dens | pts
     persp: 'both',        // both | att | def
     metric: 'shots',      // dens/pts: shots | G | on | N | ast | gb
-    qMetric: 'goals',     // goals | shots | eff
+    qMetric: 'goals',     // goals | shots | eff | pen | sc
     qShow: 'total',       // total | per_match
     excl: {},
     teamMenu: false, teamQuery: '',
@@ -154,7 +154,7 @@ function _hmCompute(S, coded) {
   const used = base.filter(({ m }) => !S.excl[String(m.id)]);
 
   const F = { shots: [], gb: [], team: [] }, A = { shots: [], gb: [], team: [] };
-  const q = () => ({ '1': { g: 0, s: 0 }, '2': { g: 0, s: 0 }, '3': { g: 0, s: 0 }, '4': { g: 0, s: 0 }, OT: { g: 0, s: 0 } });
+  const q = () => Object.fromEntries(HM_Q_CHIPS.map(k => [k, { g: 0, s: 0, pen: 0, sc: 0 }]));
   const qf = q(), qa = q();
   let dW = 0, dT = 0, W = 0, L = 0, D = 0;
   const scores = {};
@@ -187,6 +187,7 @@ function _hmCompute(S, coded) {
           bucket.gb.push({ x: p.x, y: p.y });
         } else if (isTeamEvent(e)) {
           bucket.team.push(e);
+          if (qb) { if (e.event_type === 'penalty') qb.pen++; else qb.sc++; }
         }
       });
       ev.forEach(e => {
@@ -472,12 +473,13 @@ function _hmDistanceCardHtml(S, C) {
 }
 
 function _hmQuarterCardHtml(S, C) {
-  const keys = HM_QUARTERS.concat(C.qf.OT.s || C.qa.OT.s ? ['OT'] : []);
+  const field = { goals: 'g', shots: 's', pen: 'pen', sc: 'sc' }[S.qMetric];
+  const keys = HM_QUARTERS.concat(['g', 's', 'pen', 'sc'].some(k => C.qf.OT[k] || C.qa.OT[k]) ? ['OT'] : []);
   const nm = Math.max(1, C.used.length);
   const isEff = S.qMetric === 'eff';
   const val = b => {
     if (isEff) return b.s ? b.g / b.s : null;
-    const raw = S.qMetric === 'goals' ? b.g : b.s;
+    const raw = b[field];
     return S.qShow === 'per_match' ? raw / nm : raw;
   };
   const fmt = v => (v === null ? '–' : isEff ? Math.round(v * 100) + '%' : S.qShow === 'per_match' ? v.toFixed(1) : String(v));
@@ -489,12 +491,12 @@ function _hmQuarterCardHtml(S, C) {
       <div class="hm-q-left"><span class="hm-mono">${fmt(v.f)}</span><div class="hm-q-bar own" style="width:${(v.f || 0) / max * 100}%"></div></div>
       <div class="hm-q-right"><div class="hm-q-bar opp" style="width:${(v.a || 0) / max * 100}%"></div><span class="hm-mono">${fmt(v.a)}</span></div>
     </div>`).join('');
-  const metricChips = [['goals', T('hm.metric.goals')], ['shots', T('hm.metric.shots')], ['eff', T('hm.q.eff')]]
+  const metricChips = [['goals', T('hm.metric.goals')], ['shots', T('hm.metric.shots')], ['eff', T('hm.q.eff')], ['pen', T('hm.q.pen')], ['sc', T('hm.q.sc')]]
     .map(([id, l]) => _hmChip(l, S.qMetric === id, 'hm-q-metric', id, 'seg sm')).join('');
   const showChips = [['total', T('hm.q.total')], ['per_match', T('hm.q.per_match')]]
     .map(([id, l]) => _hmChip(l, S.qShow === id, 'hm-q-show', id, 'seg sm' + (isEff ? ' disabled' : ''))).join('');
-  const ownLbl = S.qMetric === 'shots' ? T('hm.q.shots_for') : T('hm.q.for');
-  const oppLbl = S.qMetric === 'shots' ? T('hm.q.shots_against') : T('hm.q.against');
+  const ownLbl = S.qMetric === 'shots' ? T('hm.q.shots_for') : S.qMetric === 'pen' || S.qMetric === 'sc' ? escapeHtml(_hmTeamLabel(S.teams)) : T('hm.q.for');
+  const oppLbl = S.qMetric === 'shots' ? T('hm.q.shots_against') : S.qMetric === 'pen' || S.qMetric === 'sc' ? T('hm.opponents') : T('hm.q.against');
   return `
     <div class="hm-card">
       <div class="hm-card-head"><b>${T('hm.q.title')}</b>
@@ -634,6 +636,33 @@ document.addEventListener('input', (e) => {
     row.style.display = !q || row.dataset.hmTeam.includes(q) ? '' : 'none';
   });
 });
+
+// ── Team analytics PDF ─────────────────────────────────────────────────────────
+// Reuses the existing team report (render-report.js) by mapping the heatmap
+// filters onto APP.analyticsFilters for the duration of the call. The report
+// knows one team, one tournament, one quarter and a date range; opponent,
+// situation and unticked matches don't carry over (the button says so).
+
+function hmReportButtonHtml() {
+  const S = hmState();
+  const ok = Array.isArray(S.teams) && S.teams.length === 1;
+  return `<button class="btn" data-action="hm-open-report" ${ok ? '' : 'disabled'}
+    title="${escapeHtml(ok ? T('hm.pdf_hint') : T('hm.pdf_one_team'))}">${T('nav.pdf')}</button>`;
+}
+
+function hmOpenReport() {
+  const S = hmState();
+  if (!S.teams || S.teams.length !== 1) return;
+  const saved = APP.analyticsFilters;
+  const quarters = S.qs.filter(q => q !== 'OT');
+  APP.analyticsFilters = Object.assign({}, saved, {
+    team: S.teams[0], team2: '',
+    tournament: S.tours && S.tours.length === 1 ? S.tours[0] : '',
+    period: S.qs.length === 1 && quarters.length === 1 ? quarters[0] : '',
+    dateFrom: S.from || '', dateTo: S.to || '',
+  });
+  try { openAnalyticsReport(); } finally { APP.analyticsFilters = saved; }
+}
 
 // ── State changes (called from HANDLERS) ───────────────────────────────────────
 

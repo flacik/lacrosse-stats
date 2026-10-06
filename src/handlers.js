@@ -45,13 +45,14 @@ const HANDLERS = {
   },
   'analytics-mode-toggle': (mode) => {
     APP.analyticsMode = mode;
-    if (mode === 'single') APP.analyticsFilters.team2 = '';
+    if (mode !== 'compare') APP.analyticsFilters.team2 = '';
     render();
   },
   'go-home-from-analytics': () => goHome(),
 
   // Heatmap view (render-heatmap.js) — every action edits APP.heatmap and re-renders.
   'hm-team-menu':    () => hmUpdate(S => { S.teamMenu = !S.teamMenu; }),
+  'hm-open-report':  () => hmOpenReport(),
   'hm-toggle-team':  (name) => hmUpdate(S => { S.teams = hmToggleIn(S.teams, name); S.opp = ''; }),
   'hm-set-opp':      (val) => hmUpdate(S => { S.opp = val || ''; }),
   'hm-toggle-tour':  (name) => hmUpdate(S => {
