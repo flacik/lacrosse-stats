@@ -7825,7 +7825,7 @@ function _hmSummaryCardHtml(S, C) {
   const st = s => {
     const n = s.length, G = s.filter(e => e.res === 'gol').length, Cn = s.filter(e => e.res === 'celny').length;
     const up = s.filter(e => e.up), fb = s.filter(e => e.fb);
-    return { n, G, C: Cn, ast: s.filter(e => e.ast).length,
+    return { n, G, C: Cn, ast: s.filter(e => e.ast && e.res === 'gol').length,
       upG: up.filter(e => e.res === 'gol').length, upN: up.length, fbG: fb.filter(e => e.res === 'gol').length, fbN: fb.length };
   };
   const sf = st(C.F.shots), sa = st(C.A.shots);
@@ -7836,7 +7836,7 @@ function _hmSummaryCardHtml(S, C) {
     [T('hm.k.shots'), `${T('hm.per_match')}: ${avg(sf.n)} / ${avg(sa.n)}`, sf.n, sa.n],
     [T('hm.k.eff'), T('hm.k.eff_hint'), _hmPct(sf.G, sf.n), _hmPct(sa.G, sa.n)],
     [T('hm.k.acc'), T('hm.k.acc_hint'), _hmPct(sf.G + sf.C, sf.n), _hmPct(sa.G + sa.C, sa.n)],
-    [T('hm.k.ast'), T('hm.k.ast_hint'), sf.ast, _hmPct(sf.ast, sf.G)],
+    [T('hm.k.ast'), T('hm.k.ast_hint'), `${_hmPct(sf.ast, sf.G)} (${sf.ast})`, `${_hmPct(sa.ast, sa.G)} (${sa.ast})`],
     ['Man-up', T('hm.k.up_hint'), `${sf.upG}/${sf.upN}`, `${sa.upG}/${sa.upN}`],
     ['Fast break', T('hm.k.fb_hint'), `${sf.fbG}/${sf.fbN}`, `${sa.fbG}/${sa.fbN}`],
     ['Ground balls', `${T('hm.per_match')}: ${avg(C.F.gb.length)} / ${avg(C.A.gb.length)}`, C.F.gb.length, C.A.gb.length],

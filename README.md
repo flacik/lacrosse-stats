@@ -162,7 +162,7 @@ cd src/
 
 ## Status
 
-**Current: v2.6.2 — deployed 2026-10-06 (Reprezentacja)**
+**Current: v2.6.3 — deployed 2026-10-09 (Reprezentacja)**
 
 ### Versioning rules
 
@@ -175,6 +175,10 @@ cd src/
 ### Changelog
 
 Each entry is tagged with the game variant(s) it affects, not the deployment names: `[all]` ships everywhere, `[field]` is field lacrosse (Mistrzostwa) only, `[sixes]` is lacrosse sixes (Liga, Reprezentacja) only. Untagged legacy entries below predate the multi-deployment split and applied to all instances.
+
+**v2.6.3 (2026-10-09)** `[sixes]` — assists row fix:
+
+- **Assists** in the heatmap summary now shows the % of goals that were assisted (with the count) for both teams; before, the For column showed the count and the Against column showed the For percentage, and assisted shots that weren't goals were counted too (e.g. 155%)
 
 **v2.6.2 (2026-10-06)** `[sixes]` — deleting a match deletes its events:
 
