@@ -32,3 +32,6 @@ INSTRUCTIONS-UI-V2.md
 # Build artifacts
 src/dist.html
 
+
+# Scouting materials (local only)
+scouting/
