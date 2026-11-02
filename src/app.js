@@ -13,6 +13,10 @@ function _renderFooter(container) {
 
 function render() {
   const app = document.getElementById('app');
+  const prevActive = document.activeElement;
+  const keepFocusId = prevActive && prevActive.id && prevActive.tagName === 'INPUT' && prevActive.type === 'search'
+    ? prevActive.id : null;
+  const caret = keepFocusId ? prevActive.selectionStart : null;
   app.innerHTML = '';
   if      (APP.screen === 'home')          renderHome(app);
   else if (APP.screen === 'admin')         renderAdmin(app);
@@ -29,6 +33,11 @@ function render() {
 
   if (APP.modal) renderModal();
   _syncThemeToggle();
+
+  if (keepFocusId) {
+    const el = document.getElementById(keepFocusId);
+    if (el) { el.focus(); try { el.setSelectionRange(caret, caret); } catch (_) {} }
+  }
 }
 
 // Init motywu — przed pierwszym render()

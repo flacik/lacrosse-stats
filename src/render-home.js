@@ -6,6 +6,51 @@ function _langToggleBtn() {
   return `<button class="btn" data-action="toggle-lang" title="Switch language">${APP.lang === 'pl' ? '🇬🇧' : '🇵🇱'}</button>`;
 }
 
+const HOME_STATUS_ORDER = { live: 0, scheduled: 1, finished: 2 };
+
+function _homeStatus(m) {
+  return m.status === 'live' || m.status === 'finished' ? m.status : 'scheduled';
+}
+
+function _homeTeamMatch(m, f) {
+  if (f.team && m.team_A !== f.team && m.team_B !== f.team) return false;
+  const q = (f.q || '').trim().toLowerCase();
+  if (!q) return true;
+  return [m.team_A, m.team_B, m.tournament].some(v => String(v || '').toLowerCase().includes(q));
+}
+
+function _renderHomeFilters(f, listed, filterActive) {
+  const teams = Array.from(new Set(
+    DATA.scheduledMatches.flatMap(m => [m.team_A, m.team_B]).filter(Boolean)
+  )).sort((a, b) => a.localeCompare(b));
+  if (f.team && !teams.includes(f.team)) teams.unshift(f.team);
+
+  // Liczniki = mecze widoczne na liście (dziś + przeszłe, albo tylko dziś przy „Today”) po filtrze drużyny/tekstu.
+  const count = st => listed.filter(m => !st || _homeStatus(m) === st).length;
+  const chip = (st, label) => `
+    <button class="home-chip ${f.status === st ? 'active' : ''} ${st ? 'chip-' + st : ''}"
+            data-action="home-set-status" data-arg="${st}">${label} <span class="home-chip-n">${count(st)}</span></button>`;
+
+  return `
+    <div class="home-filters">
+      <input type="search" id="home-search" class="home-search" data-action="home-search"
+             placeholder="${T('home.search_ph')}" value="${escapeHtml(f.q)}" autocomplete="off">
+      <select class="home-team-select" data-action="home-set-team">
+        <option value="">${T('home.all_teams')}</option>
+        ${teams.map(t => `<option value="${escapeHtml(t)}" ${t === f.team ? 'selected' : ''}>${escapeHtml(t)}</option>`).join('')}
+      </select>
+      <div class="home-chips">
+        <button class="home-chip home-chip-today ${f.today ? 'active' : ''}" data-action="home-toggle-today" aria-pressed="${f.today}">📅 ${T('home.today')}</button>
+        <span class="home-chip-sep"></span>
+        ${chip('', T('home.status_all'))}
+        ${chip('live', 'LIVE')}
+        ${chip('scheduled', T('home.status_scheduled'))}
+        ${chip('finished', T('home.status_finished'))}
+        ${filterActive ? `<button class="home-chip home-chip-clear" data-action="home-clear-filters">✕ ${T('home.clear_filters')}</button>` : ''}
+      </div>
+    </div>`;
+}
+
 function renderHome(root) {
   const today = todayISO();
 
@@ -42,9 +87,21 @@ function renderHome(root) {
     return;
   }
 
-  const todayMatches = DATA.scheduledMatches.filter(m => m.match_date === today);
-  const pastMatches  = DATA.scheduledMatches
+  const f = APP.homeFilter;
+  const filterActive = !!(f.q || f.team || f.status || f.today);
+  // Filtr drużyny + tekst (bez statusu) — liczniki na przyciskach statusu liczą się z tego zbioru.
+  const byTeam = DATA.scheduledMatches.filter(m => _homeTeamMatch(m, f));
+  const passes = m => !f.status || _homeStatus(m) === f.status;
+
+  // Dzisiejsze: LIVE → zaplanowane → zakończone; w grupie kolejność z arkusza (sort stabilny).
+  const todayAll     = byTeam.filter(m => m.match_date === today);
+  const todayMatches = todayAll.filter(passes)
+    .map((m, i) => ({ m, i }))
+    .sort((a, b) => (HOME_STATUS_ORDER[_homeStatus(a.m)] - HOME_STATUS_ORDER[_homeStatus(b.m)]) || (a.i - b.i))
+    .map(x => x.m);
+  const pastMatches  = f.today ? [] : byTeam
     .filter(m => m.match_date < today)
+    .filter(passes)
     .sort((a, b) => b.match_date.localeCompare(a.match_date));
 
   function renderMatchCard(m) {
@@ -96,9 +153,12 @@ function renderHome(root) {
 
   let html = headerHtml + offlineBannerHtml + infoBannerHtml + `
     <div class="home-content">
+      ${_renderHomeFilters(f, byTeam.filter(m => f.today ? m.match_date === today : m.match_date <= today), filterActive)}
       <h2>${T('home.today_matches')}</h2>`;
 
-  if (todayMatches.length === 0) {
+  if (todayMatches.length === 0 && filterActive && DATA.scheduledMatches.some(m => m.match_date === today)) {
+    html += `<div class="empty">${T('home.filter_no_results')}</div>`;
+  } else if (todayMatches.length === 0) {
     html += `<div class="empty">${T('home.no_today')}` +
       (IS_EDITOR ? `<br>${T('home.no_today_hint')}` : '') +
       '</div>';

@@ -116,7 +116,27 @@ body {
   background: white; padding: 14px 16px;
   border: 1px solid #e5e5e0; border-radius: 10px;
 }
-.match-card.finished { opacity: 0.7; }
+.match-card.finished { opacity: 0.55; }
+/* ── Home: filtry listy meczów ── */
+.home-filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 18px; }
+.home-search, .home-team-select {
+  font-family: inherit; font-size: 14px; padding: 8px 10px;
+  border: 1px solid #d4d4d0; border-radius: 8px; background: white; color: inherit;
+}
+.home-search { flex: 1 1 180px; min-width: 0; }
+.home-team-select { flex: 0 1 180px; min-width: 0; }
+.home-chips { display: flex; flex-wrap: wrap; gap: 6px; flex-basis: 100%; }
+.home-chip {
+  font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+  padding: 6px 12px; border-radius: 999px; border: 1px solid #d4d4d0;
+  background: white; color: #444; min-height: 34px;
+}
+.home-chip-n { font-weight: 400; opacity: 0.7; margin-left: 2px; }
+.home-chip.active { background: #1a1a1a; border-color: #1a1a1a; color: white; }
+.home-chip.chip-live.active { background: #dc2626; border-color: #dc2626; }
+.home-chip-clear { border-style: dashed; color: #666; }
+.home-chip-sep { width: 1px; align-self: stretch; background: #d4d4d0; margin: 4px 2px; }
+.home-chip-today.active { background: #2563eb; border-color: #2563eb; color: white; }
 .match-tournament { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #666; margin-bottom: 4px; }
 .match-teams {
   display: flex; align-items: center; gap: 12px;
@@ -819,6 +839,12 @@ table.stats-table td.num {
 [data-theme="dark"] .home-info-banner { background: #0d2b1a; border-color: #1e5733; color: #3fb950; }
 [data-theme="dark"] .home-content h2 { color: #8b949e; }
 [data-theme="dark"] .match-card { background: #161b22; border-color: #30363d; }
+[data-theme="dark"] .home-search, [data-theme="dark"] .home-team-select { background: #161b22; border-color: #30363d; color: #e6edf3; }
+[data-theme="dark"] .home-chip { background: #161b22; border-color: #30363d; color: #c9d1d9; }
+[data-theme="dark"] .home-chip.active { background: #e6edf3; border-color: #e6edf3; color: #0d1117; }
+[data-theme="dark"] .home-chip.chip-live.active { background: #dc2626; border-color: #dc2626; color: white; }
+[data-theme="dark"] .home-chip.home-chip-today.active { background: #2563eb; border-color: #2563eb; color: white; }
+[data-theme="dark"] .home-chip-sep { background: #30363d; }
 [data-theme="dark"] .match-tournament { color: #8b949e; }
 [data-theme="dark"] .match-teams .vs { color: #484f58; }
 [data-theme="dark"] .match-teams .match-score { color: #8b949e; }
@@ -2975,6 +3001,7 @@ let APP = {
   // Stany async ładowania
   homeLoading: false,
   homeError: null,
+  homeFilter: { q: '', team: '', status: '', today: false }, // filtry listy meczów na ekranie głównym
   matchLoading: false,   // true podczas fetchu eventów przy otwieraniu meczu
 
   // Stany async viewera
@@ -3726,6 +3753,9 @@ const STRINGS = {
     'home.today_matches': 'Mecze dzisiaj', 'home.past_matches': 'Mecze z przeszłości',
     'home.no_today': 'Brak meczy zaplanowanych na dziś.',
     'home.no_today_hint': 'Dodaj mecze w panelu Turniejów lub utwórz mecz ad-hoc.',
+    'home.search_ph': 'Szukaj drużyny…', 'home.all_teams': 'Wszystkie drużyny',
+    'home.status_all': 'Wszystkie', 'home.status_scheduled': 'Zaplanowane', 'home.status_finished': 'Zakończone',
+    'home.clear_filters': 'Wyczyść', 'home.today': 'Dzisiaj', 'home.filter_no_results': 'Brak dzisiejszych meczów pasujących do filtrów.',
     'match.no_tournament': '— brak turnieju —',
     'offline.pending': 'czeka na synchronizację (brak internetu przy ostatnim użyciu).',
     'offline.event': 'event', 'offline.events': 'eventów',
@@ -4080,6 +4110,9 @@ const STRINGS = {
     'home.today_matches': "Today's matches", 'home.past_matches': 'Past matches',
     'home.no_today': 'No matches scheduled for today.',
     'home.no_today_hint': 'Add matches in the Tournaments panel or create an ad-hoc match.',
+    'home.search_ph': 'Search team…', 'home.all_teams': 'All teams',
+    'home.status_all': 'All', 'home.status_scheduled': 'Scheduled', 'home.status_finished': 'Finished',
+    'home.clear_filters': 'Clear', 'home.today': 'Today', 'home.filter_no_results': 'No matches today match the filters.',
     'match.no_tournament': '— no tournament —',
     'offline.pending': 'waiting to sync (no internet on last use).',
     'offline.event': 'event', 'offline.events': 'events',
@@ -5450,6 +5483,51 @@ function _langToggleBtn() {
   return `<button class="btn" data-action="toggle-lang" title="Switch language">${APP.lang === 'pl' ? '🇬🇧' : '🇵🇱'}</button>`;
 }
 
+const HOME_STATUS_ORDER = { live: 0, scheduled: 1, finished: 2 };
+
+function _homeStatus(m) {
+  return m.status === 'live' || m.status === 'finished' ? m.status : 'scheduled';
+}
+
+function _homeTeamMatch(m, f) {
+  if (f.team && m.team_A !== f.team && m.team_B !== f.team) return false;
+  const q = (f.q || '').trim().toLowerCase();
+  if (!q) return true;
+  return [m.team_A, m.team_B, m.tournament].some(v => String(v || '').toLowerCase().includes(q));
+}
+
+function _renderHomeFilters(f, listed, filterActive) {
+  const teams = Array.from(new Set(
+    DATA.scheduledMatches.flatMap(m => [m.team_A, m.team_B]).filter(Boolean)
+  )).sort((a, b) => a.localeCompare(b));
+  if (f.team && !teams.includes(f.team)) teams.unshift(f.team);
+
+  // Liczniki = mecze widoczne na liście (dziś + przeszłe, albo tylko dziś przy „Today”) po filtrze drużyny/tekstu.
+  const count = st => listed.filter(m => !st || _homeStatus(m) === st).length;
+  const chip = (st, label) => `
+    <button class="home-chip ${f.status === st ? 'active' : ''} ${st ? 'chip-' + st : ''}"
+            data-action="home-set-status" data-arg="${st}">${label} <span class="home-chip-n">${count(st)}</span></button>`;
+
+  return `
+    <div class="home-filters">
+      <input type="search" id="home-search" class="home-search" data-action="home-search"
+             placeholder="${T('home.search_ph')}" value="${escapeHtml(f.q)}" autocomplete="off">
+      <select class="home-team-select" data-action="home-set-team">
+        <option value="">${T('home.all_teams')}</option>
+        ${teams.map(t => `<option value="${escapeHtml(t)}" ${t === f.team ? 'selected' : ''}>${escapeHtml(t)}</option>`).join('')}
+      </select>
+      <div class="home-chips">
+        <button class="home-chip home-chip-today ${f.today ? 'active' : ''}" data-action="home-toggle-today" aria-pressed="${f.today}">📅 ${T('home.today')}</button>
+        <span class="home-chip-sep"></span>
+        ${chip('', T('home.status_all'))}
+        ${chip('live', 'LIVE')}
+        ${chip('scheduled', T('home.status_scheduled'))}
+        ${chip('finished', T('home.status_finished'))}
+        ${filterActive ? `<button class="home-chip home-chip-clear" data-action="home-clear-filters">✕ ${T('home.clear_filters')}</button>` : ''}
+      </div>
+    </div>`;
+}
+
 function renderHome(root) {
   const today = todayISO();
 
@@ -5486,9 +5564,21 @@ function renderHome(root) {
     return;
   }
 
-  const todayMatches = DATA.scheduledMatches.filter(m => m.match_date === today);
-  const pastMatches  = DATA.scheduledMatches
+  const f = APP.homeFilter;
+  const filterActive = !!(f.q || f.team || f.status || f.today);
+  // Filtr drużyny + tekst (bez statusu) — liczniki na przyciskach statusu liczą się z tego zbioru.
+  const byTeam = DATA.scheduledMatches.filter(m => _homeTeamMatch(m, f));
+  const passes = m => !f.status || _homeStatus(m) === f.status;
+
+  // Dzisiejsze: LIVE → zaplanowane → zakończone; w grupie kolejność z arkusza (sort stabilny).
+  const todayAll     = byTeam.filter(m => m.match_date === today);
+  const todayMatches = todayAll.filter(passes)
+    .map((m, i) => ({ m, i }))
+    .sort((a, b) => (HOME_STATUS_ORDER[_homeStatus(a.m)] - HOME_STATUS_ORDER[_homeStatus(b.m)]) || (a.i - b.i))
+    .map(x => x.m);
+  const pastMatches  = f.today ? [] : byTeam
     .filter(m => m.match_date < today)
+    .filter(passes)
     .sort((a, b) => b.match_date.localeCompare(a.match_date));
 
   function renderMatchCard(m) {
@@ -5540,9 +5630,12 @@ function renderHome(root) {
 
   let html = headerHtml + offlineBannerHtml + infoBannerHtml + `
     <div class="home-content">
+      ${_renderHomeFilters(f, byTeam.filter(m => f.today ? m.match_date === today : m.match_date <= today), filterActive)}
       <h2>${T('home.today_matches')}</h2>`;
 
-  if (todayMatches.length === 0) {
+  if (todayMatches.length === 0 && filterActive && DATA.scheduledMatches.some(m => m.match_date === today)) {
+    html += `<div class="empty">${T('home.filter_no_results')}</div>`;
+  } else if (todayMatches.length === 0) {
     html += `<div class="empty">${T('home.no_today')}` +
       (IS_EDITOR ? `<br>${T('home.no_today_hint')}` : '') +
       '</div>';
@@ -9527,6 +9620,11 @@ const HANDLERS = {
   'open-admin':     () => goAdmin(),
   'open-analytics': () => goAnalytics(),
   'home-retry':     () => loadHomeData(),
+  'home-search':      (val) => { APP.homeFilter.q = val || ''; render(); },
+  'home-set-team':    (val) => { APP.homeFilter.team = val || ''; render(); },
+  'home-set-status':  (val) => { APP.homeFilter.status = val || ''; render(); },
+  'home-clear-filters': () => { APP.homeFilter = { q: '', team: '', status: '', today: false }; render(); },
+  'home-toggle-today': () => { APP.homeFilter.today = !APP.homeFilter.today; render(); },
 
   // Offline backup — export/import
   'export-offline-backup': () => exportOfflineBufferToFile(),
@@ -10468,11 +10566,17 @@ document.addEventListener('change', (e) => {
   const handler = HANDLERS[action];
   if (!handler) return;
   if (action === 'analytics-filter-change' || action === 'csv-import-file' || action === 'standings-set-tournament' || action === 'embed-select-match' ||
-      action === 'hm-set-opp' || action === 'hm-date') {
+      action === 'hm-set-opp' || action === 'hm-date' || action === 'home-set-team') {
     handler(target.value, target);
   } else {
     handler(target.dataset.arg);
   }
+});
+
+// Pole wyszukiwania na ekranie głównym filtruje na bieżąco (event 'input').
+document.addEventListener('input', (e) => {
+  const t = e.target;
+  if (t && t.dataset && t.dataset.action === 'home-search') HANDLERS['home-search'](t.value);
 });
 
 // ── CSV parsing ────────────────────────────────────────────────────────────────
@@ -10528,6 +10632,10 @@ function _renderFooter(container) {
 
 function render() {
   const app = document.getElementById('app');
+  const prevActive = document.activeElement;
+  const keepFocusId = prevActive && prevActive.id && prevActive.tagName === 'INPUT' && prevActive.type === 'search'
+    ? prevActive.id : null;
+  const caret = keepFocusId ? prevActive.selectionStart : null;
   app.innerHTML = '';
   if      (APP.screen === 'home')          renderHome(app);
   else if (APP.screen === 'admin')         renderAdmin(app);
@@ -10544,6 +10652,11 @@ function render() {
 
   if (APP.modal) renderModal();
   _syncThemeToggle();
+
+  if (keepFocusId) {
+    const el = document.getElementById(keepFocusId);
+    if (el) { el.focus(); try { el.setSelectionRange(caret, caret); } catch (_) {} }
+  }
 }
 
 // Init motywu — przed pierwszym render()

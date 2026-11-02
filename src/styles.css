@@ -102,7 +102,27 @@ body {
   background: white; padding: 14px 16px;
   border: 1px solid #e5e5e0; border-radius: 10px;
 }
-.match-card.finished { opacity: 0.7; }
+.match-card.finished { opacity: 0.55; }
+/* ── Home: filtry listy meczów ── */
+.home-filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 18px; }
+.home-search, .home-team-select {
+  font-family: inherit; font-size: 14px; padding: 8px 10px;
+  border: 1px solid #d4d4d0; border-radius: 8px; background: white; color: inherit;
+}
+.home-search { flex: 1 1 180px; min-width: 0; }
+.home-team-select { flex: 0 1 180px; min-width: 0; }
+.home-chips { display: flex; flex-wrap: wrap; gap: 6px; flex-basis: 100%; }
+.home-chip {
+  font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+  padding: 6px 12px; border-radius: 999px; border: 1px solid #d4d4d0;
+  background: white; color: #444; min-height: 34px;
+}
+.home-chip-n { font-weight: 400; opacity: 0.7; margin-left: 2px; }
+.home-chip.active { background: #1a1a1a; border-color: #1a1a1a; color: white; }
+.home-chip.chip-live.active { background: #dc2626; border-color: #dc2626; }
+.home-chip-clear { border-style: dashed; color: #666; }
+.home-chip-sep { width: 1px; align-self: stretch; background: #d4d4d0; margin: 4px 2px; }
+.home-chip-today.active { background: #2563eb; border-color: #2563eb; color: white; }
 .match-tournament { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #666; margin-bottom: 4px; }
 .match-teams {
   display: flex; align-items: center; gap: 12px;
@@ -805,6 +825,12 @@ table.stats-table td.num {
 [data-theme="dark"] .home-info-banner { background: #0d2b1a; border-color: #1e5733; color: #3fb950; }
 [data-theme="dark"] .home-content h2 { color: #8b949e; }
 [data-theme="dark"] .match-card { background: #161b22; border-color: #30363d; }
+[data-theme="dark"] .home-search, [data-theme="dark"] .home-team-select { background: #161b22; border-color: #30363d; color: #e6edf3; }
+[data-theme="dark"] .home-chip { background: #161b22; border-color: #30363d; color: #c9d1d9; }
+[data-theme="dark"] .home-chip.active { background: #e6edf3; border-color: #e6edf3; color: #0d1117; }
+[data-theme="dark"] .home-chip.chip-live.active { background: #dc2626; border-color: #dc2626; color: white; }
+[data-theme="dark"] .home-chip.home-chip-today.active { background: #2563eb; border-color: #2563eb; color: white; }
+[data-theme="dark"] .home-chip-sep { background: #30363d; }
 [data-theme="dark"] .match-tournament { color: #8b949e; }
 [data-theme="dark"] .match-teams .vs { color: #484f58; }
 [data-theme="dark"] .match-teams .match-score { color: #8b949e; }

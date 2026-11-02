@@ -6,6 +6,11 @@ const HANDLERS = {
   'open-admin':     () => goAdmin(),
   'open-analytics': () => goAnalytics(),
   'home-retry':     () => loadHomeData(),
+  'home-search':      (val) => { APP.homeFilter.q = val || ''; render(); },
+  'home-set-team':    (val) => { APP.homeFilter.team = val || ''; render(); },
+  'home-set-status':  (val) => { APP.homeFilter.status = val || ''; render(); },
+  'home-clear-filters': () => { APP.homeFilter = { q: '', team: '', status: '', today: false }; render(); },
+  'home-toggle-today': () => { APP.homeFilter.today = !APP.homeFilter.today; render(); },
 
   // Offline backup — export/import
   'export-offline-backup': () => exportOfflineBufferToFile(),
@@ -947,11 +952,17 @@ document.addEventListener('change', (e) => {
   const handler = HANDLERS[action];
   if (!handler) return;
   if (action === 'analytics-filter-change' || action === 'csv-import-file' || action === 'standings-set-tournament' || action === 'embed-select-match' ||
-      action === 'hm-set-opp' || action === 'hm-date') {
+      action === 'hm-set-opp' || action === 'hm-date' || action === 'home-set-team') {
     handler(target.value, target);
   } else {
     handler(target.dataset.arg);
   }
+});
+
+// Pole wyszukiwania na ekranie głównym filtruje na bieżąco (event 'input').
+document.addEventListener('input', (e) => {
+  const t = e.target;
+  if (t && t.dataset && t.dataset.action === 'home-search') HANDLERS['home-search'](t.value);
 });
 
 // ── CSV parsing ────────────────────────────────────────────────────────────────

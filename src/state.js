@@ -16,6 +16,7 @@ let APP = {
   // Stany async ładowania
   homeLoading: false,
   homeError: null,
+  homeFilter: { q: '', team: '', status: '', today: false }, // filtry listy meczów na ekranie głównym
   matchLoading: false,   // true podczas fetchu eventów przy otwieraniu meczu
 
   // Stany async viewera

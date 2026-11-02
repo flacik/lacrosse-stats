@@ -162,7 +162,7 @@ cd src/
 
 ## Status
 
-**Current: v2.6.3 — deployed 2026-10-09 (Reprezentacja)**
+**Current: v2.7.0 — deployed 2026-11-02 (Reprezentacja)**
 
 ### Versioning rules
 
@@ -175,6 +175,13 @@ cd src/
 ### Changelog
 
 Each entry is tagged with the game variant(s) it affects, not the deployment names: `[all]` ships everywhere, `[field]` is field lacrosse (Mistrzostwa) only, `[sixes]` is lacrosse sixes (Liga, Reprezentacja) only. Untagged legacy entries below predate the multi-deployment split and applied to all instances.
+
+**v2.7.0 (2026-11-02)** `[sixes]` — match list filters on the home screen:
+
+- **Today's matches are sorted by status**: LIVE first, then scheduled, finished last (dimmed); within each group the sheet order (= schedule order from the CSV import) is kept
+- **Search box** filters matches by team or tournament name as you type
+- **Team dropdown** and **status chips** (All / LIVE / Scheduled / Finished, with counts) filter both today's and past matches
+- **Today** toggle hides past matches and combines with the status chips (e.g. Today + LIVE); **Clear** resets all filters
 
 **v2.6.3 (2026-10-09)** `[sixes]` — assists row fix:
 
