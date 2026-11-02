@@ -153,6 +153,7 @@ function doPost(e) {
     if (action === 'deleteEvent')               return jsonResponse(deleteEventById(body.id));
     if (action === 'listEventsForMatch')        return jsonResponse(listEventsForMatch(body.matchId));
     if (action === 'listAllEvents')             return jsonResponse(listAllEvents());
+    if (action === 'fixDuplicateEventIds')      return jsonResponse(fixDuplicateEventIds());
 
     if (action === 'presenceHeartbeat')         return jsonResponse(presenceHeartbeat(body.matchId, body.sessionId));
     if (action === 'presenceLeave')             return jsonResponse(presenceLeave(body.matchId, body.sessionId));
@@ -308,6 +309,57 @@ function sheetToArray(sheet, cols) {
 /**
  * Szuka wiersza po ID (kolumna 1). Zwraca numer wiersza (1-based) lub -1.
  */
+// Nowe id eventu = największe istniejące id + 1. NIE numer ostatniego wiersza:
+// po usunięciu eventu arkusz ma o wiersz mniej i lastRow wskazywałby id, które
+// już istnieje (duplikat → edycja/usunięcie trafiało w zły wiersz).
+// Wołać pod blokadą (LockService), żeby dwa równoległe zapisy nie dostały tego samego id.
+function nextEventId(sheet) {
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return 1;
+  var ids = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+  var max = 0;
+  for (var i = 0; i < ids.length; i++) {
+    var n = Number(ids[i][0]);
+    if (ids[i][0] !== '' && !isNaN(n) && n > max) max = n;
+  }
+  return max + 1;
+}
+
+/**
+ * Naprawa danych: każdemu powtórzonemu id eventu (poza pierwszym wystąpieniem,
+ * czyli tym, w który do tej pory trafiały edycje) nadaje nowe, unikalne id.
+ * Idempotentne — gdy nie ma duplikatów, nic nie zmienia.
+ */
+function fixDuplicateEventIds() {
+  var lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(20000);
+    var sheet = getSheet(CONFIG.SHEET_EVENTS);
+    var lastRow = sheet.getLastRow();
+    if (lastRow < 2) return ok([]);
+    var ids = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+    var next = nextEventId(sheet);
+    var seen = {};
+    var changes = [];
+    for (var i = 0; i < ids.length; i++) {
+      var key = String(ids[i][0]);
+      if (key === '') continue;
+      if (seen[key]) {
+        sheet.getRange(i + 2, 1).setValue(next);
+        changes.push({ row: i + 2, old_id: ids[i][0], new_id: next });
+        next++;
+      } else {
+        seen[key] = true;
+      }
+    }
+    return ok(changes);
+  } catch (e) {
+    return err('INTERNAL_ERROR', e.message);
+  } finally {
+    lock.releaseLock();
+  }
+}
+
 function findRowById(sheet, id) {
   var lastRow = sheet.getLastRow();
   if (lastRow < 2) return -1;
@@ -624,6 +676,7 @@ function migrateAddFastBreak() {
  * @returns {{ ok, data: { id, client_event_id } }}
  */
 function saveEvent(eventObj) {
+  var lock = null;
   try {
     // Rate limiting — klucz = match_id (stabilny per mecz), nie client_event_id (UUID per event)
     var sessionKey = String(eventObj.match_id || '');
@@ -634,6 +687,10 @@ function saveEvent(eventObj) {
     // Walidacja
     var validErr = validateEvent(eventObj);
     if (validErr) return err('SCHEMA_INVALID', validErr);
+
+    // Blokada: odczyt max id + appendRow muszą być atomowe względem innych zapisów.
+    lock = LockService.getScriptLock();
+    lock.waitLock(10000);
 
     var sheet = getSheet(CONFIG.SHEET_EVENTS);
     var lastRow = sheet.getLastRow();
@@ -650,7 +707,7 @@ function saveEvent(eventObj) {
     }
 
     // Nowe auto-increment ID = numer wiersza danych (lastRow - 1 + 1, gdzie -1 za nagłówek)
-    var newId = Math.max(1, lastRow); // row 1 = nagłówek → id=1 idzie do row 2
+    var newId = nextEventId(sheet);
     var createdAt = new Date().toISOString();
 
     var row = EVENT_COLS.map(function(col) {
@@ -669,10 +726,13 @@ function saveEvent(eventObj) {
     });
 
     sheet.appendRow(row);
+    SpreadsheetApp.flush();
 
     return ok({ id: newId, client_event_id: eventObj.client_event_id });
   } catch (e) {
     return err('INTERNAL_ERROR', e.message);
+  } finally {
+    if (lock) lock.releaseLock();
   }
 }
 

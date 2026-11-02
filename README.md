@@ -162,7 +162,7 @@ cd src/
 
 ## Status
 
-**Current: v2.7.0 — deployed 2026-11-02 (Reprezentacja)**
+**Current: v2.7.1 — deployed 2026-11-02 (Reprezentacja)**
 
 ### Versioning rules
 
@@ -175,6 +175,11 @@ cd src/
 ### Changelog
 
 Each entry is tagged with the game variant(s) it affects, not the deployment names: `[all]` ships everywhere, `[field]` is field lacrosse (Mistrzostwa) only, `[sixes]` is lacrosse sixes (Liga, Reprezentacja) only. Untagged legacy entries below predate the multi-deployment split and applied to all instances.
+
+**v2.7.1 (2026-11-02)** `[all]` — unique event ids:
+
+- New events get **largest existing id + 1** (under a script lock) instead of the sheet's row count; after an event was deleted, the next one reused an existing id, so editing or deleting one of the pair hit the other row
+- New `fixDuplicateEventIds` POST action renumbers the later copy of every duplicated id (idempotent)
 
 **v2.7.0 (2026-11-02)** `[sixes]` — match list filters on the home screen:
 
