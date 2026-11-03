@@ -2561,6 +2561,64 @@ function shotDistanceMeters(shot_x, shot_y) {
   return Math.sqrt(dx * dx + dy * dy);
 }
 
+// ── Bramka i pole bramkowe (crease) na płótnie ──────────────────────────────
+// Pełne boisko: płótno 1100×600, połowa boiska (obrócona, bramka u góry): 540×600.
+// Field lacrosse (mistrzostwa): historyczne wartości w skali 10 px/m (110×60 m).
+// Sixes: wymiary wg WL Sixes Rule Book 2026–28 — boisko 70×36 m (1.1.1), bramka
+// 25 m od linii środkowej i 1,83 m szerokości (1.2), crease = okrąg r = 3 m wokół
+// środka linii bramkowej (1.3.1). Płótno 1100×600 nie ma proporcji 70:36, więc
+// w pikselach crease jest lekką elipsą (rx ≠ ry), a w metrach — okręgiem.
+// Do v2.7.1 sixes używało rysunku field (bramka ~25,45 m, crease ~1,9 m).
+const CREASE_RADIUS_M = 3;
+const GOAL_WIDTH_M = 1.83;
+
+function fieldGeometry() {
+  const isField = typeof APP_CONFIG !== 'undefined' && APP_CONFIG.variant === 'field';
+  if (isField) {
+    return {
+      full: { goalLeftX: 150, goalRightX: 950, creaseRx: 30, creaseRy: 30, mouthHalf: 12 },
+      half: { goalY: 163.64, creaseRx: 27, creaseRy: 27, mouthHalf: 12 },
+    };
+  }
+  const d = FIELD_DIMENSIONS.sixes;
+  const fullPxX = 550 / d.halfLength, fullPxY = 600 / d.width;   // ≈15,71 / 16,67 px/m
+  const halfPxX = 540 / d.width,      halfPxY = 600 / d.halfLength; // 15 / ≈17,14 px/m
+  return {
+    full: {
+      goalLeftX:  550 - d.goalFromMidline * fullPxX,
+      goalRightX: 550 + d.goalFromMidline * fullPxX,
+      creaseRx: CREASE_RADIUS_M * fullPxX,
+      creaseRy: CREASE_RADIUS_M * fullPxY,
+      mouthHalf: GOAL_WIDTH_M / 2 * fullPxY,
+    },
+    half: {
+      goalY: (d.halfLength - d.goalFromMidline) * halfPxY,
+      creaseRx: CREASE_RADIUS_M * halfPxX,
+      creaseRy: CREASE_RADIUS_M * halfPxY,
+      mouthHalf: GOAL_WIDTH_M / 2 * halfPxX,
+    },
+  };
+}
+
+// Napastnik nie może być w polu bramkowym rywala (WL Sixes 6.16.1), więc strzał
+// kliknięty w crease zapisujemy w najbliższym legalnym punkcie: na krawędzi
+// (3 m + 5 cm zapasu) wzdłuż linii od środka bramki. Bez ostrzeżeń i blokad.
+// Współrzędne w układzie atakującego (shot_x ≥ 0).
+function snapShotOutOfCrease(shot_x, shot_y) {
+  const d = currentFieldDimensions();
+  let dx = shot_x * d.halfLength - d.goalFromMidline;
+  let dy = (shot_y - 0.5) * d.width;
+  const r = Math.sqrt(dx * dx + dy * dy);
+  const edge = CREASE_RADIUS_M + 0.05;
+  if (r >= edge) return { shot_x, shot_y, snapped: false };
+  if (r < 1e-6) { dx = -1; dy = 0; } else { dx /= r; dy /= r; }
+  return {
+    shot_x: (d.goalFromMidline + dx * edge) / d.halfLength,
+    shot_y: 0.5 + dy * edge / d.width,
+    snapped: true,
+  };
+}
+
 // SVG zone overlay rectangles (12 cells, physical positions on 1100×600 grid).
 function getZoneLayout() {
   const TX = 790, TM = 310, T1 = 200, T2 = 400;
@@ -4507,19 +4565,20 @@ function buildFieldSvg(match) {
 
   // Field markings
   const markings = svgEl('g', { class: 'field-markings' });
+  const G = fieldGeometry().full;
   markings.innerHTML = `
     <line x1="550" y1="0" x2="550" y2="600" stroke="white" stroke-width="2"/>
     <line x1="540" y1="290" x2="560" y2="310" stroke="white" stroke-width="2"/>
     <line x1="540" y1="310" x2="560" y2="290" stroke="white" stroke-width="2"/>
-    <line x1="150" y1="0" x2="150" y2="600" stroke="white" stroke-width="1.5" opacity="0.7"/>
-    <line x1="950" y1="0" x2="950" y2="600" stroke="white" stroke-width="1.5" opacity="0.7"/>
+    <line x1="${G.goalLeftX}" y1="0" x2="${G.goalLeftX}" y2="600" stroke="white" stroke-width="1.5" opacity="0.7"/>
+    <line x1="${G.goalRightX}" y1="0" x2="${G.goalRightX}" y2="600" stroke="white" stroke-width="1.5" opacity="0.7"/>
     <line x1="350" y1="0" x2="350" y2="600" stroke="white" stroke-width="1.5" stroke-dasharray="6,4" opacity="0.85"/>
     <line x1="750" y1="0" x2="750" y2="600" stroke="white" stroke-width="1.5" stroke-dasharray="6,4" opacity="0.85"/>
     <rect x="0" y="0" width="1100" height="600" fill="none" stroke="white" stroke-width="3"/>
-    <circle cx="150" cy="300" r="30" fill="#9bbf85" stroke="white" stroke-width="2"/>
-    <circle cx="950" cy="300" r="30" fill="#9bbf85" stroke="white" stroke-width="2"/>
-    <line x1="150" y1="288" x2="150" y2="312" stroke="white" stroke-width="5"/>
-    <line x1="950" y1="288" x2="950" y2="312" stroke="white" stroke-width="5"/>
+    <ellipse cx="${G.goalLeftX}" cy="300" rx="${G.creaseRx}" ry="${G.creaseRy}" fill="#9bbf85" stroke="white" stroke-width="2"/>
+    <ellipse cx="${G.goalRightX}" cy="300" rx="${G.creaseRx}" ry="${G.creaseRy}" fill="#9bbf85" stroke="white" stroke-width="2"/>
+    <line x1="${G.goalLeftX}" y1="${300 - G.mouthHalf}" x2="${G.goalLeftX}" y2="${300 + G.mouthHalf}" stroke="white" stroke-width="5"/>
+    <line x1="${G.goalRightX}" y1="${300 - G.mouthHalf}" x2="${G.goalRightX}" y2="${300 + G.mouthHalf}" stroke="white" stroke-width="5"/>
   `;
   fieldG.appendChild(markings);
 
@@ -4681,6 +4740,14 @@ function handleFieldClick(ev) {
   }
 
   const det = detectZone(x, y, APP.match.team_A_side);
+  // Strzał w crease → najbliższy legalny punkt na krawędzi pola bramkowego.
+  // (GB/Draw liczą pozycję od nowa z click_x/click_y, więc ich to nie dotyczy.)
+  const snap = snapShotOutOfCrease(det.shot_x, det.shot_y);
+  if (snap.snapped) {
+    det.shot_x = snap.shot_x;
+    det.shot_y = snap.shot_y;
+    det.zone = zoneForAttackerCoords(snap.shot_x, snap.shot_y);
+  }
   const teamName = det.team === 'A' ? match.team_A : match.team_B;
   APP.modal = {
     type: 'result',
@@ -4775,16 +4842,17 @@ function drawHalfFieldChart(svg, match, filtered, viewer) {
   fieldG.appendChild(svgEl('line', { x1: 0, y1: 600, x2: 540, y2: 600, stroke: 'white', 'stroke-width': 3 }));
   // Restraining line (attacker_progress 0.4368 → cy = (1 − 0.4368) × 600 ≈ 337.92).
   fieldG.appendChild(svgEl('line', { x1: 0, y1: 337.92, x2: 540, y2: 337.92, stroke: 'white', 'stroke-width': 1.5, 'stroke-dasharray': '6,4', opacity: 0.85 }));
-  // Goal line (attacker_progress 40/55 ≈ 0.7273 → cy ≈ 163.64).
-  fieldG.appendChild(svgEl('line', { x1: 0, y1: 163.64, x2: 540, y2: 163.64, stroke: 'white', 'stroke-width': 1.5, opacity: 0.7 }));
+  // Goal line (field: 40/55 → cy ≈ 163.64; sixes: 25/35 → cy ≈ 171.43 — patrz fieldGeometry()).
+  const GH = fieldGeometry().half;
+  fieldG.appendChild(svgEl('line', { x1: 0, y1: GH.goalY, x2: 540, y2: GH.goalY, stroke: 'white', 'stroke-width': 1.5, opacity: 0.7 }));
   // End line at the top.
   fieldG.appendChild(svgEl('line', { x1: 0, y1: 0, x2: 540, y2: 0, stroke: 'white', 'stroke-width': 3 }));
   // Side lines (left and right).
   fieldG.appendChild(svgEl('line', { x1: 0,   y1: 0, x2: 0,   y2: 600, stroke: 'white', 'stroke-width': 3 }));
   fieldG.appendChild(svgEl('line', { x1: 540, y1: 0, x2: 540, y2: 600, stroke: 'white', 'stroke-width': 3 }));
   // Crease + goal mouth at the goal line.
-  fieldG.appendChild(svgEl('circle', { cx: 270, cy: 163.64, r: 27, fill: '#9bbf85', stroke: 'white', 'stroke-width': 2 }));
-  fieldG.appendChild(svgEl('line',   { x1: 258, y1: 163.64, x2: 282, y2: 163.64, stroke: 'white', 'stroke-width': 5 }));
+  fieldG.appendChild(svgEl('ellipse', { cx: 270, cy: GH.goalY, rx: GH.creaseRx, ry: GH.creaseRy, fill: '#9bbf85', stroke: 'white', 'stroke-width': 2 }));
+  fieldG.appendChild(svgEl('line',    { x1: 270 - GH.mouthHalf, y1: GH.goalY, x2: 270 + GH.mouthHalf, y2: GH.goalY, stroke: 'white', 'stroke-width': 5 }));
 
   if (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.variant === 'field') {
     fieldG.appendChild(buildFieldLacrosseRozkiHalf());
@@ -4808,15 +4876,17 @@ function drawFieldMarkings(g, w, h) {
   g.appendChild(svgEl('line',   { x1: w / 2, y1: 0, x2: w / 2, y2: h, stroke: 'white', 'stroke-width': 2 }));
   g.appendChild(svgEl('line',   { x1: w / 2 - 10, y1: h / 2 - 10, x2: w / 2 + 10, y2: h / 2 + 10, stroke: 'white', 'stroke-width': 2 }));
   g.appendChild(svgEl('line',   { x1: w / 2 - 10, y1: h / 2 + 10, x2: w / 2 + 10, y2: h / 2 - 10, stroke: 'white', 'stroke-width': 2 }));
-  g.appendChild(svgEl('line',   { x1: w * 150 / 1100, y1: 0, x2: w * 150 / 1100, y2: h, stroke: 'white', 'stroke-width': 1.5, opacity: 0.7 }));
-  g.appendChild(svgEl('line',   { x1: w * 950 / 1100, y1: 0, x2: w * 950 / 1100, y2: h, stroke: 'white', 'stroke-width': 1.5, opacity: 0.7 }));
+  const G = fieldGeometry().full;
+  const sx = w / 1100, sy = h / 600;
+  g.appendChild(svgEl('line',   { x1: G.goalLeftX * sx, y1: 0, x2: G.goalLeftX * sx, y2: h, stroke: 'white', 'stroke-width': 1.5, opacity: 0.7 }));
+  g.appendChild(svgEl('line',   { x1: G.goalRightX * sx, y1: 0, x2: G.goalRightX * sx, y2: h, stroke: 'white', 'stroke-width': 1.5, opacity: 0.7 }));
   g.appendChild(svgEl('line',   { x1: w * 350 / 1100, y1: 0, x2: w * 350 / 1100, y2: h, stroke: 'white', 'stroke-width': 1.5, 'stroke-dasharray': '6,4', opacity: 0.85 }));
   g.appendChild(svgEl('line',   { x1: w * 750 / 1100, y1: 0, x2: w * 750 / 1100, y2: h, stroke: 'white', 'stroke-width': 1.5, 'stroke-dasharray': '6,4', opacity: 0.85 }));
   g.appendChild(svgEl('rect',   { x: 0, y: 0, width: w, height: h, fill: 'none', stroke: 'white', 'stroke-width': 3 }));
-  g.appendChild(svgEl('circle', { cx: w * 150 / 1100, cy: h / 2, r: 30, fill: '#9bbf85', stroke: 'white', 'stroke-width': 2 }));
-  g.appendChild(svgEl('circle', { cx: w * 950 / 1100, cy: h / 2, r: 30, fill: '#9bbf85', stroke: 'white', 'stroke-width': 2 }));
-  g.appendChild(svgEl('line',   { x1: w * 150 / 1100, y1: h / 2 - 12, x2: w * 150 / 1100, y2: h / 2 + 12, stroke: 'white', 'stroke-width': 5 }));
-  g.appendChild(svgEl('line',   { x1: w * 950 / 1100, y1: h / 2 - 12, x2: w * 950 / 1100, y2: h / 2 + 12, stroke: 'white', 'stroke-width': 5 }));
+  g.appendChild(svgEl('ellipse', { cx: G.goalLeftX * sx, cy: h / 2, rx: G.creaseRx * sx, ry: G.creaseRy * sy, fill: '#9bbf85', stroke: 'white', 'stroke-width': 2 }));
+  g.appendChild(svgEl('ellipse', { cx: G.goalRightX * sx, cy: h / 2, rx: G.creaseRx * sx, ry: G.creaseRy * sy, fill: '#9bbf85', stroke: 'white', 'stroke-width': 2 }));
+  g.appendChild(svgEl('line',   { x1: G.goalLeftX * sx, y1: h / 2 - G.mouthHalf * sy, x2: G.goalLeftX * sx, y2: h / 2 + G.mouthHalf * sy, stroke: 'white', 'stroke-width': 5 }));
+  g.appendChild(svgEl('line',   { x1: G.goalRightX * sx, y1: h / 2 - G.mouthHalf * sy, x2: G.goalRightX * sx, y2: h / 2 + G.mouthHalf * sy, stroke: 'white', 'stroke-width': 5 }));
   if (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.variant === 'field') {
     g.appendChild(buildFieldLacrosseRozki(w, h));
   }
@@ -7038,6 +7108,7 @@ function _buildZoneEfficiencySvg(events) {
       <text x="${lx}" y="${ly + 26}" text-anchor="middle" dominant-baseline="middle" font-size="10" fill="white" opacity="0.8">${s.goals}g / ${s.total}s</text>`;
   }).join('');
 
+  const GH = fieldGeometry().half;
   const ns = 'http://www.w3.org/2000/svg';
   const svg = document.createElementNS(ns, 'svg');
   svg.setAttribute('viewBox', '0 0 540 660');
@@ -7049,14 +7120,14 @@ function _buildZoneEfficiencySvg(events) {
       <rect x="0" y="0" width="540" height="600" fill="#9bbf85"/>
       <line x1="0" y1="600" x2="540" y2="600" stroke="white" stroke-width="3"/>
       <line x1="0" y1="337.92" x2="540" y2="337.92" stroke="white" stroke-width="1.5" stroke-dasharray="6,4" opacity="0.85"/>
-      <line x1="0" y1="163.64" x2="540" y2="163.64" stroke="white" stroke-width="1.5" opacity="0.7"/>
+      <line x1="0" y1="${GH.goalY}" x2="540" y2="${GH.goalY}" stroke="white" stroke-width="1.5" opacity="0.7"/>
       <line x1="0" y1="0" x2="540" y2="0" stroke="white" stroke-width="3"/>
       <line x1="0" y1="0" x2="0" y2="600" stroke="white" stroke-width="3"/>
       <line x1="540" y1="0" x2="540" y2="600" stroke="white" stroke-width="3"/>
       <line x1="180" y1="0" x2="180" y2="600" stroke="white" stroke-width="1" opacity="0.5"/>
       <line x1="360" y1="0" x2="360" y2="600" stroke="white" stroke-width="1" opacity="0.5"/>
-      <circle cx="270" cy="163.64" r="27" fill="#9bbf85" stroke="white" stroke-width="2"/>
-      <line x1="258" y1="163.64" x2="282" y2="163.64" stroke="white" stroke-width="5"/>
+      <ellipse cx="270" cy="${GH.goalY}" rx="${GH.creaseRx}" ry="${GH.creaseRy}" fill="#9bbf85" stroke="white" stroke-width="2"/>
+      <line x1="${270 - GH.mouthHalf}" y1="${GH.goalY}" x2="${270 + GH.mouthHalf}" y2="${GH.goalY}" stroke="white" stroke-width="5"/>
       ${zoneOverlays}
     </g>
     <g transform="translate(4, 618)">
@@ -7724,10 +7795,11 @@ function _hmFiltersHtml(S, allTeams, coded, tourNames) {
 }
 
 function _hmFieldMarkings() {
+  const G = fieldGeometry().full;
   return `
     <g fill="none" stroke="${HM_LINE}" stroke-width="2">
-      <line x1="150" y1="0" x2="150" y2="600"/>
-      <line x1="950" y1="0" x2="950" y2="600"/>
+      <line x1="${G.goalLeftX}" y1="0" x2="${G.goalLeftX}" y2="600"/>
+      <line x1="${G.goalRightX}" y1="0" x2="${G.goalRightX}" y2="600"/>
       <line x1="550" y1="0" x2="550" y2="600"/>
       <line x1="350" y1="0" x2="350" y2="600" stroke-dasharray="8 8"/>
       <line x1="750" y1="0" x2="750" y2="600" stroke-dasharray="8 8"/>
@@ -7736,12 +7808,13 @@ function _hmFieldMarkings() {
 }
 
 function _hmFieldOverlay() {
+  const G = fieldGeometry().full;
   return `
     <g fill="none" stroke="${HM_LINE}" stroke-width="2.5" pointer-events="none">
-      <circle cx="150" cy="300" r="30"/><circle cx="950" cy="300" r="30"/>
+      <ellipse cx="${G.goalLeftX}" cy="300" rx="${G.creaseRx}" ry="${G.creaseRy}"/><ellipse cx="${G.goalRightX}" cy="300" rx="${G.creaseRx}" ry="${G.creaseRy}"/>
     </g>
-    <rect x="148" y="288" width="4" height="24" fill="#fff" pointer-events="none"/>
-    <rect x="948" y="288" width="4" height="24" fill="#fff" pointer-events="none"/>`;
+    <rect x="${G.goalLeftX - 2}" y="${300 - G.mouthHalf}" width="4" height="${2 * G.mouthHalf}" fill="#fff" pointer-events="none"/>
+    <rect x="${G.goalRightX - 2}" y="${300 - G.mouthHalf}" width="4" height="${2 * G.mouthHalf}" fill="#fff" pointer-events="none"/>`;
 }
 
 function _hmMapCardHtml(S, C) {

@@ -317,10 +317,11 @@ function _hmFiltersHtml(S, allTeams, coded, tourNames) {
 }
 
 function _hmFieldMarkings() {
+  const G = fieldGeometry().full;
   return `
     <g fill="none" stroke="${HM_LINE}" stroke-width="2">
-      <line x1="150" y1="0" x2="150" y2="600"/>
-      <line x1="950" y1="0" x2="950" y2="600"/>
+      <line x1="${G.goalLeftX}" y1="0" x2="${G.goalLeftX}" y2="600"/>
+      <line x1="${G.goalRightX}" y1="0" x2="${G.goalRightX}" y2="600"/>
       <line x1="550" y1="0" x2="550" y2="600"/>
       <line x1="350" y1="0" x2="350" y2="600" stroke-dasharray="8 8"/>
       <line x1="750" y1="0" x2="750" y2="600" stroke-dasharray="8 8"/>
@@ -329,12 +330,13 @@ function _hmFieldMarkings() {
 }
 
 function _hmFieldOverlay() {
+  const G = fieldGeometry().full;
   return `
     <g fill="none" stroke="${HM_LINE}" stroke-width="2.5" pointer-events="none">
-      <circle cx="150" cy="300" r="30"/><circle cx="950" cy="300" r="30"/>
+      <ellipse cx="${G.goalLeftX}" cy="300" rx="${G.creaseRx}" ry="${G.creaseRy}"/><ellipse cx="${G.goalRightX}" cy="300" rx="${G.creaseRx}" ry="${G.creaseRy}"/>
     </g>
-    <rect x="148" y="288" width="4" height="24" fill="#fff" pointer-events="none"/>
-    <rect x="948" y="288" width="4" height="24" fill="#fff" pointer-events="none"/>`;
+    <rect x="${G.goalLeftX - 2}" y="${300 - G.mouthHalf}" width="4" height="${2 * G.mouthHalf}" fill="#fff" pointer-events="none"/>
+    <rect x="${G.goalRightX - 2}" y="${300 - G.mouthHalf}" width="4" height="${2 * G.mouthHalf}" fill="#fff" pointer-events="none"/>`;
 }
 
 function _hmMapCardHtml(S, C) {
