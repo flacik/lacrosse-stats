@@ -53,19 +53,20 @@ function buildFieldSvg(match) {
 
   // Field markings
   const markings = svgEl('g', { class: 'field-markings' });
+  const G = fieldGeometry().full;
   markings.innerHTML = `
     <line x1="550" y1="0" x2="550" y2="600" stroke="white" stroke-width="2"/>
     <line x1="540" y1="290" x2="560" y2="310" stroke="white" stroke-width="2"/>
     <line x1="540" y1="310" x2="560" y2="290" stroke="white" stroke-width="2"/>
-    <line x1="150" y1="0" x2="150" y2="600" stroke="white" stroke-width="1.5" opacity="0.7"/>
-    <line x1="950" y1="0" x2="950" y2="600" stroke="white" stroke-width="1.5" opacity="0.7"/>
+    <line x1="${G.goalLeftX}" y1="0" x2="${G.goalLeftX}" y2="600" stroke="white" stroke-width="1.5" opacity="0.7"/>
+    <line x1="${G.goalRightX}" y1="0" x2="${G.goalRightX}" y2="600" stroke="white" stroke-width="1.5" opacity="0.7"/>
     <line x1="350" y1="0" x2="350" y2="600" stroke="white" stroke-width="1.5" stroke-dasharray="6,4" opacity="0.85"/>
     <line x1="750" y1="0" x2="750" y2="600" stroke="white" stroke-width="1.5" stroke-dasharray="6,4" opacity="0.85"/>
     <rect x="0" y="0" width="1100" height="600" fill="none" stroke="white" stroke-width="3"/>
-    <circle cx="150" cy="300" r="30" fill="#9bbf85" stroke="white" stroke-width="2"/>
-    <circle cx="950" cy="300" r="30" fill="#9bbf85" stroke="white" stroke-width="2"/>
-    <line x1="150" y1="288" x2="150" y2="312" stroke="white" stroke-width="5"/>
-    <line x1="950" y1="288" x2="950" y2="312" stroke="white" stroke-width="5"/>
+    <ellipse cx="${G.goalLeftX}" cy="300" rx="${G.creaseRx}" ry="${G.creaseRy}" fill="#9bbf85" stroke="white" stroke-width="2"/>
+    <ellipse cx="${G.goalRightX}" cy="300" rx="${G.creaseRx}" ry="${G.creaseRy}" fill="#9bbf85" stroke="white" stroke-width="2"/>
+    <line x1="${G.goalLeftX}" y1="${300 - G.mouthHalf}" x2="${G.goalLeftX}" y2="${300 + G.mouthHalf}" stroke="white" stroke-width="5"/>
+    <line x1="${G.goalRightX}" y1="${300 - G.mouthHalf}" x2="${G.goalRightX}" y2="${300 + G.mouthHalf}" stroke="white" stroke-width="5"/>
   `;
   fieldG.appendChild(markings);
 
@@ -227,6 +228,14 @@ function handleFieldClick(ev) {
   }
 
   const det = detectZone(x, y, APP.match.team_A_side);
+  // Strzał w crease → najbliższy legalny punkt na krawędzi pola bramkowego.
+  // (GB/Draw liczą pozycję od nowa z click_x/click_y, więc ich to nie dotyczy.)
+  const snap = snapShotOutOfCrease(det.shot_x, det.shot_y);
+  if (snap.snapped) {
+    det.shot_x = snap.shot_x;
+    det.shot_y = snap.shot_y;
+    det.zone = zoneForAttackerCoords(snap.shot_x, snap.shot_y);
+  }
   const teamName = det.team === 'A' ? match.team_A : match.team_B;
   APP.modal = {
     type: 'result',
@@ -321,16 +330,17 @@ function drawHalfFieldChart(svg, match, filtered, viewer) {
   fieldG.appendChild(svgEl('line', { x1: 0, y1: 600, x2: 540, y2: 600, stroke: 'white', 'stroke-width': 3 }));
   // Restraining line (attacker_progress 0.4368 → cy = (1 − 0.4368) × 600 ≈ 337.92).
   fieldG.appendChild(svgEl('line', { x1: 0, y1: 337.92, x2: 540, y2: 337.92, stroke: 'white', 'stroke-width': 1.5, 'stroke-dasharray': '6,4', opacity: 0.85 }));
-  // Goal line (attacker_progress 40/55 ≈ 0.7273 → cy ≈ 163.64).
-  fieldG.appendChild(svgEl('line', { x1: 0, y1: 163.64, x2: 540, y2: 163.64, stroke: 'white', 'stroke-width': 1.5, opacity: 0.7 }));
+  // Goal line (field: 40/55 → cy ≈ 163.64; sixes: 25/35 → cy ≈ 171.43 — patrz fieldGeometry()).
+  const GH = fieldGeometry().half;
+  fieldG.appendChild(svgEl('line', { x1: 0, y1: GH.goalY, x2: 540, y2: GH.goalY, stroke: 'white', 'stroke-width': 1.5, opacity: 0.7 }));
   // End line at the top.
   fieldG.appendChild(svgEl('line', { x1: 0, y1: 0, x2: 540, y2: 0, stroke: 'white', 'stroke-width': 3 }));
   // Side lines (left and right).
   fieldG.appendChild(svgEl('line', { x1: 0,   y1: 0, x2: 0,   y2: 600, stroke: 'white', 'stroke-width': 3 }));
   fieldG.appendChild(svgEl('line', { x1: 540, y1: 0, x2: 540, y2: 600, stroke: 'white', 'stroke-width': 3 }));
   // Crease + goal mouth at the goal line.
-  fieldG.appendChild(svgEl('circle', { cx: 270, cy: 163.64, r: 27, fill: '#9bbf85', stroke: 'white', 'stroke-width': 2 }));
-  fieldG.appendChild(svgEl('line',   { x1: 258, y1: 163.64, x2: 282, y2: 163.64, stroke: 'white', 'stroke-width': 5 }));
+  fieldG.appendChild(svgEl('ellipse', { cx: 270, cy: GH.goalY, rx: GH.creaseRx, ry: GH.creaseRy, fill: '#9bbf85', stroke: 'white', 'stroke-width': 2 }));
+  fieldG.appendChild(svgEl('line',    { x1: 270 - GH.mouthHalf, y1: GH.goalY, x2: 270 + GH.mouthHalf, y2: GH.goalY, stroke: 'white', 'stroke-width': 5 }));
 
   if (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.variant === 'field') {
     fieldG.appendChild(buildFieldLacrosseRozkiHalf());
@@ -354,15 +364,17 @@ function drawFieldMarkings(g, w, h) {
   g.appendChild(svgEl('line',   { x1: w / 2, y1: 0, x2: w / 2, y2: h, stroke: 'white', 'stroke-width': 2 }));
   g.appendChild(svgEl('line',   { x1: w / 2 - 10, y1: h / 2 - 10, x2: w / 2 + 10, y2: h / 2 + 10, stroke: 'white', 'stroke-width': 2 }));
   g.appendChild(svgEl('line',   { x1: w / 2 - 10, y1: h / 2 + 10, x2: w / 2 + 10, y2: h / 2 - 10, stroke: 'white', 'stroke-width': 2 }));
-  g.appendChild(svgEl('line',   { x1: w * 150 / 1100, y1: 0, x2: w * 150 / 1100, y2: h, stroke: 'white', 'stroke-width': 1.5, opacity: 0.7 }));
-  g.appendChild(svgEl('line',   { x1: w * 950 / 1100, y1: 0, x2: w * 950 / 1100, y2: h, stroke: 'white', 'stroke-width': 1.5, opacity: 0.7 }));
+  const G = fieldGeometry().full;
+  const sx = w / 1100, sy = h / 600;
+  g.appendChild(svgEl('line',   { x1: G.goalLeftX * sx, y1: 0, x2: G.goalLeftX * sx, y2: h, stroke: 'white', 'stroke-width': 1.5, opacity: 0.7 }));
+  g.appendChild(svgEl('line',   { x1: G.goalRightX * sx, y1: 0, x2: G.goalRightX * sx, y2: h, stroke: 'white', 'stroke-width': 1.5, opacity: 0.7 }));
   g.appendChild(svgEl('line',   { x1: w * 350 / 1100, y1: 0, x2: w * 350 / 1100, y2: h, stroke: 'white', 'stroke-width': 1.5, 'stroke-dasharray': '6,4', opacity: 0.85 }));
   g.appendChild(svgEl('line',   { x1: w * 750 / 1100, y1: 0, x2: w * 750 / 1100, y2: h, stroke: 'white', 'stroke-width': 1.5, 'stroke-dasharray': '6,4', opacity: 0.85 }));
   g.appendChild(svgEl('rect',   { x: 0, y: 0, width: w, height: h, fill: 'none', stroke: 'white', 'stroke-width': 3 }));
-  g.appendChild(svgEl('circle', { cx: w * 150 / 1100, cy: h / 2, r: 30, fill: '#9bbf85', stroke: 'white', 'stroke-width': 2 }));
-  g.appendChild(svgEl('circle', { cx: w * 950 / 1100, cy: h / 2, r: 30, fill: '#9bbf85', stroke: 'white', 'stroke-width': 2 }));
-  g.appendChild(svgEl('line',   { x1: w * 150 / 1100, y1: h / 2 - 12, x2: w * 150 / 1100, y2: h / 2 + 12, stroke: 'white', 'stroke-width': 5 }));
-  g.appendChild(svgEl('line',   { x1: w * 950 / 1100, y1: h / 2 - 12, x2: w * 950 / 1100, y2: h / 2 + 12, stroke: 'white', 'stroke-width': 5 }));
+  g.appendChild(svgEl('ellipse', { cx: G.goalLeftX * sx, cy: h / 2, rx: G.creaseRx * sx, ry: G.creaseRy * sy, fill: '#9bbf85', stroke: 'white', 'stroke-width': 2 }));
+  g.appendChild(svgEl('ellipse', { cx: G.goalRightX * sx, cy: h / 2, rx: G.creaseRx * sx, ry: G.creaseRy * sy, fill: '#9bbf85', stroke: 'white', 'stroke-width': 2 }));
+  g.appendChild(svgEl('line',   { x1: G.goalLeftX * sx, y1: h / 2 - G.mouthHalf * sy, x2: G.goalLeftX * sx, y2: h / 2 + G.mouthHalf * sy, stroke: 'white', 'stroke-width': 5 }));
+  g.appendChild(svgEl('line',   { x1: G.goalRightX * sx, y1: h / 2 - G.mouthHalf * sy, x2: G.goalRightX * sx, y2: h / 2 + G.mouthHalf * sy, stroke: 'white', 'stroke-width': 5 }));
   if (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.variant === 'field') {
     g.appendChild(buildFieldLacrosseRozki(w, h));
   }

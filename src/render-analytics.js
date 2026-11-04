@@ -645,6 +645,7 @@ function _buildZoneEfficiencySvg(events) {
       <text x="${lx}" y="${ly + 26}" text-anchor="middle" dominant-baseline="middle" font-size="10" fill="white" opacity="0.8">${s.goals}g / ${s.total}s</text>`;
   }).join('');
 
+  const GH = fieldGeometry().half;
   const ns = 'http://www.w3.org/2000/svg';
   const svg = document.createElementNS(ns, 'svg');
   svg.setAttribute('viewBox', '0 0 540 660');
@@ -656,14 +657,14 @@ function _buildZoneEfficiencySvg(events) {
       <rect x="0" y="0" width="540" height="600" fill="#9bbf85"/>
       <line x1="0" y1="600" x2="540" y2="600" stroke="white" stroke-width="3"/>
       <line x1="0" y1="337.92" x2="540" y2="337.92" stroke="white" stroke-width="1.5" stroke-dasharray="6,4" opacity="0.85"/>
-      <line x1="0" y1="163.64" x2="540" y2="163.64" stroke="white" stroke-width="1.5" opacity="0.7"/>
+      <line x1="0" y1="${GH.goalY}" x2="540" y2="${GH.goalY}" stroke="white" stroke-width="1.5" opacity="0.7"/>
       <line x1="0" y1="0" x2="540" y2="0" stroke="white" stroke-width="3"/>
       <line x1="0" y1="0" x2="0" y2="600" stroke="white" stroke-width="3"/>
       <line x1="540" y1="0" x2="540" y2="600" stroke="white" stroke-width="3"/>
       <line x1="180" y1="0" x2="180" y2="600" stroke="white" stroke-width="1" opacity="0.5"/>
       <line x1="360" y1="0" x2="360" y2="600" stroke="white" stroke-width="1" opacity="0.5"/>
-      <circle cx="270" cy="163.64" r="27" fill="#9bbf85" stroke="white" stroke-width="2"/>
-      <line x1="258" y1="163.64" x2="282" y2="163.64" stroke="white" stroke-width="5"/>
+      <ellipse cx="270" cy="${GH.goalY}" rx="${GH.creaseRx}" ry="${GH.creaseRy}" fill="#9bbf85" stroke="white" stroke-width="2"/>
+      <line x1="${270 - GH.mouthHalf}" y1="${GH.goalY}" x2="${270 + GH.mouthHalf}" y2="${GH.goalY}" stroke="white" stroke-width="5"/>
       ${zoneOverlays}
     </g>
     <g transform="translate(4, 618)">

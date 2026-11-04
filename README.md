@@ -176,6 +176,12 @@ cd src/
 
 Each entry is tagged with the game variant(s) it affects, not the deployment names: `[all]` ships everywhere, `[field]` is field lacrosse (Mistrzostwa) only, `[sixes]` is lacrosse sixes (Liga, Reprezentacja) only. Untagged legacy entries below predate the multi-deployment split and applied to all instances.
 
+**v2.7.2 (2026-11-04)** `[sixes]` — field geometry per WL Sixes rules (deployed: Reprezentacja, Staging; **not Liga** — its data needs the same one-off migration first):
+
+- The sixes field was drawn at field-lacrosse scale: goal ~25.45 m from the midline, crease r ≈ 1.9 m, goal mouth ~1.5 m. Now per WL Sixes Rule Book 2026–28: goal 25 m from the midline (1.2), 1.83 m wide, crease r = 3 m (1.3.1) — on the 1100×600 canvas the crease is a slight ellipse (47×50 px), since the canvas is not 70:36. One source of truth: `fieldGeometry()` in `algorithms.js`, used by the input field, viewer (full + half), analytics zone chart and heatmap. Field lacrosse values unchanged
+- A shot clicked inside the crease is saved at the nearest legal point (crease edge, 3.05 m from the goal centre) — no warning, no blocked click (`snapShotOutOfCrease`). Ground balls/draws are not moved
+- One-off migration of saved positions (Reprezentacja sheet, 298 events): the old drawn crease edge maps to 3 m and the correction fades out linearly by 8 m from the goal; beyond 8 m nothing moves. Script, plan and backups: `scouting/backup-crease-2026-11-04/` (git-ignored); Drive copy of the sheet made before the migration
+
 **v2.7.1 (2026-11-02)** `[all]` — unique event ids:
 
 - New events get **largest existing id + 1** (under a script lock) instead of the sheet's row count; after an event was deleted, the next one reused an existing id, so editing or deleting one of the pair hit the other row

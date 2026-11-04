@@ -95,6 +95,64 @@ function shotDistanceMeters(shot_x, shot_y) {
   return Math.sqrt(dx * dx + dy * dy);
 }
 
+// ── Bramka i pole bramkowe (crease) na płótnie ──────────────────────────────
+// Pełne boisko: płótno 1100×600, połowa boiska (obrócona, bramka u góry): 540×600.
+// Field lacrosse (mistrzostwa): historyczne wartości w skali 10 px/m (110×60 m).
+// Sixes: wymiary wg WL Sixes Rule Book 2026–28 — boisko 70×36 m (1.1.1), bramka
+// 25 m od linii środkowej i 1,83 m szerokości (1.2), crease = okrąg r = 3 m wokół
+// środka linii bramkowej (1.3.1). Płótno 1100×600 nie ma proporcji 70:36, więc
+// w pikselach crease jest lekką elipsą (rx ≠ ry), a w metrach — okręgiem.
+// Do v2.7.1 sixes używało rysunku field (bramka ~25,45 m, crease ~1,9 m).
+const CREASE_RADIUS_M = 3;
+const GOAL_WIDTH_M = 1.83;
+
+function fieldGeometry() {
+  const isField = typeof APP_CONFIG !== 'undefined' && APP_CONFIG.variant === 'field';
+  if (isField) {
+    return {
+      full: { goalLeftX: 150, goalRightX: 950, creaseRx: 30, creaseRy: 30, mouthHalf: 12 },
+      half: { goalY: 163.64, creaseRx: 27, creaseRy: 27, mouthHalf: 12 },
+    };
+  }
+  const d = FIELD_DIMENSIONS.sixes;
+  const fullPxX = 550 / d.halfLength, fullPxY = 600 / d.width;   // ≈15,71 / 16,67 px/m
+  const halfPxX = 540 / d.width,      halfPxY = 600 / d.halfLength; // 15 / ≈17,14 px/m
+  return {
+    full: {
+      goalLeftX:  550 - d.goalFromMidline * fullPxX,
+      goalRightX: 550 + d.goalFromMidline * fullPxX,
+      creaseRx: CREASE_RADIUS_M * fullPxX,
+      creaseRy: CREASE_RADIUS_M * fullPxY,
+      mouthHalf: GOAL_WIDTH_M / 2 * fullPxY,
+    },
+    half: {
+      goalY: (d.halfLength - d.goalFromMidline) * halfPxY,
+      creaseRx: CREASE_RADIUS_M * halfPxX,
+      creaseRy: CREASE_RADIUS_M * halfPxY,
+      mouthHalf: GOAL_WIDTH_M / 2 * halfPxX,
+    },
+  };
+}
+
+// Napastnik nie może być w polu bramkowym rywala (WL Sixes 6.16.1), więc strzał
+// kliknięty w crease zapisujemy w najbliższym legalnym punkcie: na krawędzi
+// (3 m + 5 cm zapasu) wzdłuż linii od środka bramki. Bez ostrzeżeń i blokad.
+// Współrzędne w układzie atakującego (shot_x ≥ 0).
+function snapShotOutOfCrease(shot_x, shot_y) {
+  const d = currentFieldDimensions();
+  let dx = shot_x * d.halfLength - d.goalFromMidline;
+  let dy = (shot_y - 0.5) * d.width;
+  const r = Math.sqrt(dx * dx + dy * dy);
+  const edge = CREASE_RADIUS_M + 0.05;
+  if (r >= edge) return { shot_x, shot_y, snapped: false };
+  if (r < 1e-6) { dx = -1; dy = 0; } else { dx /= r; dy /= r; }
+  return {
+    shot_x: (d.goalFromMidline + dx * edge) / d.halfLength,
+    shot_y: 0.5 + dy * edge / d.width,
+    snapped: true,
+  };
+}
+
 // SVG zone overlay rectangles (12 cells, physical positions on 1100×600 grid).
 function getZoneLayout() {
   const TX = 790, TM = 310, T1 = 200, T2 = 400;
